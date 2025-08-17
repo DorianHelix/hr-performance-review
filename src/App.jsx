@@ -1359,6 +1359,10 @@ function EmployeesContent() {
     const [dragging, setDragging] = useState(null);
     const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
     const [isDarkMode] = useState(() => document.documentElement.getAttribute('data-theme') !== 'light');
+    const [hoveredConnection, setHoveredConnection] = useState(null);
+    const [isDrawingConnection, setIsDrawingConnection] = useState(false);
+    const [connectionStart, setConnectionStart] = useState(null);
+    const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
 
     useEffect(() => {
       // Build hierarchy and calculate positions
@@ -1456,18 +1460,32 @@ function EmployeesContent() {
       // Clear canvas
       ctx.clearRect(0, 0, displayWidth, displayHeight);
       
+      // Store connection midpoints for interaction
+      const connections = [];
+      
       // Draw connections first (behind nodes)
       Object.values(nodes).forEach(node => {
         if (node.managerId) {
           const managerNode = nodes[node.managerId];
           if (managerNode) {
+            const startX = managerNode.x + managerNode.width / 2;
+            const startY = managerNode.y + managerNode.height;
+            const endX = node.x + node.width / 2;
+            const endY = node.y;
+            const midX = (startX + endX) / 2;
+            const midY = (startY + endY) / 2;
+            
+            // Store connection info for interaction
+            connections.push({
+              nodeId: node.id,
+              managerId: node.managerId,
+              midX, midY,
+              startX, startY,
+              endX, endY
+            });
+            
             // Create gradient for connection lines
-            const gradient = ctx.createLinearGradient(
-              managerNode.x + managerNode.width / 2,
-              managerNode.y + managerNode.height,
-              node.x + node.width / 2,
-              node.y
-            );
+            const gradient = ctx.createLinearGradient(startX, startY, endX, endY);
             
             if (isDarkMode) {
               gradient.addColorStop(0, 'rgba(96, 165, 250, 0.3)');
@@ -1477,17 +1495,19 @@ function EmployeesContent() {
               gradient.addColorStop(1, 'rgba(139, 92, 246, 0.2)');
             }
             
-            ctx.strokeStyle = gradient;
-            ctx.lineWidth = 2;
+            // Highlight if hovered
+            if (hoveredConnection === node.id) {
+              ctx.strokeStyle = isDarkMode ? 'rgba(239, 68, 68, 0.5)' : 'rgba(239, 68, 68, 0.4)';
+              ctx.lineWidth = 3;
+            } else {
+              ctx.strokeStyle = gradient;
+              ctx.lineWidth = 2;
+            }
+            
             ctx.lineCap = 'round';
             ctx.lineJoin = 'round';
             
             ctx.beginPath();
-            // Draw smooth curved connection
-            const startX = managerNode.x + managerNode.width / 2;
-            const startY = managerNode.y + managerNode.height;
-            const endX = node.x + node.width / 2;
-            const endY = node.y;
             const controlPointOffset = Math.abs(endY - startY) * 0.5;
             
             ctx.moveTo(startX, startY);
@@ -1506,9 +1526,40 @@ function EmployeesContent() {
             ctx.beginPath();
             ctx.arc(endX, endY, 3, 0, Math.PI * 2);
             ctx.fill();
+            
+            // Draw X button if hovered
+            if (hoveredConnection === node.id) {
+              // Draw X background
+              ctx.fillStyle = isDarkMode ? 'rgba(239, 68, 68, 0.9)' : 'rgba(239, 68, 68, 0.8)';
+              ctx.beginPath();
+              ctx.arc(midX, midY, 12, 0, Math.PI * 2);
+              ctx.fill();
+              
+              // Draw X
+              ctx.strokeStyle = 'white';
+              ctx.lineWidth = 2;
+              ctx.beginPath();
+              ctx.moveTo(midX - 5, midY - 5);
+              ctx.lineTo(midX + 5, midY + 5);
+              ctx.moveTo(midX + 5, midY - 5);
+              ctx.lineTo(midX - 5, midY + 5);
+              ctx.stroke();
+            }
           }
         }
       });
+      
+      // Draw new connection being created
+      if (isDrawingConnection && connectionStart) {
+        ctx.strokeStyle = isDarkMode ? 'rgba(34, 197, 94, 0.5)' : 'rgba(34, 197, 94, 0.4)';
+        ctx.lineWidth = 2;
+        ctx.setLineDash([5, 5]);
+        ctx.beginPath();
+        ctx.moveTo(connectionStart.x, connectionStart.y);
+        ctx.lineTo(mousePos.x, mousePos.y);
+        ctx.stroke();
+        ctx.setLineDash([]);
+      }
       
       // Draw nodes
       Object.values(nodes).forEach(node => {
@@ -1575,47 +1626,133 @@ function EmployeesContent() {
           ctx.stroke();
         }
         
-        // Department color accent bar (rounded top)
-        ctx.save();
-        ctx.beginPath();
-        ctx.moveTo(node.x + radius, node.y);
-        ctx.lineTo(node.x + node.width - radius, node.y);
-        ctx.quadraticCurveTo(node.x + node.width, node.y, node.x + node.width, node.y + radius);
-        ctx.lineTo(node.x + node.width, node.y + 4);
-        ctx.lineTo(node.x, node.y + 4);
-        ctx.lineTo(node.x, node.y + radius);
-        ctx.quadraticCurveTo(node.x, node.y, node.x + radius, node.y);
-        ctx.closePath();
-        
-        const deptColors = {
-          'Engineering': { light: 'rgba(59, 130, 246, 0.5)', dark: 'rgba(96, 165, 250, 0.4)' },
-          'Product': { light: 'rgba(139, 92, 246, 0.5)', dark: 'rgba(167, 139, 250, 0.4)' },
-          'Design': { light: 'rgba(236, 72, 153, 0.5)', dark: 'rgba(244, 114, 182, 0.4)' },
-          'Marketing': { light: 'rgba(34, 197, 94, 0.5)', dark: 'rgba(74, 222, 128, 0.4)' },
-          'Sales': { light: 'rgba(251, 146, 60, 0.5)', dark: 'rgba(251, 191, 36, 0.4)' }
-        };
-        
-        const deptColor = deptColors[node.department] || { light: 'rgba(107, 114, 128, 0.3)', dark: 'rgba(156, 163, 175, 0.3)' };
-        ctx.fillStyle = isDarkMode ? deptColor.dark : deptColor.light;
-        ctx.fill();
-        ctx.restore();
-        
-        // Text with better positioning
+        // Name
         ctx.textBaseline = 'top';
         ctx.fillStyle = isDarkMode ? 'rgba(255, 255, 255, 0.95)' : 'rgba(0, 0, 0, 0.9)';
         ctx.font = '600 14px -apple-system, BlinkMacSystemFont, "SF Pro Display", "Helvetica Neue", sans-serif';
-        ctx.fillText(node.name, node.x + 15, node.y + 15);
+        ctx.fillText(node.name, node.x + 12, node.y + 15);
         
-        ctx.font = '400 12px -apple-system, BlinkMacSystemFont, "SF Pro Display", "Helvetica Neue", sans-serif';
-        ctx.fillStyle = isDarkMode ? 'rgba(255, 255, 255, 0.7)' : 'rgba(0, 0, 0, 0.6)';
-        ctx.fillText(node.role || 'No role', node.x + 15, node.y + 38);
+        // Role badge
+        if (node.role) {
+          ctx.font = '500 10px -apple-system, BlinkMacSystemFont, "SF Pro Display", "Helvetica Neue", sans-serif';
+          const roleText = node.role;
+          const roleMetrics = ctx.measureText(roleText);
+          const roleX = node.x + 12;
+          const roleY = node.y + 35;
+          const rolePadding = 4;
+          const roleHeight = 16;
+          
+          // Role badge background
+          const roleGradient = ctx.createLinearGradient(roleX, roleY, roleX, roleY + roleHeight);
+          if (isDarkMode) {
+            roleGradient.addColorStop(0, 'rgba(59, 130, 246, 0.2)');
+            roleGradient.addColorStop(1, 'rgba(139, 92, 246, 0.2)');
+          } else {
+            roleGradient.addColorStop(0, 'rgba(59, 130, 246, 0.15)');
+            roleGradient.addColorStop(1, 'rgba(139, 92, 246, 0.15)');
+          }
+          
+          // Draw rounded rectangle for role badge
+          ctx.fillStyle = roleGradient;
+          const roleWidth = roleMetrics.width + rolePadding * 2;
+          ctx.beginPath();
+          ctx.moveTo(roleX + 4, roleY);
+          ctx.lineTo(roleX + roleWidth - 4, roleY);
+          ctx.quadraticCurveTo(roleX + roleWidth, roleY, roleX + roleWidth, roleY + 4);
+          ctx.lineTo(roleX + roleWidth, roleY + roleHeight - 4);
+          ctx.quadraticCurveTo(roleX + roleWidth, roleY + roleHeight, roleX + roleWidth - 4, roleY + roleHeight);
+          ctx.lineTo(roleX + 4, roleY + roleHeight);
+          ctx.quadraticCurveTo(roleX, roleY + roleHeight, roleX, roleY + roleHeight - 4);
+          ctx.lineTo(roleX, roleY + 4);
+          ctx.quadraticCurveTo(roleX, roleY, roleX + 4, roleY);
+          ctx.closePath();
+          ctx.fill();
+          
+          // Role text
+          ctx.fillStyle = isDarkMode ? 'rgba(147, 197, 253, 1)' : 'rgba(59, 130, 246, 0.9)';
+          ctx.fillText(roleText, roleX + rolePadding, roleY + 3);
+        }
         
-        // Department with icon-like styling
-        ctx.fillStyle = isDarkMode ? 'rgba(255, 255, 255, 0.5)' : 'rgba(0, 0, 0, 0.5)';
-        ctx.font = '400 11px -apple-system, BlinkMacSystemFont, "SF Pro Display", "Helvetica Neue", sans-serif';
-        ctx.fillText(node.department || 'No department', node.x + 15, node.y + 58);
+        // Department badge
+        if (node.department) {
+          const deptColors = {
+            'Engineering': { light: 'rgba(59, 130, 246, 0.2)', dark: 'rgba(96, 165, 250, 0.25)' },
+            'Product': { light: 'rgba(139, 92, 246, 0.2)', dark: 'rgba(167, 139, 250, 0.25)' },
+            'Design': { light: 'rgba(236, 72, 153, 0.2)', dark: 'rgba(244, 114, 182, 0.25)' },
+            'Marketing': { light: 'rgba(34, 197, 94, 0.2)', dark: 'rgba(74, 222, 128, 0.25)' },
+            'Sales': { light: 'rgba(251, 146, 60, 0.2)', dark: 'rgba(251, 191, 36, 0.25)' }
+          };
+          
+          ctx.font = '500 10px -apple-system, BlinkMacSystemFont, "SF Pro Display", "Helvetica Neue", sans-serif';
+          const deptText = node.department;
+          const deptMetrics = ctx.measureText(deptText);
+          const deptX = node.x + 12;
+          const deptY = node.y + 55;
+          const deptPadding = 4;
+          const deptHeight = 16;
+          
+          // Department badge background with department color
+          const deptBadgeColor = deptColors[node.department] || { light: 'rgba(107, 114, 128, 0.2)', dark: 'rgba(156, 163, 175, 0.2)' };
+          ctx.fillStyle = isDarkMode ? deptBadgeColor.dark : deptBadgeColor.light;
+          
+          // Draw rounded rectangle for department badge
+          const deptWidth = deptMetrics.width + deptPadding * 2;
+          ctx.beginPath();
+          ctx.moveTo(deptX + 4, deptY);
+          ctx.lineTo(deptX + deptWidth - 4, deptY);
+          ctx.quadraticCurveTo(deptX + deptWidth, deptY, deptX + deptWidth, deptY + 4);
+          ctx.lineTo(deptX + deptWidth, deptY + deptHeight - 4);
+          ctx.quadraticCurveTo(deptX + deptWidth, deptY + deptHeight, deptX + deptWidth - 4, deptY + deptHeight);
+          ctx.lineTo(deptX + 4, deptY + deptHeight);
+          ctx.quadraticCurveTo(deptX, deptY + deptHeight, deptX, deptY + deptHeight - 4);
+          ctx.lineTo(deptX, deptY + 4);
+          ctx.quadraticCurveTo(deptX, deptY, deptX + 4, deptY);
+          ctx.closePath();
+          ctx.fill();
+          
+          // Department text
+          const textColors = {
+            'Engineering': { light: 'rgba(59, 130, 246, 0.9)', dark: 'rgba(147, 197, 253, 1)' },
+            'Product': { light: 'rgba(139, 92, 246, 0.9)', dark: 'rgba(196, 181, 253, 1)' },
+            'Design': { light: 'rgba(236, 72, 153, 0.9)', dark: 'rgba(251, 207, 232, 1)' },
+            'Marketing': { light: 'rgba(34, 197, 94, 0.9)', dark: 'rgba(134, 239, 172, 1)' },
+            'Sales': { light: 'rgba(251, 146, 60, 0.9)', dark: 'rgba(253, 224, 71, 1)' }
+          };
+          
+          const textColor = textColors[node.department] || { light: 'rgba(107, 114, 128, 0.9)', dark: 'rgba(209, 213, 219, 1)' };
+          ctx.fillStyle = isDarkMode ? textColor.dark : textColor.light;
+          ctx.fillText(deptText, deptX + deptPadding, deptY + 3);
+        }
+        
+        // Draw connection handle at bottom
+        const handleX = node.x + node.width / 2;
+        const handleY = node.y + node.height;
+        const isHoveringHandle = Math.abs(mousePos.x - handleX) < 10 && Math.abs(mousePos.y - handleY) < 10;
+        
+        if (isHoveringHandle || (connectionStart && connectionStart.nodeId === node.id)) {
+          ctx.fillStyle = isDarkMode ? 'rgba(34, 197, 94, 0.8)' : 'rgba(34, 197, 94, 0.7)';
+          ctx.beginPath();
+          ctx.arc(handleX, handleY, 6, 0, Math.PI * 2);
+          ctx.fill();
+          
+          // Plus sign
+          ctx.strokeStyle = 'white';
+          ctx.lineWidth = 2;
+          ctx.beginPath();
+          ctx.moveTo(handleX - 3, handleY);
+          ctx.lineTo(handleX + 3, handleY);
+          ctx.moveTo(handleX, handleY - 3);
+          ctx.lineTo(handleX, handleY + 3);
+          ctx.stroke();
+        } else {
+          // Show subtle handle
+          ctx.fillStyle = isDarkMode ? 'rgba(255, 255, 255, 0.2)' : 'rgba(0, 0, 0, 0.15)';
+          ctx.beginPath();
+          ctx.arc(handleX, handleY, 4, 0, Math.PI * 2);
+          ctx.fill();
+        }
       });
-    }, [nodes, isDarkMode, dragging]);
+    }, [nodes, isDarkMode, dragging, hoveredConnection, isDrawingConnection, connectionStart, mousePos]);
 
     const handleMouseDown = (e) => {
       const canvas = canvasRef.current;
@@ -1623,7 +1760,31 @@ function EmployeesContent() {
       const x = (e.clientX - rect.left) * (1200 / rect.width);
       const y = (e.clientY - rect.top) * (600 / rect.height);
       
-      // Find which node was clicked
+      // Check if clicking on delete X button
+      if (hoveredConnection) {
+        // Remove manager relationship
+        const updatedEmployees = employees.map(emp => 
+          emp.id === hoveredConnection ? { ...emp, managerId: null } : emp
+        );
+        setEmployees(updatedEmployees);
+        lsWrite(LS_EMPLOYEES, updatedEmployees);
+        setHoveredConnection(null);
+        return;
+      }
+      
+      // Check if clicking on connection handle
+      for (const [id, node] of Object.entries(nodes)) {
+        const handleX = node.x + node.width / 2;
+        const handleY = node.y + node.height;
+        if (Math.abs(x - handleX) < 10 && Math.abs(y - handleY) < 10) {
+          setIsDrawingConnection(true);
+          setConnectionStart({ nodeId: id, x: handleX, y: handleY });
+          canvas.style.cursor = 'crosshair';
+          return;
+        }
+      }
+      
+      // Find which node was clicked for dragging
       for (const [id, node] of Object.entries(nodes)) {
         if (x >= node.x && x <= node.x + node.width &&
             y >= node.y && y <= node.y + node.height) {
@@ -1641,6 +1802,13 @@ function EmployeesContent() {
       const x = (e.clientX - rect.left) * (1200 / rect.width);
       const y = (e.clientY - rect.top) * (600 / rect.height);
       
+      setMousePos({ x, y });
+      
+      if (isDrawingConnection) {
+        canvas.style.cursor = 'crosshair';
+        return;
+      }
+      
       if (dragging) {
         setNodes(prev => ({
           ...prev,
@@ -1651,23 +1819,84 @@ function EmployeesContent() {
           }
         }));
       } else {
-        // Change cursor on hover
-        let hovered = false;
-        for (const node of Object.values(nodes)) {
-          if (x >= node.x && x <= node.x + node.width &&
-              y >= node.y && y <= node.y + node.height) {
-            hovered = true;
-            break;
+        // Check if hovering over connection X button
+        let foundConnection = null;
+        Object.values(nodes).forEach(node => {
+          if (node.managerId && nodes[node.managerId]) {
+            const managerNode = nodes[node.managerId];
+            const midX = (managerNode.x + managerNode.width / 2 + node.x + node.width / 2) / 2;
+            const midY = (managerNode.y + managerNode.height + node.y) / 2;
+            
+            if (Math.sqrt(Math.pow(x - midX, 2) + Math.pow(y - midY, 2)) < 15) {
+              foundConnection = node.id;
+            }
+          }
+        });
+        
+        setHoveredConnection(foundConnection);
+        
+        if (foundConnection) {
+          canvas.style.cursor = 'pointer';
+        } else {
+          // Check if hovering over connection handle
+          let hoveringHandle = false;
+          for (const node of Object.values(nodes)) {
+            const handleX = node.x + node.width / 2;
+            const handleY = node.y + node.height;
+            if (Math.abs(x - handleX) < 10 && Math.abs(y - handleY) < 10) {
+              hoveringHandle = true;
+              break;
+            }
+          }
+          
+          if (hoveringHandle) {
+            canvas.style.cursor = 'crosshair';
+          } else {
+            // Check if hovering over node
+            let hovered = false;
+            for (const node of Object.values(nodes)) {
+              if (x >= node.x && x <= node.x + node.width &&
+                  y >= node.y && y <= node.y + node.height) {
+                hovered = true;
+                break;
+              }
+            }
+            canvas.style.cursor = hovered ? 'grab' : 'default';
           }
         }
-        canvas.style.cursor = hovered ? 'grab' : 'default';
       }
     };
 
-    const handleMouseUp = () => {
+    const handleMouseUp = (e) => {
+      const canvas = canvasRef.current;
+      
+      if (isDrawingConnection) {
+        const rect = canvas.getBoundingClientRect();
+        const x = (e.clientX - rect.left) * (1200 / rect.width);
+        const y = (e.clientY - rect.top) * (600 / rect.height);
+        
+        // Find which node we're dropping on
+        for (const [id, node] of Object.entries(nodes)) {
+          if (x >= node.x && x <= node.x + node.width &&
+              y >= node.y && y <= node.y + node.height &&
+              id !== connectionStart.nodeId) {
+            // Create new manager relationship
+            const updatedEmployees = employees.map(emp => 
+              emp.id === id ? { ...emp, managerId: connectionStart.nodeId } : emp
+            );
+            setEmployees(updatedEmployees);
+            lsWrite(LS_EMPLOYEES, updatedEmployees);
+            break;
+          }
+        }
+        
+        setIsDrawingConnection(false);
+        setConnectionStart(null);
+      }
+      
       setDragging(null);
-      if (canvasRef.current) {
-        canvasRef.current.style.cursor = 'default';
+      if (canvas) {
+        canvas.style.cursor = 'default';
       }
     };
 
