@@ -2,14 +2,20 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Apple Vision Pro Dark Mode Design System */
+/* Apple Design System - Theme Variables */
 :root {
+  /* Dark Mode Variables (Default) */
   --glass-bg: rgba(255, 255, 255, 0.05);
   --glass-bg-hover: rgba(255, 255, 255, 0.08);
   --glass-bg-active: rgba(255, 255, 255, 0.12);
   --glass-border: rgba(255, 255, 255, 0.1);
   --glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
   --glass-shadow-hover: 0 12px 40px rgba(0, 0, 0, 0.4);
+  --text-primary: rgba(255, 255, 255, 0.9);
+  --text-secondary: rgba(255, 255, 255, 0.7);
+  --text-tertiary: rgba(255, 255, 255, 0.5);
+  --bg-main: #0a0a0a;
+  --bg-sidebar: rgba(18, 18, 18, 0.8);
   --blur-amount: 20px;
   --border-radius: 16px;
   --border-radius-large: 20px;
@@ -17,14 +23,217 @@
   --backdrop-blur: blur(20px);
 }
 
+/* Light Mode Variables */
+[data-theme="light"] {
+  --glass-bg: rgba(255, 255, 255, 0.8);
+  --glass-bg-hover: rgba(255, 255, 255, 0.9);
+  --glass-bg-active: rgba(255, 255, 255, 1);
+  --glass-border: rgba(0, 0, 0, 0.15);
+  --glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.08);
+  --glass-shadow-hover: 0 12px 40px rgba(0, 0, 0, 0.12);
+  --text-primary: rgba(0, 0, 0, 0.9);
+  --text-secondary: rgba(0, 0, 0, 0.7);
+  --text-tertiary: rgba(0, 0, 0, 0.5);
+  --bg-main: #f5f7fa;
+  --bg-sidebar: rgba(255, 255, 255, 0.95);
+}
+
+/* Light Mode Specific Overrides */
+[data-theme="light"] .glass-card {
+  background: rgba(255, 255, 255, 0.9);
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.05);
+}
+
+[data-theme="light"] .glass-card:hover {
+  background: rgba(255, 255, 255, 1);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+}
+
+[data-theme="light"] .glass-sidebar {
+  background: rgba(255, 255, 255, 0.95);
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+}
+
+/* Light Mode Text Color Overrides */
+[data-theme="light"] .text-white,
+[data-theme="light"] .text-white\/80,
+[data-theme="light"] .text-white\/70,
+[data-theme="light"] .text-white\/60,
+[data-theme="light"] .text-white\/50 {
+  color: rgba(0, 0, 0, 0.9) !important;
+}
+
+[data-theme="light"] .text-white\/80 {
+  color: rgba(0, 0, 0, 0.8) !important;
+}
+
+[data-theme="light"] .text-white\/70 {
+  color: rgba(0, 0, 0, 0.7) !important;
+}
+
+[data-theme="light"] .text-white\/60 {
+  color: rgba(0, 0, 0, 0.6) !important;
+}
+
+[data-theme="light"] .text-white\/50 {
+  color: rgba(0, 0, 0, 0.5) !important;
+}
+
+/* Light Mode Background Overrides */
+[data-theme="light"] .bg-white\/10 {
+  background: rgba(0, 0, 0, 0.05) !important;
+}
+
+[data-theme="light"] .bg-white\/20 {
+  background: rgba(0, 0, 0, 0.1) !important;
+}
+
+[data-theme="light"] .hover\:bg-white\/10:hover {
+  background: rgba(0, 0, 0, 0.05) !important;
+}
+
+[data-theme="light"] .hover\:bg-white\/20:hover {
+  background: rgba(0, 0, 0, 0.1) !important;
+}
+
+[data-theme="light"] .hover\:bg-white\/5:hover {
+  background: rgba(0, 0, 0, 0.03) !important;
+}
+
+/* Light Mode Border Overrides */
+[data-theme="light"] .border-white\/10 {
+  border-color: rgba(0, 0, 0, 0.1) !important;
+}
+
+[data-theme="light"] .border-white\/20 {
+  border-color: rgba(0, 0, 0, 0.15) !important;
+}
+
+[data-theme="light"] .border-white\/30 {
+  border-color: rgba(107, 114, 128, 0.6) !important; /* Gray for dotted dashes */
+}
+
+[data-theme="light"] .border-white\/50 {
+  border-color: rgba(107, 114, 128, 0.8) !important; /* Darker gray for hover */
+}
+
+[data-theme="light"] .text-white\/40 {
+  color: rgba(107, 114, 128, 0.7) !important; /* Gray text for + icons */
+}
+
+/* Light Mode Modal Overrides */
+[data-theme="light"] .bg-black\/50 {
+  background: rgba(0, 0, 0, 0.3) !important; /* Modal backdrop */
+}
+
+[data-theme="light"] .bg-black\/80 {
+  background: rgba(255, 255, 255, 0.95) !important; /* Modal header/footer */
+}
+
+/* Light Mode Glass Card Large */
+[data-theme="light"] .glass-card-large {
+  background: rgba(255, 255, 255, 0.95) !important;
+  border: 1px solid rgba(0, 0, 0, 0.1) !important;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.1) !important;
+}
+
+/* Light Mode Upload Button Overrides */
+[data-theme="light"] .text-blue-300,
+[data-theme="light"] .text-blue-200,
+[data-theme="light"] .text-green-300,
+[data-theme="light"] .text-green-200,
+[data-theme="light"] .text-orange-300,
+[data-theme="light"] .text-orange-200 {
+  color: rgba(0, 0, 0, 0.9) !important;
+}
+
+[data-theme="light"] .bg-blue-500\/30,
+[data-theme="light"] .bg-green-500\/30,
+[data-theme="light"] .bg-orange-500\/30 {
+  background: rgba(0, 0, 0, 0.1) !important;
+}
+
+/* Light Mode Additional Color Overrides */
+[data-theme="light"] .text-blue-400 {
+  color: rgba(59, 130, 246, 0.8) !important; /* Keep blue but make it visible */
+}
+
+[data-theme="light"] .text-yellow-300 {
+  color: rgba(217, 119, 6, 0.9) !important; /* Change to orange for better contrast */
+}
+
+[data-theme="light"] .text-gray-700,
+[data-theme="light"] .text-gray-500,
+[data-theme="light"] .text-gray-400,
+[data-theme="light"] .text-gray-600 {
+  color: rgba(75, 85, 99, 0.9) !important; /* Keep gray but ensure visibility */
+}
+
+[data-theme="light"] .bg-yellow-500\/20 {
+  background: rgba(251, 191, 36, 0.2) !important;
+}
+
+[data-theme="light"] .border-yellow-400\/30 {
+  border-color: rgba(251, 191, 36, 0.4) !important;
+}
+
+/* Light Mode Button and Input Overrides */
+[data-theme="light"] .glass-button {
+  color: rgba(0, 0, 0, 0.9) !important;
+}
+
+[data-theme="light"] .glass-input {
+  color: rgba(0, 0, 0, 0.9) !important;
+}
+
+[data-theme="light"] .glass-input::placeholder {
+  color: rgba(0, 0, 0, 0.5) !important;
+}
+
+/* Light Mode Specific Button Colors */
+[data-theme="light"] .text-red-400 {
+  color: rgba(239, 68, 68, 0.9) !important;
+}
+
+[data-theme="light"] .border-red-400\/30 {
+  border-color: rgba(239, 68, 68, 0.4) !important;
+}
+
+[data-theme="light"] .hover\:bg-red-500\/20:hover {
+  background: rgba(239, 68, 68, 0.1) !important;
+}
+
+/* Light Mode Select/Option Overrides */
+[data-theme="light"] select.glass-input option {
+  background: white !important;
+  color: black !important;
+}
+
+[data-theme="light"] select.glass-input {
+  background: rgba(255, 255, 255, 0.9) !important;
+  color: rgba(0, 0, 0, 0.9) !important;
+}
+
+/* Light Mode Gradient Text Overrides */
+[data-theme="light"] .text-transparent {
+  color: rgba(0, 0, 0, 0.9) !important;
+  background: none !important;
+  background-clip: unset !important;
+  -webkit-background-clip: unset !important;
+}
+
 body {
   margin: 0;
   font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Helvetica Neue', sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  background: #0a0a0a;
+  background: var(--bg-main);
   min-height: 100vh;
   overflow-x: hidden;
+  color: var(--text-primary);
+  transition: var(--transition);
 }
 
 * {
@@ -73,10 +282,11 @@ html, body, #root {
 }
 
 .glass-sidebar {
-  background: rgba(18, 18, 18, 0.8);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: var(--bg-sidebar);
+  backdrop-filter: var(--backdrop-blur);
+  -webkit-backdrop-filter: var(--backdrop-blur);
+  border: 1px solid var(--glass-border);
+  color: var(--text-primary);
 }
 
 .glass-button {

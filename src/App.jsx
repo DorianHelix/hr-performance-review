@@ -4,7 +4,7 @@ import {
   Download, Trash2, Pencil, Settings, PlusCircle, X,
   ChevronLeft, ChevronRight, Calendar, Plus, Users, 
   TrendingUp, Clock, FileText, Briefcase, Upload,
-  Bot, Save, Edit2, Star, Home, BarChart3, LogOut, Menu, ArrowLeft
+  Bot, Save, Edit2, Star, Home, BarChart3, Sun, Moon, Menu, ArrowLeft
 } from "lucide-react";
 
 /* -----------------------------------------------------------
@@ -32,7 +32,7 @@ function CompanyLogo({ className = "w-8 h-8" }) {
 /* -----------------------------------------------------------
    Sidebar Component
 ----------------------------------------------------------- */
-function Sidebar({ isCollapsed, onToggle, currentView, onViewChange }) {
+function Sidebar({ isCollapsed, onToggle, currentView, onViewChange, isDarkMode, onThemeToggle }) {
   const menuItems = [
     {
       id: 'dashboard',
@@ -49,7 +49,7 @@ function Sidebar({ isCollapsed, onToggle, currentView, onViewChange }) {
   ];
 
   return (
-    <div className={`${isCollapsed ? 'w-20' : 'w-72'} glass-sidebar text-white h-screen flex flex-col transition-all duration-500 ease-out fixed left-0 top-0 z-50 ml-2 mt-4 mb-4 mr-2 rounded-3xl relative`}>
+    <div className={`${isCollapsed ? 'w-20' : 'w-72'} glass-sidebar h-screen flex flex-col transition-all duration-500 ease-out fixed left-0 top-0 z-50 ml-2 mt-4 mb-4 mr-2 rounded-3xl relative`}>
       {/* Hover edge trigger - positioned at sidebar center (always visible for consistent workflow) */}
       <div 
         className="absolute top-1/2 -translate-y-1/2 -right-2 w-4 h-16 bg-transparent hover:bg-white/5 cursor-pointer transition-colors duration-300 flex items-center justify-center group rounded-r-xl"
@@ -59,7 +59,7 @@ function Sidebar({ isCollapsed, onToggle, currentView, onViewChange }) {
         <div className="w-1 h-8 bg-white/20 rounded-full group-hover:bg-white/40 group-hover:w-1.5 transition-all duration-300"></div>
       </div>
       {/* Header with Logo Toggle */}
-      <div className="p-6 border-b border-white/10 relative">
+      <div className="p-6 relative" style={{ borderBottom: '1px solid var(--glass-border)' }}>
         <div className={`flex items-center gap-3 ${isCollapsed ? 'justify-center' : ''}`}>
           <button
             onClick={onToggle}
@@ -122,17 +122,21 @@ function Sidebar({ isCollapsed, onToggle, currentView, onViewChange }) {
         </ul>
       </nav>
 
-      {/* User Section at Bottom */}
-      <div className="p-6 border-t border-white/10">
+      {/* Theme Toggle at Bottom */}
+      <div className="p-6" style={{ borderTop: '1px solid var(--glass-border)' }}>
         <button 
-          className={`${isCollapsed ? 'flex-none min-w-[56px] max-w-[56px] h-14 justify-center p-0' : 'w-full flex gap-4 p-4'} flex items-center rounded-2xl text-white/70 hover:text-white transition-all duration-300 group hover:glass-card hover:bg-red-500/10 hover:border-red-400/20`}
-          title={isCollapsed ? 'Logout' : ''}
+          onClick={onThemeToggle}
+          className={`${isCollapsed ? 'flex-none min-w-[56px] max-w-[56px] h-14 justify-center p-0' : 'w-full flex gap-4 p-4'} flex items-center rounded-2xl transition-all duration-300 group hover:glass-card hover:bg-yellow-500/10 hover:border-yellow-400/20`}
+          style={{ color: 'var(--text-secondary)' }}
+          title={isCollapsed ? (isDarkMode ? 'Switch to Light Mode' : 'Switch to Dark Mode') : ''}
         >
-          <div className="p-3 w-14 h-14 rounded-xl bg-white/10 group-hover:bg-red-500/20 transition-all duration-300 flex items-center justify-center">
-            <LogOut size={20} className="flex-shrink-0" />
+          <div className="p-3 w-14 h-14 rounded-xl bg-white/10 group-hover:bg-yellow-500/20 transition-all duration-300 flex items-center justify-center">
+            {isDarkMode ? <Sun size={20} className="flex-shrink-0" /> : <Moon size={20} className="flex-shrink-0" />}
           </div>
           {!isCollapsed && (
-            <span className="font-semibold text-lg tracking-wide">Logout</span>
+            <span className="font-semibold text-lg tracking-wide">
+              {isDarkMode ? 'Light Mode' : 'Dark Mode'}
+            </span>
           )}
         </button>
       </div>
@@ -751,9 +755,12 @@ Continue monitoring progress with focus on identified improvement areas.`;
                     <label className="text-sm font-medium text-white/80">Daily Reports (Required for first 3 months)</label>
                     <button
                       onClick={() => handleFileUpload('daily')}
-                      className="inline-flex items-center gap-1 px-3 py-1.5 text-xs glass-button rounded-lg hover:scale-105 border border-white/20"
+                      className="inline-flex items-center gap-2 px-3 py-2 text-xs font-medium glass-card rounded-xl hover:scale-105 transition-all duration-300 bg-gradient-to-r from-blue-500/20 to-purple-500/20 border border-blue-400/30 shadow-lg shadow-blue-500/10 text-blue-300 hover:text-blue-200"
                     >
-                      <Upload size={12} className="text-white/80" /> Upload
+                      <div className="p-1 rounded-lg bg-blue-500/30">
+                        <Upload size={10} className="text-blue-200" />
+                      </div>
+                      Upload
                     </button>
                   </div>
                   <textarea
@@ -1311,6 +1318,18 @@ export default function App() {
   const [expanded, setExpanded] = useState({});
   const [quickScoreModal, setQuickScoreModal] = useState(null);
   
+  // Theme State
+  const [isDarkMode, setIsDarkMode] = useState(() => {
+    const saved = localStorage.getItem('theme');
+    return saved ? saved === 'dark' : true; // Default to dark mode
+  });
+  
+  // Save theme preference
+  useEffect(() => {
+    localStorage.setItem('theme', isDarkMode ? 'dark' : 'light');
+    document.documentElement.setAttribute('data-theme', isDarkMode ? 'dark' : 'light');
+  }, [isDarkMode]);
+  
   // Sidebar state
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [currentView, setCurrentView] = useState('performance');
@@ -1664,13 +1683,15 @@ export default function App() {
   );
 
   return (
-    <div className="h-full w-full text-white flex relative overflow-hidden">
+    <div className="h-full w-full flex relative overflow-hidden" style={{ color: 'var(--text-primary)' }}>
       {/* Sidebar */}
       <Sidebar 
         isCollapsed={sidebarCollapsed}
         onToggle={() => setSidebarCollapsed(!sidebarCollapsed)}
         currentView={currentView}
         onViewChange={setCurrentView}
+        isDarkMode={isDarkMode}
+        onThemeToggle={() => setIsDarkMode(!isDarkMode)}
       />
 
       {/* Main Content */}
