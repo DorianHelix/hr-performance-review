@@ -2158,7 +2158,17 @@ function EmployeesContent() {
       // Check if Shift is held for multi-select
       if (e.shiftKey) {
         setIsMultiSelecting(true);
-        setSelectionBox({ startX: x, startY: y, endX: x, endY: y });
+        // Use mouse position directly for selection box to avoid offset in fullscreen
+        const mouseX = e.clientX;
+        const mouseY = e.clientY;
+        setSelectionBox({ 
+          startX: x, 
+          startY: y, 
+          endX: x, 
+          endY: y,
+          mouseStartX: mouseX,
+          mouseStartY: mouseY
+        });
         canvas.style.cursor = 'crosshair';
         return;
       }
@@ -2212,7 +2222,7 @@ function EmployeesContent() {
         // Update selection box
         setSelectionBox(prev => ({ ...prev, endX: x, endY: y }));
         
-        // Find nodes within selection box
+        // Find nodes within selection box - check for overlap instead of full containment
         const minX = Math.min(selectionBox.startX, x);
         const maxX = Math.max(selectionBox.startX, x);
         const minY = Math.min(selectionBox.startY, y);
@@ -2220,8 +2230,14 @@ function EmployeesContent() {
         
         const selected = new Set();
         Object.entries(nodes).forEach(([id, node]) => {
-          if (node.x >= minX && node.x + node.width <= maxX &&
-              node.y >= minY && node.y + node.height <= maxY) {
+          // Check if selection box overlaps with node (not just fully contains)
+          const nodeLeft = node.x;
+          const nodeRight = node.x + node.width;
+          const nodeTop = node.y;
+          const nodeBottom = node.y + node.height;
+          
+          // Check for overlap: if rectangles intersect
+          if (!(nodeRight < minX || nodeLeft > maxX || nodeBottom < minY || nodeTop > maxY)) {
             selected.add(id);
           }
         });
@@ -2314,7 +2330,7 @@ function EmployeesContent() {
                 break;
               }
             }
-            canvas.style.cursor = hovered ? 'grab' : 'move';
+            canvas.style.cursor = hovered ? 'grab' : 'default';
           }
         }
       }
@@ -2368,7 +2384,7 @@ function EmployeesContent() {
       setIsMultiSelecting(false);
       setSelectionBox(null);
       if (canvas) {
-        canvas.style.cursor = 'move';
+        canvas.style.cursor = 'default';
       }
     };
 
@@ -2467,8 +2483,8 @@ function EmployeesContent() {
         {/* Employee Table or Org Chart */}
         {viewMode === 'table' ? (
           <div className="glass-card-large flex flex-col" style={{ minHeight: '500px', maxHeight: 'calc(100vh - 250px)' }}>
-            {/* Apple-style Segmented Control */}
-            <div className="p-4 border-b border-white/10">
+            {/* Apple-style Segmented Control and Controls */}
+            <div className="p-4 border-b border-white/10 flex justify-between items-center">
               <div className="inline-flex p-1 rounded-2xl" style={{ 
                 background: isDarkMode ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.06)',
                 backdropFilter: 'blur(20px)',
@@ -2521,6 +2537,29 @@ function EmployeesContent() {
                   <span className={`relative z-10 text-xs ${viewMode === 'chart' ? '!text-white' : ''}`}>Org Chart</span>
                 </button>
               </div>
+              
+              {/* Fullscreen button next to table switch (only for chart view) */}
+              {viewMode === 'chart' && !isFullscreen && (
+                <button 
+                  onClick={toggleFullscreen}
+                  className="glass-button px-4 py-2 rounded-xl flex items-center gap-2 text-white hover:scale-105 transition-transform"
+                  title="Enter Fullscreen"
+                >
+                  <Maximize2 size={18} />
+                  <span className="font-medium">Fullscreen</span>
+                </button>
+              )}
+              
+              {/* Close button when in fullscreen */}
+              {viewMode === 'chart' && isFullscreen && (
+                <button 
+                  onClick={toggleFullscreen}
+                  className="glass-button w-10 h-10 rounded-xl flex items-center justify-center text-white hover:scale-110 transition-transform"
+                  title="Exit Fullscreen"
+                >
+                  <X size={20} />
+                </button>
+              )}
             </div>
             <div className="flex-1 overflow-auto">
             <table className="w-full min-w-max">
@@ -2612,8 +2651,8 @@ function EmployeesContent() {
           </div>
         ) : (
           <div id="org-chart-container" className={`glass-card-large ${isFullscreen ? 'fixed inset-0 z-50 m-0 rounded-none flex flex-col' : ''}`} style={isFullscreen ? { background: isDarkMode ? '#0a0a0a' : '#f5f7fa', width: '100vw', height: '100vh' } : {}}>
-            {/* Apple-style Segmented Control */}
-            <div className="p-4 border-b border-white/10">
+            {/* Apple-style Segmented Control and Controls */}
+            <div className="p-4 border-b border-white/10 flex justify-between items-center">
               <div className="inline-flex p-1 rounded-2xl" style={{ 
                 background: isDarkMode ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.06)',
                 backdropFilter: 'blur(20px)',
@@ -2666,6 +2705,29 @@ function EmployeesContent() {
                   <span className={`relative z-10 text-xs ${viewMode === 'chart' ? '!text-white' : ''}`}>Org Chart</span>
                 </button>
               </div>
+              
+              {/* Fullscreen button next to table switch (only for chart view) */}
+              {viewMode === 'chart' && !isFullscreen && (
+                <button 
+                  onClick={toggleFullscreen}
+                  className="glass-button px-4 py-2 rounded-xl flex items-center gap-2 text-white hover:scale-105 transition-transform"
+                  title="Enter Fullscreen"
+                >
+                  <Maximize2 size={18} />
+                  <span className="font-medium">Fullscreen</span>
+                </button>
+              )}
+              
+              {/* Close button when in fullscreen */}
+              {viewMode === 'chart' && isFullscreen && (
+                <button 
+                  onClick={toggleFullscreen}
+                  className="glass-button w-10 h-10 rounded-xl flex items-center justify-center text-white hover:scale-110 transition-transform"
+                  title="Exit Fullscreen"
+                >
+                  <X size={20} />
+                </button>
+              )}
             </div>
             <div className={`${isFullscreen ? 'p-8' : 'p-6'} relative ${isFullscreen ? 'flex-1 overflow-hidden' : ''}`}>
               <OrgChart 
@@ -2678,15 +2740,8 @@ function EmployeesContent() {
                 isFullscreen={isFullscreen}
               />
               
-              {/* Fullscreen and Zoom Controls */}
+              {/* Zoom Controls only */}
               <div className="absolute right-6 top-1/2 -translate-y-1/2 flex flex-col gap-2">
-                <button 
-                  onClick={toggleFullscreen}
-                  className="glass-button w-12 h-12 rounded-full flex items-center justify-center text-white hover:scale-110 transition-transform mb-4"
-                  title={isFullscreen ? "Exit Fullscreen" : "Enter Fullscreen"}
-                >
-                  {isFullscreen ? <Minimize2 size={20} /> : <Maximize2 size={20} />}
-                </button>
                 <div className="glass-card px-3 py-1 rounded-full text-white text-sm font-medium text-center mb-2">
                   {Math.round(zoom * 100)}%
                 </div>
