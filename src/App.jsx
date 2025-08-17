@@ -4,7 +4,7 @@ import {
   Download, Trash2, Pencil, Settings, PlusCircle, X,
   ChevronLeft, ChevronRight, Calendar, Plus, Users, 
   TrendingUp, Clock, FileText, Briefcase, Upload,
-  Bot, Save, Edit2, Star, Home, BarChart3, Sun, Moon, Menu, ArrowLeft, Network, Minus
+  Bot, Save, Edit2, Star, Home, BarChart3, Sun, Moon, Menu, ArrowLeft, Network, Minus, Maximize2, Minimize2
 } from "lucide-react";
 
 /* -----------------------------------------------------------
@@ -1426,6 +1426,7 @@ function EmployeesContent() {
   const [viewMode, setViewMode] = useState('table'); // 'table' or 'chart'
   const [quickAddModal, setQuickAddModal] = useState(null); // For quick employee creation
   const [zoom, setZoom] = useState(1); // Zoom state for org chart
+  const [isFullscreen, setIsFullscreen] = useState(false); // Fullscreen state for org chart
   const [isDarkMode, setIsDarkMode] = useState(() => document.documentElement.getAttribute('data-theme') !== 'light');
 
   // Listen for theme changes and update isDarkMode
@@ -1442,6 +1443,28 @@ function EmployeesContent() {
     });
 
     return () => observer.disconnect();
+  }, []);
+
+  // Handle fullscreen toggle
+  const toggleFullscreen = () => {
+    const chartContainer = document.getElementById('org-chart-container');
+    if (!document.fullscreenElement) {
+      chartContainer?.requestFullscreen();
+      setIsFullscreen(true);
+    } else {
+      document.exitFullscreen();
+      setIsFullscreen(false);
+    }
+  };
+
+  // Listen for fullscreen changes
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      setIsFullscreen(!!document.fullscreenElement);
+    };
+    
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+    return () => document.removeEventListener('fullscreenchange', handleFullscreenChange);
   }, []);
 
   // Add new employee
@@ -1488,7 +1511,7 @@ function EmployeesContent() {
   const departments = [...new Set(employees.map(emp => emp.division))].filter(Boolean);
 
   // Simple Org Chart Component
-  const OrgChart = ({ onQuickAdd, onEditEmployee, onDeleteEmployee, zoom, onZoomChange, isDarkMode }) => {
+  const OrgChart = ({ onQuickAdd, onEditEmployee, onDeleteEmployee, zoom, onZoomChange, isDarkMode, isFullscreen }) => {
     const canvasRef = useRef(null);
     const containerRef = useRef(null);
     const [nodes, setNodes] = useState({});
@@ -1571,12 +1594,13 @@ function EmployeesContent() {
         // Position nodes with more spacing - centered in larger canvas
         const HORIZONTAL_SPACING = 320;
         const VERTICAL_SPACING = 200;
-        const START_Y = 800; // Start more centered in the 2000px high canvas
+        const START_Y = isFullscreen ? 1200 : 800; // Start more centered based on canvas size
         
         Object.entries(levelGroups).forEach(([level, nodeIds]) => {
           const levelNum = parseInt(level);
           const totalWidth = nodeIds.length * HORIZONTAL_SPACING;
-          const startX = (3000 - totalWidth) / 2 + HORIZONTAL_SPACING / 2;
+          const canvasWidth = isFullscreen ? 5000 : 3000;
+          const startX = (canvasWidth - totalWidth) / 2 + HORIZONTAL_SPACING / 2;
           
           nodeIds.forEach((nodeId, index) => {
             if (nodeMap[nodeId]) {
@@ -1590,7 +1614,7 @@ function EmployeesContent() {
       };
       
       setNodes(buildHierarchy());
-    }, []);
+    }, [isFullscreen]);
 
     useEffect(() => {
       const canvas = canvasRef.current;
@@ -1602,9 +1626,9 @@ function EmployeesContent() {
       // Handle high-DPI displays for sharp rendering
       const dpr = window.devicePixelRatio || 1;
       
-      // Set display size (css pixels) - much larger for full movement at 25% zoom
-      const displayWidth = 3000;
-      const displayHeight = 2000;
+      // Set display size (css pixels) - even larger in fullscreen mode
+      const displayWidth = isFullscreen ? 5000 : 3000;
+      const displayHeight = isFullscreen ? 3000 : 2000;
       
       // Set actual canvas size accounting for device pixel ratio
       canvas.width = displayWidth * dpr;
@@ -2064,17 +2088,19 @@ function EmployeesContent() {
       
       // Restore the context
       ctx.restore();
-    }, [nodes, dragging, hoveredConnection, isDrawingConnection, connectionStart, mousePos, zoom, panOffset, themeKey, selectedNodes, isMultiSelecting, selectionBox]);
+    }, [nodes, dragging, hoveredConnection, isDrawingConnection, connectionStart, mousePos, zoom, panOffset, themeKey, selectedNodes, isMultiSelecting, selectionBox, isFullscreen]);
 
     const handleMouseDown = (e) => {
       const canvas = canvasRef.current;
       const rect = canvas.getBoundingClientRect();
-      const rawX = (e.clientX - rect.left) * (3000 / rect.width);
-      const rawY = (e.clientY - rect.top) * (2000 / rect.height);
+      const canvasWidth = isFullscreen ? 5000 : 3000;
+      const canvasHeight = isFullscreen ? 3000 : 2000;
+      const rawX = (e.clientX - rect.left) * (canvasWidth / rect.width);
+      const rawY = (e.clientY - rect.top) * (canvasHeight / rect.height);
       
       // Adjust for zoom, translation and pan
-      const x = (rawX - (3000 * (1 - zoom)) / 2 - panOffset.x) / zoom;
-      const y = (rawY - (2000 * (1 - zoom)) / 2 - panOffset.y) / zoom;
+      const x = (rawX - (canvasWidth * (1 - zoom)) / 2 - panOffset.x) / zoom;
+      const y = (rawY - (canvasHeight * (1 - zoom)) / 2 - panOffset.y) / zoom;
       
       // Check if clicking on delete X button on connection line
       if (hoveredConnection) {
@@ -2171,12 +2197,14 @@ function EmployeesContent() {
     const handleMouseMove = (e) => {
       const canvas = canvasRef.current;
       const rect = canvas.getBoundingClientRect();
-      const rawX = (e.clientX - rect.left) * (3000 / rect.width);
-      const rawY = (e.clientY - rect.top) * (2000 / rect.height);
+      const canvasWidth = isFullscreen ? 5000 : 3000;
+      const canvasHeight = isFullscreen ? 3000 : 2000;
+      const rawX = (e.clientX - rect.left) * (canvasWidth / rect.width);
+      const rawY = (e.clientY - rect.top) * (canvasHeight / rect.height);
       
       // Adjust for zoom, translation and pan
-      const x = (rawX - (3000 * (1 - zoom)) / 2 - panOffset.x) / zoom;
-      const y = (rawY - (2000 * (1 - zoom)) / 2 - panOffset.y) / zoom;
+      const x = (rawX - (canvasWidth * (1 - zoom)) / 2 - panOffset.x) / zoom;
+      const y = (rawY - (canvasHeight * (1 - zoom)) / 2 - panOffset.y) / zoom;
       
       setMousePos({ x, y });
       
@@ -2297,12 +2325,14 @@ function EmployeesContent() {
       
       if (isDrawingConnection) {
         const rect = canvas.getBoundingClientRect();
-        const rawX = (e.clientX - rect.left) * (3000 / rect.width);
-        const rawY = (e.clientY - rect.top) * (2000 / rect.height);
+        const canvasWidth = isFullscreen ? 5000 : 3000;
+        const canvasHeight = isFullscreen ? 3000 : 2000;
+        const rawX = (e.clientX - rect.left) * (canvasWidth / rect.width);
+        const rawY = (e.clientY - rect.top) * (canvasHeight / rect.height);
         
         // Adjust for zoom, translation and pan
-        const x = (rawX - (3000 * (1 - zoom)) / 2 - panOffset.x) / zoom;
-        const y = (rawY - (2000 * (1 - zoom)) / 2 - panOffset.y) / zoom;
+        const x = (rawX - (canvasWidth * (1 - zoom)) / 2 - panOffset.x) / zoom;
+        const y = (rawY - (canvasHeight * (1 - zoom)) / 2 - panOffset.y) / zoom;
         
         // Find which node we're dropping on
         let foundTarget = false;
@@ -2345,17 +2375,23 @@ function EmployeesContent() {
     return (
       <canvas
         ref={canvasRef}
-        width={3000}
-        height={2000}
-        className="w-full rounded-xl"
+        width={isFullscreen ? 5000 : 3000}
+        height={isFullscreen ? 3000 : 2000}
+        className={`${isFullscreen ? 'w-full h-full' : 'w-full rounded-xl'}`}
         style={{ 
           background: isDarkMode 
             ? 'rgba(0, 0, 0, 0.2)' 
             : 'radial-gradient(circle at 1px 1px, rgba(0, 0, 0, 0.15) 1px, transparent 0)',
           backgroundSize: isDarkMode ? 'auto' : '20px 20px',
-          maxWidth: '100%',
-          maxHeight: '600px',
-          aspectRatio: '1.5'
+          ...(isFullscreen ? {
+            width: '100%',
+            height: '100%',
+            objectFit: 'contain'
+          } : {
+            maxWidth: '100%',
+            height: 'auto',
+            aspectRatio: '3000 / 2000'
+          })
         }}
         onMouseDown={handleMouseDown}
         onMouseMove={handleMouseMove}
@@ -2563,7 +2599,7 @@ function EmployeesContent() {
             </div>
           </div>
         ) : (
-          <div className="glass-card-large">
+          <div id="org-chart-container" className={`glass-card-large ${isFullscreen ? 'fixed inset-0 z-50 m-0 rounded-none flex flex-col' : ''}`} style={isFullscreen ? { background: isDarkMode ? '#0a0a0a' : '#f5f7fa', width: '100vw', height: '100vh' } : {}}>
             {/* Apple-style Segmented Control */}
             <div className="p-4 border-b border-white/10">
               <div className="inline-flex p-1 rounded-2xl" style={{ 
@@ -2619,7 +2655,7 @@ function EmployeesContent() {
                 </button>
               </div>
             </div>
-            <div className="p-6 relative">
+            <div className={`${isFullscreen ? 'p-8' : 'p-6'} relative ${isFullscreen ? 'flex-1 overflow-hidden' : ''}`}>
               <OrgChart 
                 onQuickAdd={setQuickAddModal}
                 onEditEmployee={setEditingEmployee}
@@ -2627,10 +2663,18 @@ function EmployeesContent() {
                 zoom={zoom}
                 onZoomChange={setZoom}
                 isDarkMode={isDarkMode}
+                isFullscreen={isFullscreen}
               />
               
-              {/* Zoom Controls */}
+              {/* Fullscreen and Zoom Controls */}
               <div className="absolute right-6 top-1/2 -translate-y-1/2 flex flex-col gap-2">
+                <button 
+                  onClick={toggleFullscreen}
+                  className="glass-button w-12 h-12 rounded-full flex items-center justify-center text-white hover:scale-110 transition-transform mb-4"
+                  title={isFullscreen ? "Exit Fullscreen" : "Enter Fullscreen"}
+                >
+                  {isFullscreen ? <Minimize2 size={20} /> : <Maximize2 size={20} />}
+                </button>
                 <div className="glass-card px-3 py-1 rounded-full text-white text-sm font-medium text-center mb-2">
                   {Math.round(zoom * 100)}%
                 </div>
