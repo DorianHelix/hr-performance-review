@@ -326,6 +326,7 @@ const LS_REVIEWS = "hr_weekly_reviews";
     const seedEmployees = [
       { 
         id: "emp-001", 
+        employeeId: "EMP001",
         name: "Sarah Johnson", 
         division: "Engineering", 
         squad: "Frontend", 
@@ -342,6 +343,7 @@ const LS_REVIEWS = "hr_weekly_reviews";
       },
       { 
         id: "emp-002", 
+        employeeId: "EMP002",
         name: "Michael Chen", 
         division: "Product", 
         squad: "Growth", 
@@ -358,6 +360,7 @@ const LS_REVIEWS = "hr_weekly_reviews";
       },
       { 
         id: "emp-003", 
+        employeeId: "EMP003",
         name: "Emily Davis", 
         division: "Design", 
         squad: "User Experience", 
@@ -904,6 +907,7 @@ Continue monitoring progress with focus on identified improvement areas.`;
 function EmployeeSettingsModal({ employee, employees, onSave, onClose }) {
   const [formData, setFormData] = useState({
     name: employee.name,
+    employeeId: employee.employeeId || "",
     division: employee.division || "",
     squad: employee.squad || "",
     team: employee.team || "",
@@ -953,13 +957,24 @@ function EmployeeSettingsModal({ employee, employees, onSave, onClose }) {
         </div>
 
         <div className="p-6 space-y-4">
-          <div>
-            <label className="text-sm font-medium text-white/80">Name</label>
-            <input
-              value={formData.name}
-              onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
-              className="mt-1 w-full glass-input px-3 py-2"
-            />
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="text-sm font-medium text-white/80">Name</label>
+              <input
+                value={formData.name}
+                onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
+                className="mt-1 w-full glass-input px-3 py-2"
+              />
+            </div>
+            <div>
+              <label className="text-sm font-medium text-white/80">Employee ID</label>
+              <input
+                value={formData.employeeId}
+                onChange={(e) => setFormData(prev => ({ ...prev, employeeId: e.target.value }))}
+                className="mt-1 w-full glass-input px-3 py-2"
+                placeholder="EMP001"
+              />
+            </div>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -2378,6 +2393,7 @@ function EmployeesContent() {
             <table className="w-full">
               <thead>
                 <tr className="border-b border-white/10">
+                  <th className="text-left p-4 text-white/70 font-medium">ID</th>
                   <th className="text-left p-4 text-white/70 font-medium">Name</th>
                   <th className="text-left p-4 text-white/70 font-medium">Division</th>
                   <th className="text-left p-4 text-white/70 font-medium">Squad</th>
@@ -2397,13 +2413,16 @@ function EmployeesContent() {
               <tbody>
                 {filteredEmployees.length === 0 ? (
                   <tr>
-                    <td colSpan="14" className="text-center p-8 text-white/50">
+                    <td colSpan="15" className="text-center p-8 text-white/50">
                       No employees found. Add your first employee to get started.
                     </td>
                   </tr>
                 ) : (
                   filteredEmployees.map(emp => (
                     <tr key={emp.id} className="border-b border-white/5 hover:bg-white/5 transition-colors">
+                      <td className="p-4">
+                        <div className="font-medium text-blue-300">{emp.employeeId || '-'}</div>
+                      </td>
                       <td className="p-4">
                         <div className="font-medium text-white">{emp.name}</div>
                       </td>
@@ -2633,6 +2652,7 @@ function EmployeesContent() {
           onSave={(name) => {
             const newEmployee = {
               id: `emp-${uid()}`,
+              employeeId: '',
               name,
               managerId: quickAddModal.managerId,
               division: '',
@@ -2684,7 +2704,7 @@ function BulkImportModal({ onSave, onClose }) {
   const [isProcessing, setIsProcessing] = useState(false);
 
   const expectedHeaders = [
-    'Name', 'Division', 'Squad', 'Team', 'Role', 'Seniority', 
+    'Employee ID', 'Name', 'Division', 'Squad', 'Team', 'Role', 'Seniority', 
     'Manager', 'Birthday', 'Start Date', 'Exit Date', 
     'Net Salary', 'Gross Salary', 'Total Salary'
   ];
@@ -2747,9 +2767,11 @@ function BulkImportModal({ onSave, onClose }) {
       }
     });
 
-    return rows.map(row => {
+    // First pass: Create all employees without manager relationships
+    const newEmployees = rows.map(row => {
       const employee = {
         id: `emp-${uid()}`,
+        employeeId: row[headerMap['Employee ID']] || '',
         name: row[headerMap['Name']] || '',
         division: row[headerMap['Division']] || '',
         squad: row[headerMap['Squad']] || '',
@@ -2762,7 +2784,8 @@ function BulkImportModal({ onSave, onClose }) {
         netSalary: row[headerMap['Net Salary']] || '',
         grossSalary: row[headerMap['Gross Salary']] || '',
         totalSalary: row[headerMap['Total Salary']] || '',
-        managerId: '' // Manager will need to be set manually later
+        managerName: row[headerMap['Manager']] || '', // Store manager name temporarily
+        managerId: '' // Will be set in second pass
       };
 
       // Clean up salary fields - convert to numbers if possible
@@ -2777,6 +2800,46 @@ function BulkImportModal({ onSave, onClose }) {
 
       return employee;
     }).filter(emp => emp.name); // Only include employees with names
+
+    // Second pass: Resolve manager relationships
+    newEmployees.forEach(employee => {
+      if (employee.managerName) {
+        const managerName = employee.managerName.trim();
+        
+        // Try to find manager by name
+        const manager = newEmployees.find(emp => 
+          emp.name.toLowerCase() === managerName.toLowerCase()
+        );
+        
+        if (manager) {
+          employee.managerId = manager.id;
+        } else {
+          // Try to find manager by Employee ID
+          const managerByEmpId = newEmployees.find(emp => 
+            emp.employeeId && emp.employeeId.toLowerCase() === managerName.toLowerCase()
+          );
+          
+          if (managerByEmpId) {
+            employee.managerId = managerByEmpId.id;
+          } else {
+            // Try partial name matching
+            const managerByPartialName = newEmployees.find(emp => 
+              emp.name.toLowerCase().includes(managerName.toLowerCase()) ||
+              managerName.toLowerCase().includes(emp.name.toLowerCase())
+            );
+            
+            if (managerByPartialName) {
+              employee.managerId = managerByPartialName.id;
+            }
+          }
+        }
+      }
+      
+      // Remove temporary managerName field
+      delete employee.managerName;
+    });
+
+    return newEmployees;
   };
 
   const handleImport = () => {
@@ -2947,6 +3010,7 @@ function BulkImportModal({ onSave, onClose }) {
 function AddEmployeeModal({ employee, employees, onSave, onClose }) {
   const [formData, setFormData] = useState({
     name: employee?.name || '',
+    employeeId: employee?.employeeId || '',
     division: employee?.division || '',
     squad: employee?.squad || '',
     team: employee?.team || '',
@@ -2985,18 +3049,30 @@ function AddEmployeeModal({ employee, employees, onSave, onClose }) {
         </div>
 
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-white/70 mb-2">
-              Name <span className="text-red-400">*</span>
-            </label>
-            <input
-              type="text"
-              value={formData.name}
-              onChange={(e) => setFormData({...formData, name: e.target.value})}
-              className="w-full glass-input px-4 py-2"
-              placeholder="John Doe"
-              required
-            />
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-white/70 mb-2">
+                Name <span className="text-red-400">*</span>
+              </label>
+              <input
+                type="text"
+                value={formData.name}
+                onChange={(e) => setFormData({...formData, name: e.target.value})}
+                className="w-full glass-input px-4 py-2"
+                placeholder="John Doe"
+                required
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-white/70 mb-2">Employee ID</label>
+              <input
+                type="text"
+                value={formData.employeeId}
+                onChange={(e) => setFormData({...formData, employeeId: e.target.value})}
+                className="w-full glass-input px-4 py-2"
+                placeholder="EMP001"
+              />
+            </div>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -3296,6 +3372,7 @@ export default function App() {
     
     const newEmployee = {
       id: `emp-${uid()}`,
+      employeeId: "",
       name,
       division: "",
       squad: "",
