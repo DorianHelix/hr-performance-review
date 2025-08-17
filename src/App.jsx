@@ -1369,6 +1369,9 @@ function EmployeesContent() {
     const [connectionStart, setConnectionStart] = useState(null);
     const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
     const [isDarkMode] = useState(() => document.documentElement.getAttribute('data-theme') !== 'light');
+    const [panOffset, setPanOffset] = useState({ x: 0, y: 0 });
+    const [isPanning, setIsPanning] = useState(false);
+    const [panStart, setPanStart] = useState({ x: 0, y: 0 });
 
     useEffect(() => {
       // Build hierarchy and calculate positions
@@ -1459,10 +1462,10 @@ function EmployeesContent() {
       // Scale the drawing context to match device pixel ratio
       ctx.scale(dpr, dpr);
       
-      // Apply zoom transformation
+      // Apply zoom and pan transformations
       ctx.save();
       ctx.scale(zoom, zoom);
-      ctx.translate((displayWidth * (1 - zoom)) / (2 * zoom), (displayHeight * (1 - zoom)) / (2 * zoom));
+      ctx.translate((displayWidth * (1 - zoom)) / (2 * zoom) + panOffset.x / zoom, (displayHeight * (1 - zoom)) / (2 * zoom) + panOffset.y / zoom);
       
       // Enable better text rendering
       ctx.imageSmoothingEnabled = true;
@@ -1888,7 +1891,7 @@ function EmployeesContent() {
       
       // Restore the context
       ctx.restore();
-    }, [nodes, isDarkMode, dragging, hoveredConnection, isDrawingConnection, connectionStart, mousePos, zoom]);
+    }, [nodes, isDarkMode, dragging, hoveredConnection, isDrawingConnection, connectionStart, mousePos, zoom, panOffset]);
 
     const handleMouseDown = (e) => {
       const canvas = canvasRef.current;
@@ -1896,9 +1899,9 @@ function EmployeesContent() {
       const rawX = (e.clientX - rect.left) * (1200 / rect.width);
       const rawY = (e.clientY - rect.top) * (600 / rect.height);
       
-      // Adjust for zoom and translation
-      const x = (rawX - (1200 * (1 - zoom)) / 2) / zoom;
-      const y = (rawY - (600 * (1 - zoom)) / 2) / zoom;
+      // Adjust for zoom, translation and pan
+      const x = (rawX - (1200 * (1 - zoom)) / 2 - panOffset.x) / zoom;
+      const y = (rawY - (600 * (1 - zoom)) / 2 - panOffset.y) / zoom;
       
       // Check if clicking on delete X button on connection line
       if (hoveredConnection) {
@@ -1954,14 +1957,23 @@ function EmployeesContent() {
       }
       
       // Find which node was clicked for dragging
+      let nodeClicked = false;
       for (const [id, node] of Object.entries(nodes)) {
         if (x >= node.x && x <= node.x + node.width &&
             y >= node.y && y <= node.y + node.height) {
           setDragging(id);
           setDragStart({ x: x - node.x, y: y - node.y });
           canvas.style.cursor = 'grabbing';
+          nodeClicked = true;
           break;
         }
+      }
+      
+      // If no node was clicked, start panning
+      if (!nodeClicked && !isDrawingConnection) {
+        setIsPanning(true);
+        setPanStart({ x: rawX, y: rawY });
+        canvas.style.cursor = 'grabbing';
       }
     };
 
@@ -1971,9 +1983,9 @@ function EmployeesContent() {
       const rawX = (e.clientX - rect.left) * (1200 / rect.width);
       const rawY = (e.clientY - rect.top) * (600 / rect.height);
       
-      // Adjust for zoom and translation
-      const x = (rawX - (1200 * (1 - zoom)) / 2) / zoom;
-      const y = (rawY - (600 * (1 - zoom)) / 2) / zoom;
+      // Adjust for zoom, translation and pan
+      const x = (rawX - (1200 * (1 - zoom)) / 2 - panOffset.x) / zoom;
+      const y = (rawY - (600 * (1 - zoom)) / 2 - panOffset.y) / zoom;
       
       setMousePos({ x, y });
       
@@ -1982,7 +1994,17 @@ function EmployeesContent() {
         return;
       }
       
-      if (dragging) {
+      if (isPanning) {
+        // Update pan offset
+        const deltaX = rawX - panStart.x;
+        const deltaY = rawY - panStart.y;
+        setPanOffset(prev => ({
+          x: prev.x + deltaX,
+          y: prev.y + deltaY
+        }));
+        setPanStart({ x: rawX, y: rawY });
+        canvas.style.cursor = 'grabbing';
+      } else if (dragging) {
         setNodes(prev => ({
           ...prev,
           [dragging]: {
@@ -2034,7 +2056,7 @@ function EmployeesContent() {
                 break;
               }
             }
-            canvas.style.cursor = hovered ? 'grab' : 'default';
+            canvas.style.cursor = hovered ? 'grab' : 'move';
           }
         }
       }
@@ -2048,9 +2070,9 @@ function EmployeesContent() {
         const rawX = (e.clientX - rect.left) * (1200 / rect.width);
         const rawY = (e.clientY - rect.top) * (600 / rect.height);
         
-        // Adjust for zoom and translation
-        const x = (rawX - (1200 * (1 - zoom)) / 2) / zoom;
-        const y = (rawY - (600 * (1 - zoom)) / 2) / zoom;
+        // Adjust for zoom, translation and pan
+        const x = (rawX - (1200 * (1 - zoom)) / 2 - panOffset.x) / zoom;
+        const y = (rawY - (600 * (1 - zoom)) / 2 - panOffset.y) / zoom;
         
         // Find which node we're dropping on
         let foundTarget = false;
@@ -2082,8 +2104,9 @@ function EmployeesContent() {
       }
       
       setDragging(null);
+      setIsPanning(false);
       if (canvas) {
-        canvas.style.cursor = 'default';
+        canvas.style.cursor = 'move';
       }
     };
 
