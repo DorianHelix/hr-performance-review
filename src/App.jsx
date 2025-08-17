@@ -4,7 +4,7 @@ import {
   Download, Trash2, Pencil, Settings, PlusCircle, X,
   ChevronLeft, ChevronRight, Calendar, Plus, Users, 
   TrendingUp, Clock, FileText, Briefcase, Upload,
-  Bot, Save, Edit2, Star, Home, BarChart3, Sun, Moon, Menu, ArrowLeft
+  Bot, Save, Edit2, Star, Home, BarChart3, Sun, Moon, Menu, ArrowLeft, Network
 } from "lucide-react";
 
 /* -----------------------------------------------------------
@@ -1307,6 +1307,7 @@ function EmployeesContent() {
   const [editingEmployee, setEditingEmployee] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterDepartment, setFilterDepartment] = useState('');
+  const [viewMode, setViewMode] = useState('table'); // 'table' or 'chart'
 
   // Add new employee
   const handleAddEmployee = (employeeData) => {
@@ -1351,9 +1352,249 @@ function EmployeesContent() {
   // Get unique departments
   const departments = [...new Set(employees.map(emp => emp.department))].filter(Boolean);
 
+  // Simple Org Chart Component
+  const OrgChart = () => {
+    const canvasRef = useRef(null);
+    const [nodes, setNodes] = useState({});
+    const [dragging, setDragging] = useState(null);
+    const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
+    const [isDarkMode] = useState(() => document.documentElement.getAttribute('data-theme') !== 'light');
+
+    useEffect(() => {
+      // Build hierarchy and calculate positions
+      const buildHierarchy = () => {
+        const nodeMap = {};
+        const roots = [];
+        const levels = {};
+        
+        // First pass: create all nodes
+        employees.forEach(emp => {
+          nodeMap[emp.id] = {
+            ...emp,
+            width: 200,
+            height: 80,
+            children: []
+          };
+        });
+        
+        // Second pass: build relationships
+        employees.forEach(emp => {
+          if (emp.managerId && nodeMap[emp.managerId]) {
+            nodeMap[emp.managerId].children.push(emp.id);
+          } else if (!emp.managerId) {
+            roots.push(emp.id);
+          }
+        });
+        
+        // Calculate levels
+        const calculateLevel = (nodeId, level = 0) => {
+          levels[nodeId] = level;
+          const node = nodeMap[nodeId];
+          if (node && node.children) {
+            node.children.forEach(childId => {
+              calculateLevel(childId, level + 1);
+            });
+          }
+        };
+        
+        roots.forEach(rootId => calculateLevel(rootId));
+        
+        // Group nodes by level
+        const levelGroups = {};
+        Object.entries(levels).forEach(([nodeId, level]) => {
+          if (!levelGroups[level]) levelGroups[level] = [];
+          levelGroups[level].push(nodeId);
+        });
+        
+        // Position nodes
+        const HORIZONTAL_SPACING = 250;
+        const VERTICAL_SPACING = 120;
+        const START_Y = 50;
+        
+        Object.entries(levelGroups).forEach(([level, nodeIds]) => {
+          const levelNum = parseInt(level);
+          const totalWidth = nodeIds.length * HORIZONTAL_SPACING;
+          const startX = (1200 - totalWidth) / 2 + HORIZONTAL_SPACING / 2;
+          
+          nodeIds.forEach((nodeId, index) => {
+            if (nodeMap[nodeId]) {
+              nodeMap[nodeId].x = startX + index * HORIZONTAL_SPACING;
+              nodeMap[nodeId].y = START_Y + levelNum * VERTICAL_SPACING;
+            }
+          });
+        });
+        
+        return nodeMap;
+      };
+      
+      setNodes(buildHierarchy());
+    }, []);
+
+    useEffect(() => {
+      const canvas = canvasRef.current;
+      if (!canvas) return;
+      const ctx = canvas.getContext('2d', { alpha: true });
+      
+      // Handle high-DPI displays for sharp rendering
+      const dpr = window.devicePixelRatio || 1;
+      
+      // Set display size (css pixels)
+      const displayWidth = 1200;
+      const displayHeight = 600;
+      
+      // Set actual canvas size accounting for device pixel ratio
+      canvas.width = displayWidth * dpr;
+      canvas.height = displayHeight * dpr;
+      
+      // Scale the drawing context to match device pixel ratio
+      ctx.scale(dpr, dpr);
+      
+      // Enable better text rendering
+      ctx.imageSmoothingEnabled = true;
+      ctx.imageSmoothingQuality = 'high';
+      
+      // Clear canvas
+      ctx.clearRect(0, 0, displayWidth, displayHeight);
+      
+      // Draw connections first (behind nodes)
+      ctx.strokeStyle = isDarkMode ? 'rgba(255, 255, 255, 0.2)' : 'rgba(0, 0, 0, 0.2)';
+      ctx.lineWidth = 2;
+      
+      Object.values(nodes).forEach(node => {
+        if (node.managerId) {
+          const managerNode = nodes[node.managerId];
+          if (managerNode) {
+            ctx.beginPath();
+            // Draw L-shaped connection
+            const startX = managerNode.x + managerNode.width / 2;
+            const startY = managerNode.y + managerNode.height;
+            const endX = node.x + node.width / 2;
+            const endY = node.y;
+            const midY = startY + (endY - startY) / 2;
+            
+            ctx.moveTo(startX, startY);
+            ctx.lineTo(startX, midY);
+            ctx.lineTo(endX, midY);
+            ctx.lineTo(endX, endY);
+            ctx.stroke();
+          }
+        }
+      });
+      
+      // Draw nodes
+      Object.values(nodes).forEach(node => {
+        // Shadow
+        ctx.shadowColor = 'rgba(0, 0, 0, 0.1)';
+        ctx.shadowBlur = 8;
+        ctx.shadowOffsetX = 0;
+        ctx.shadowOffsetY = 2;
+        
+        // Glass card effect
+        ctx.fillStyle = isDarkMode ? 'rgba(255, 255, 255, 0.08)' : 'rgba(255, 255, 255, 0.95)';
+        ctx.fillRect(node.x, node.y, node.width, node.height);
+        
+        // Border
+        ctx.shadowBlur = 0;
+        ctx.strokeStyle = isDarkMode ? 'rgba(255, 255, 255, 0.15)' : 'rgba(0, 0, 0, 0.1)';
+        ctx.strokeRect(node.x, node.y, node.width, node.height);
+        
+        // Highlight if dragging
+        if (dragging === node.id) {
+          ctx.strokeStyle = isDarkMode ? 'rgba(96, 165, 250, 0.5)' : 'rgba(59, 130, 246, 0.5)';
+          ctx.lineWidth = 2;
+          ctx.strokeRect(node.x, node.y, node.width, node.height);
+          ctx.lineWidth = 1;
+        }
+        
+        // Text with subpixel antialiasing
+        ctx.textBaseline = 'middle';
+        ctx.fillStyle = isDarkMode ? 'rgba(255, 255, 255, 0.9)' : 'rgba(0, 0, 0, 0.9)';
+        ctx.font = '600 14px -apple-system, BlinkMacSystemFont, "SF Pro Display", "Helvetica Neue", sans-serif';
+        ctx.fillText(node.name, node.x + 10, node.y + 20);
+        
+        ctx.font = '400 12px -apple-system, BlinkMacSystemFont, "SF Pro Display", "Helvetica Neue", sans-serif';
+        ctx.fillStyle = isDarkMode ? 'rgba(255, 255, 255, 0.6)' : 'rgba(0, 0, 0, 0.6)';
+        ctx.fillText(node.role || 'No role', node.x + 10, node.y + 40);
+        ctx.fillText(node.department || 'No dept', node.x + 10, node.y + 60);
+      });
+    }, [nodes, isDarkMode, dragging]);
+
+    const handleMouseDown = (e) => {
+      const canvas = canvasRef.current;
+      const rect = canvas.getBoundingClientRect();
+      const x = (e.clientX - rect.left) * (1200 / rect.width);
+      const y = (e.clientY - rect.top) * (600 / rect.height);
+      
+      // Find which node was clicked
+      for (const [id, node] of Object.entries(nodes)) {
+        if (x >= node.x && x <= node.x + node.width &&
+            y >= node.y && y <= node.y + node.height) {
+          setDragging(id);
+          setDragStart({ x: x - node.x, y: y - node.y });
+          canvas.style.cursor = 'grabbing';
+          break;
+        }
+      }
+    };
+
+    const handleMouseMove = (e) => {
+      const canvas = canvasRef.current;
+      const rect = canvas.getBoundingClientRect();
+      const x = (e.clientX - rect.left) * (1200 / rect.width);
+      const y = (e.clientY - rect.top) * (600 / rect.height);
+      
+      if (dragging) {
+        setNodes(prev => ({
+          ...prev,
+          [dragging]: {
+            ...prev[dragging],
+            x: Math.max(0, Math.min(1000, x - dragStart.x)),
+            y: Math.max(0, Math.min(520, y - dragStart.y))
+          }
+        }));
+      } else {
+        // Change cursor on hover
+        let hovered = false;
+        for (const node of Object.values(nodes)) {
+          if (x >= node.x && x <= node.x + node.width &&
+              y >= node.y && y <= node.y + node.height) {
+            hovered = true;
+            break;
+          }
+        }
+        canvas.style.cursor = hovered ? 'grab' : 'default';
+      }
+    };
+
+    const handleMouseUp = () => {
+      setDragging(null);
+      if (canvasRef.current) {
+        canvasRef.current.style.cursor = 'default';
+      }
+    };
+
+    return (
+      <canvas
+        ref={canvasRef}
+        width={1200}
+        height={600}
+        className="w-full rounded-xl"
+        style={{ 
+          background: isDarkMode ? 'rgba(0, 0, 0, 0.2)' : 'rgba(0, 0, 0, 0.05)',
+          maxWidth: '100%',
+          height: 'auto'
+        }}
+        onMouseDown={handleMouseDown}
+        onMouseMove={handleMouseMove}
+        onMouseUp={handleMouseUp}
+        onMouseLeave={handleMouseUp}
+      />
+    );
+  };
+
   return (
     <div className="flex h-full">
-      {/* Main Content - Employee Table */}
+      {/* Main Content */}
       <div className="flex-1 p-6">
         <header className="glass-card-large p-6 mb-6">
           <div className="flex items-center justify-between mb-4">
@@ -1372,8 +1613,35 @@ function EmployeesContent() {
             </div>
           </div>
 
-          {/* Search and Filter Bar */}
-          <div className="flex gap-3">
+          {/* View Mode Tabs */}
+          <div className="flex gap-2 mb-4">
+            <button
+              onClick={() => setViewMode('table')}
+              className={`px-4 py-2 rounded-xl font-medium transition-all ${
+                viewMode === 'table' 
+                  ? 'glass-button bg-white/10' 
+                  : 'glass-button hover:bg-white/5'
+              }`}
+            >
+              <Users size={16} className="inline mr-2" />
+              Table View
+            </button>
+            <button
+              onClick={() => setViewMode('chart')}
+              className={`px-4 py-2 rounded-xl font-medium transition-all ${
+                viewMode === 'chart' 
+                  ? 'glass-button bg-white/10' 
+                  : 'glass-button hover:bg-white/5'
+              }`}
+            >
+              <Network size={16} className="inline mr-2" />
+              Org Chart
+            </button>
+          </div>
+
+          {/* Search and Filter Bar - Only show in table view */}
+          {viewMode === 'table' && (
+            <div className="flex gap-3">
             <div className="flex-1 relative">
               <input
                 type="text"
@@ -1397,68 +1665,75 @@ function EmployeesContent() {
               ))}
             </select>
           </div>
+          )}
         </header>
 
-        {/* Employee Table */}
-        <div className="glass-card-large overflow-hidden">
-          <table className="w-full">
-            <thead>
-              <tr className="border-b border-white/10">
-                <th className="text-left p-4 text-white/70 font-medium">Name</th>
-                <th className="text-left p-4 text-white/70 font-medium">Department</th>
-                <th className="text-left p-4 text-white/70 font-medium">Role</th>
-                <th className="text-left p-4 text-white/70 font-medium">Seniority</th>
-                <th className="text-left p-4 text-white/70 font-medium">Manager</th>
-                <th className="text-left p-4 text-white/70 font-medium">Start Date</th>
-                <th className="text-center p-4 text-white/70 font-medium">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredEmployees.length === 0 ? (
-                <tr>
-                  <td colSpan="7" className="text-center p-8 text-white/50">
-                    No employees found. Add your first employee to get started.
-                  </td>
+        {/* Employee Table or Org Chart */}
+        {viewMode === 'table' ? (
+          <div className="glass-card-large overflow-hidden">
+            <table className="w-full">
+              <thead>
+                <tr className="border-b border-white/10">
+                  <th className="text-left p-4 text-white/70 font-medium">Name</th>
+                  <th className="text-left p-4 text-white/70 font-medium">Department</th>
+                  <th className="text-left p-4 text-white/70 font-medium">Role</th>
+                  <th className="text-left p-4 text-white/70 font-medium">Seniority</th>
+                  <th className="text-left p-4 text-white/70 font-medium">Manager</th>
+                  <th className="text-left p-4 text-white/70 font-medium">Start Date</th>
+                  <th className="text-center p-4 text-white/70 font-medium">Actions</th>
                 </tr>
-              ) : (
-                filteredEmployees.map(emp => (
-                  <tr key={emp.id} className="border-b border-white/5 hover:bg-white/5 transition-colors">
-                    <td className="p-4">
-                      <div className="font-medium text-white">{emp.name}</div>
-                    </td>
-                    <td className="p-4 text-white/70">{emp.department || '-'}</td>
-                    <td className="p-4 text-white/70">{emp.role || '-'}</td>
-                    <td className="p-4 text-white/70">{emp.seniority || '-'}</td>
-                    <td className="p-4 text-white/70">
-                      {emp.managerId ? employees.find(m => m.id === emp.managerId)?.name || 'Unknown' : '-'}
-                    </td>
-                    <td className="p-4 text-white/70">
-                      {emp.startDate ? new Date(emp.startDate).toLocaleDateString() : '-'}
-                    </td>
-                    <td className="p-4">
-                      <div className="flex items-center justify-center gap-2">
-                        <button
-                          onClick={() => setEditingEmployee(emp)}
-                          className="p-2 rounded-lg hover:bg-white/10 transition-colors"
-                          title="Edit"
-                        >
-                          <Pencil size={16} className="text-white/70" />
-                        </button>
-                        <button
-                          onClick={() => handleDeleteEmployee(emp.id)}
-                          className="p-2 rounded-lg hover:bg-red-500/20 transition-colors"
-                          title="Delete"
-                        >
-                          <Trash2 size={16} className="text-red-400" />
-                        </button>
-                      </div>
+              </thead>
+              <tbody>
+                {filteredEmployees.length === 0 ? (
+                  <tr>
+                    <td colSpan="7" className="text-center p-8 text-white/50">
+                      No employees found. Add your first employee to get started.
                     </td>
                   </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
+                ) : (
+                  filteredEmployees.map(emp => (
+                    <tr key={emp.id} className="border-b border-white/5 hover:bg-white/5 transition-colors">
+                      <td className="p-4">
+                        <div className="font-medium text-white">{emp.name}</div>
+                      </td>
+                      <td className="p-4 text-white/70">{emp.department || '-'}</td>
+                      <td className="p-4 text-white/70">{emp.role || '-'}</td>
+                      <td className="p-4 text-white/70">{emp.seniority || '-'}</td>
+                      <td className="p-4 text-white/70">
+                        {emp.managerId ? employees.find(m => m.id === emp.managerId)?.name || 'Unknown' : '-'}
+                      </td>
+                      <td className="p-4 text-white/70">
+                        {emp.startDate ? new Date(emp.startDate).toLocaleDateString() : '-'}
+                      </td>
+                      <td className="p-4">
+                        <div className="flex items-center justify-center gap-2">
+                          <button
+                            onClick={() => setEditingEmployee(emp)}
+                            className="p-2 rounded-lg hover:bg-white/10 transition-colors"
+                            title="Edit"
+                          >
+                            <Pencil size={16} className="text-white/70" />
+                          </button>
+                          <button
+                            onClick={() => handleDeleteEmployee(emp.id)}
+                            className="p-2 rounded-lg hover:bg-red-500/20 transition-colors"
+                            title="Delete"
+                          >
+                            <Trash2 size={16} className="text-red-400" />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <div className="glass-card-large p-6">
+            <OrgChart />
+          </div>
+        )}
       </div>
 
       {/* Right Sidebar - Add Employee Widget */}
