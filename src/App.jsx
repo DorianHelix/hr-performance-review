@@ -1357,7 +1357,7 @@ function EmployeesContent() {
   const isDarkMode = document.documentElement.getAttribute('data-theme') !== 'light';
   
   // Simple Org Chart Component
-  const OrgChart = ({ onQuickAdd }) => {
+  const OrgChart = ({ onQuickAdd, onEditEmployee, onDeleteEmployee }) => {
     const canvasRef = useRef(null);
     const [nodes, setNodes] = useState({});
     const [dragging, setDragging] = useState(null);
@@ -1630,19 +1630,19 @@ function EmployeesContent() {
           ctx.stroke();
         }
         
-        // Name
+        // Name (with padding to avoid button overlap)
         ctx.textBaseline = 'top';
         ctx.fillStyle = isDarkMode ? 'rgba(255, 255, 255, 0.95)' : 'rgba(0, 0, 0, 0.9)';
         ctx.font = '600 14px -apple-system, BlinkMacSystemFont, "SF Pro Display", "Helvetica Neue", sans-serif';
-        ctx.fillText(node.name, node.x + 12, node.y + 15);
+        ctx.fillText(node.name, node.x + 35, node.y + 13);
         
         // Role badge
         if (node.role) {
           ctx.font = '500 10px -apple-system, BlinkMacSystemFont, "SF Pro Display", "Helvetica Neue", sans-serif';
           const roleText = node.role;
           const roleMetrics = ctx.measureText(roleText);
-          const roleX = node.x + 12;
-          const roleY = node.y + 35;
+          const roleX = node.x + 35;
+          const roleY = node.y + 33;
           const rolePadding = 4;
           const roleHeight = 16;
           
@@ -1690,8 +1690,8 @@ function EmployeesContent() {
           ctx.font = '500 10px -apple-system, BlinkMacSystemFont, "SF Pro Display", "Helvetica Neue", sans-serif';
           const deptText = node.department;
           const deptMetrics = ctx.measureText(deptText);
-          const deptX = node.x + 12;
-          const deptY = node.y + 55;
+          const deptX = node.x + 35;
+          const deptY = node.y + 53;
           const deptPadding = 4;
           const deptHeight = 16;
           
@@ -1727,6 +1727,128 @@ function EmployeesContent() {
           ctx.fillStyle = isDarkMode ? textColor.dark : textColor.light;
           ctx.fillText(deptText, deptX + deptPadding, deptY + 3);
         }
+        
+        // Draw Settings button (top-right corner)
+        const gearX = node.x + node.width - 15;
+        const gearY = node.y + 15;
+        const gearSize = 14;
+        const isHoveringGear = Math.abs(mousePos.x - gearX) < 10 && Math.abs(mousePos.y - gearY) < 10;
+        
+        // Settings button background (hover effect)
+        if (isHoveringGear) {
+          ctx.fillStyle = isDarkMode ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.05)';
+          ctx.beginPath();
+          ctx.moveTo(gearX - 10 + 3, gearY - 10);
+          ctx.lineTo(gearX + 10 - 3, gearY - 10);
+          ctx.quadraticCurveTo(gearX + 10, gearY - 10, gearX + 10, gearY - 10 + 3);
+          ctx.lineTo(gearX + 10, gearY + 10 - 3);
+          ctx.quadraticCurveTo(gearX + 10, gearY + 10, gearX + 10 - 3, gearY + 10);
+          ctx.lineTo(gearX - 10 + 3, gearY + 10);
+          ctx.quadraticCurveTo(gearX - 10, gearY + 10, gearX - 10, gearY + 10 - 3);
+          ctx.lineTo(gearX - 10, gearY - 10 + 3);
+          ctx.quadraticCurveTo(gearX - 10, gearY - 10, gearX - 10 + 3, gearY - 10);
+          ctx.closePath();
+          ctx.fill();
+        }
+        
+        // Draw Settings icon (similar to lucide-react Settings)
+        ctx.save();
+        ctx.translate(gearX, gearY);
+        ctx.strokeStyle = isDarkMode ? 'rgba(255, 255, 255, 0.6)' : 'rgba(0, 0, 0, 0.6)';
+        ctx.lineWidth = 1.5;
+        
+        // Outer gear teeth
+        ctx.beginPath();
+        const teeth = 8;
+        const innerRadius = 4;
+        const outerRadius = 6;
+        for (let i = 0; i < teeth * 2; i++) {
+          const angle = (i * Math.PI) / teeth;
+          const radius = i % 2 === 0 ? outerRadius : innerRadius;
+          const x = Math.cos(angle) * radius;
+          const y = Math.sin(angle) * radius;
+          if (i === 0) ctx.moveTo(x, y);
+          else ctx.lineTo(x, y);
+        }
+        ctx.closePath();
+        ctx.stroke();
+        
+        // Center circle
+        ctx.beginPath();
+        ctx.arc(0, 0, 2, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.restore();
+        
+        // Draw Delete button (top-left corner)
+        const deleteX = node.x + 15;
+        const deleteY = node.y + 15;
+        const deleteSize = 14;
+        const isHoveringDelete = Math.abs(mousePos.x - deleteX) < 10 && Math.abs(mousePos.y - deleteY) < 10;
+        
+        // Delete button background (hover effect)
+        if (isHoveringDelete) {
+          ctx.fillStyle = 'rgba(239, 68, 68, 0.2)';
+          ctx.beginPath();
+          ctx.moveTo(deleteX - 10 + 3, deleteY - 10);
+          ctx.lineTo(deleteX + 10 - 3, deleteY - 10);
+          ctx.quadraticCurveTo(deleteX + 10, deleteY - 10, deleteX + 10, deleteY - 10 + 3);
+          ctx.lineTo(deleteX + 10, deleteY + 10 - 3);
+          ctx.quadraticCurveTo(deleteX + 10, deleteY + 10, deleteX + 10 - 3, deleteY + 10);
+          ctx.lineTo(deleteX - 10 + 3, deleteY + 10);
+          ctx.quadraticCurveTo(deleteX - 10, deleteY + 10, deleteX - 10, deleteY + 10 - 3);
+          ctx.lineTo(deleteX - 10, deleteY - 10 + 3);
+          ctx.quadraticCurveTo(deleteX - 10, deleteY - 10, deleteX - 10 + 3, deleteY - 10);
+          ctx.closePath();
+          ctx.fill();
+        }
+        
+        // Draw Trash icon (similar to lucide-react Trash2)
+        ctx.save();
+        ctx.translate(deleteX, deleteY);
+        ctx.strokeStyle = 'rgba(239, 68, 68, 0.9)';
+        ctx.lineWidth = 1.3;
+        
+        // Trash can body
+        ctx.beginPath();
+        ctx.moveTo(-4, -1);
+        ctx.lineTo(-4, 5);
+        ctx.quadraticCurveTo(-4, 6, -3, 6);
+        ctx.lineTo(3, 6);
+        ctx.quadraticCurveTo(4, 6, 4, 5);
+        ctx.lineTo(4, -1);
+        ctx.stroke();
+        
+        // Lid
+        ctx.beginPath();
+        ctx.moveTo(-6, -1);
+        ctx.lineTo(6, -1);
+        ctx.stroke();
+        
+        // Handle
+        ctx.beginPath();
+        ctx.moveTo(-2, -3);
+        ctx.lineTo(-2, -1);
+        ctx.moveTo(2, -3);
+        ctx.lineTo(2, -1);
+        ctx.moveTo(-2, -3);
+        ctx.lineTo(2, -3);
+        ctx.stroke();
+        
+        // Vertical lines inside
+        ctx.beginPath();
+        ctx.moveTo(-2, 1);
+        ctx.lineTo(-2, 3);
+        ctx.moveTo(0, 1);
+        ctx.lineTo(0, 3);
+        ctx.moveTo(2, 1);
+        ctx.lineTo(2, 3);
+        ctx.stroke();
+        
+        ctx.restore();
+        
+        // Store button positions for click detection
+        node.gearButton = { x: gearX, y: gearY };
+        node.deleteButton = { x: deleteX, y: deleteY };
         
         // Draw connection handle at bottom
         const handleX = node.x + node.width / 2;
@@ -1764,7 +1886,7 @@ function EmployeesContent() {
       const x = (e.clientX - rect.left) * (1200 / rect.width);
       const y = (e.clientY - rect.top) * (600 / rect.height);
       
-      // Check if clicking on delete X button
+      // Check if clicking on delete X button on connection line
       if (hoveredConnection) {
         // Remove manager relationship
         const updatedEmployees = employees.map(emp => 
@@ -1774,6 +1896,35 @@ function EmployeesContent() {
         lsWrite(LS_EMPLOYEES, updatedEmployees);
         setHoveredConnection(null);
         return;
+      }
+      
+      // Check if clicking on node buttons (gear or X)
+      for (const [id, node] of Object.entries(nodes)) {
+        // Check gear button click
+        if (node.gearButton && Math.abs(x - node.gearButton.x) < 10 && Math.abs(y - node.gearButton.y) < 10) {
+          // Find the employee and open edit modal
+          const employee = employees.find(emp => emp.id === id);
+          if (employee && onEditEmployee) {
+            onEditEmployee(employee);
+          }
+          return;
+        }
+        
+        // Check delete button click
+        if (node.deleteButton && Math.abs(x - node.deleteButton.x) < 10 && Math.abs(y - node.deleteButton.y) < 10) {
+          // Show confirmation dialog
+          const employee = employees.find(emp => emp.id === id);
+          if (employee) {
+            const message = `Are you sure you want to delete ${employee.name}?\n\nThis will permanently remove the employee and all associated data from the database.`;
+            if (confirm(message)) {
+              // Delete the employee
+              if (onDeleteEmployee) {
+                onDeleteEmployee(id);
+              }
+            }
+          }
+          return;
+        }
       }
       
       // Check if clicking on connection handle
@@ -2160,7 +2311,11 @@ function EmployeesContent() {
               </div>
             </div>
             <div className="p-6">
-              <OrgChart onQuickAdd={setQuickAddModal} />
+              <OrgChart 
+                onQuickAdd={setQuickAddModal}
+                onEditEmployee={setEditingEmployee}
+                onDeleteEmployee={handleDeleteEmployee}
+              />
             </div>
           </div>
         )}
