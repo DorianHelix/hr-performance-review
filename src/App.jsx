@@ -2414,7 +2414,7 @@ function EmployeesContent() {
   };
 
   return (
-    <div className="flex flex-col 2xl:flex-row h-full">
+    <div className="flex flex-col lg:flex-row h-full">
       {/* Main Content */}
       <div className="flex-1 p-4 md:p-6 overflow-auto min-w-0">
         <header className="glass-card-large p-6 mb-6">
@@ -2711,7 +2711,7 @@ function EmployeesContent() {
       </div>
 
       {/* Right Sidebar - Add Employee Widget */}
-      <div className="w-full 2xl:w-96 p-4 md:p-6 space-y-6 2xl:max-h-screen 2xl:overflow-y-auto">
+      <div className="w-full lg:w-96 p-4 md:p-6 space-y-6 lg:max-h-screen lg:overflow-y-auto lg:sticky lg:top-0 flex-shrink-0">
         <div className="glass-card-large p-6">
           <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
             <PlusCircle size={20} className="text-blue-400" />
