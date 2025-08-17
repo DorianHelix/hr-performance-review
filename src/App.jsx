@@ -1457,65 +1457,163 @@ function EmployeesContent() {
       ctx.clearRect(0, 0, displayWidth, displayHeight);
       
       // Draw connections first (behind nodes)
-      ctx.strokeStyle = isDarkMode ? 'rgba(255, 255, 255, 0.2)' : 'rgba(0, 0, 0, 0.2)';
-      ctx.lineWidth = 2;
-      
       Object.values(nodes).forEach(node => {
         if (node.managerId) {
           const managerNode = nodes[node.managerId];
           if (managerNode) {
+            // Create gradient for connection lines
+            const gradient = ctx.createLinearGradient(
+              managerNode.x + managerNode.width / 2,
+              managerNode.y + managerNode.height,
+              node.x + node.width / 2,
+              node.y
+            );
+            
+            if (isDarkMode) {
+              gradient.addColorStop(0, 'rgba(96, 165, 250, 0.3)');
+              gradient.addColorStop(1, 'rgba(167, 139, 250, 0.3)');
+            } else {
+              gradient.addColorStop(0, 'rgba(59, 130, 246, 0.2)');
+              gradient.addColorStop(1, 'rgba(139, 92, 246, 0.2)');
+            }
+            
+            ctx.strokeStyle = gradient;
+            ctx.lineWidth = 2;
+            ctx.lineCap = 'round';
+            ctx.lineJoin = 'round';
+            
             ctx.beginPath();
-            // Draw L-shaped connection
+            // Draw smooth curved connection
             const startX = managerNode.x + managerNode.width / 2;
             const startY = managerNode.y + managerNode.height;
             const endX = node.x + node.width / 2;
             const endY = node.y;
-            const midY = startY + (endY - startY) / 2;
+            const controlPointOffset = Math.abs(endY - startY) * 0.5;
             
             ctx.moveTo(startX, startY);
-            ctx.lineTo(startX, midY);
-            ctx.lineTo(endX, midY);
-            ctx.lineTo(endX, endY);
+            ctx.bezierCurveTo(
+              startX, startY + controlPointOffset,
+              endX, endY - controlPointOffset,
+              endX, endY
+            );
             ctx.stroke();
+            
+            // Add small dot at connection points
+            ctx.fillStyle = isDarkMode ? 'rgba(96, 165, 250, 0.5)' : 'rgba(59, 130, 246, 0.4)';
+            ctx.beginPath();
+            ctx.arc(startX, startY, 3, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.beginPath();
+            ctx.arc(endX, endY, 3, 0, Math.PI * 2);
+            ctx.fill();
           }
         }
       });
       
       // Draw nodes
       Object.values(nodes).forEach(node => {
-        // Shadow
-        ctx.shadowColor = 'rgba(0, 0, 0, 0.1)';
-        ctx.shadowBlur = 8;
-        ctx.shadowOffsetX = 0;
-        ctx.shadowOffsetY = 2;
+        const radius = 16; // Corner radius for rounded rectangles
         
-        // Glass card effect
-        ctx.fillStyle = isDarkMode ? 'rgba(255, 255, 255, 0.08)' : 'rgba(255, 255, 255, 0.95)';
+        // Function to draw rounded rectangle
+        const drawRoundedRect = (x, y, width, height, radius) => {
+          ctx.beginPath();
+          ctx.moveTo(x + radius, y);
+          ctx.lineTo(x + width - radius, y);
+          ctx.quadraticCurveTo(x + width, y, x + width, y + radius);
+          ctx.lineTo(x + width, y + height - radius);
+          ctx.quadraticCurveTo(x + width, y + height, x + width - radius, y + height);
+          ctx.lineTo(x + radius, y + height);
+          ctx.quadraticCurveTo(x, y + height, x, y + height - radius);
+          ctx.lineTo(x, y + radius);
+          ctx.quadraticCurveTo(x, y, x + radius, y);
+          ctx.closePath();
+        };
+        
+        // Save context for clipping
+        ctx.save();
+        
+        // Create clipping path for rounded corners
+        drawRoundedRect(node.x, node.y, node.width, node.height, radius);
+        ctx.clip();
+        
+        // Shadow for depth
+        ctx.shadowColor = isDarkMode ? 'rgba(0, 0, 0, 0.3)' : 'rgba(0, 0, 0, 0.1)';
+        ctx.shadowBlur = 20;
+        ctx.shadowOffsetX = 0;
+        ctx.shadowOffsetY = 8;
+        
+        // Gradient background for glass effect
+        const gradient = ctx.createLinearGradient(node.x, node.y, node.x, node.y + node.height);
+        if (isDarkMode) {
+          gradient.addColorStop(0, 'rgba(255, 255, 255, 0.1)');
+          gradient.addColorStop(1, 'rgba(255, 255, 255, 0.05)');
+        } else {
+          gradient.addColorStop(0, 'rgba(255, 255, 255, 0.98)');
+          gradient.addColorStop(1, 'rgba(255, 255, 255, 0.92)');
+        }
+        ctx.fillStyle = gradient;
         ctx.fillRect(node.x, node.y, node.width, node.height);
         
-        // Border
-        ctx.shadowBlur = 0;
-        ctx.strokeStyle = isDarkMode ? 'rgba(255, 255, 255, 0.15)' : 'rgba(0, 0, 0, 0.1)';
-        ctx.strokeRect(node.x, node.y, node.width, node.height);
+        // Restore context to remove clipping
+        ctx.restore();
         
-        // Highlight if dragging
+        // Border with rounded corners
+        ctx.shadowBlur = 0;
+        drawRoundedRect(node.x, node.y, node.width, node.height, radius);
+        ctx.strokeStyle = isDarkMode ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.08)';
+        ctx.lineWidth = 1;
+        ctx.stroke();
+        
+        // Highlight border if dragging
         if (dragging === node.id) {
-          ctx.strokeStyle = isDarkMode ? 'rgba(96, 165, 250, 0.5)' : 'rgba(59, 130, 246, 0.5)';
+          drawRoundedRect(node.x, node.y, node.width, node.height, radius);
+          const highlightGradient = ctx.createLinearGradient(node.x, node.y, node.x + node.width, node.y + node.height);
+          highlightGradient.addColorStop(0, 'rgba(96, 165, 250, 0.6)');
+          highlightGradient.addColorStop(1, 'rgba(147, 51, 234, 0.6)');
+          ctx.strokeStyle = highlightGradient;
           ctx.lineWidth = 2;
-          ctx.strokeRect(node.x, node.y, node.width, node.height);
-          ctx.lineWidth = 1;
+          ctx.stroke();
         }
         
-        // Text with subpixel antialiasing
-        ctx.textBaseline = 'middle';
-        ctx.fillStyle = isDarkMode ? 'rgba(255, 255, 255, 0.9)' : 'rgba(0, 0, 0, 0.9)';
+        // Department color accent bar (rounded top)
+        ctx.save();
+        ctx.beginPath();
+        ctx.moveTo(node.x + radius, node.y);
+        ctx.lineTo(node.x + node.width - radius, node.y);
+        ctx.quadraticCurveTo(node.x + node.width, node.y, node.x + node.width, node.y + radius);
+        ctx.lineTo(node.x + node.width, node.y + 4);
+        ctx.lineTo(node.x, node.y + 4);
+        ctx.lineTo(node.x, node.y + radius);
+        ctx.quadraticCurveTo(node.x, node.y, node.x + radius, node.y);
+        ctx.closePath();
+        
+        const deptColors = {
+          'Engineering': { light: 'rgba(59, 130, 246, 0.5)', dark: 'rgba(96, 165, 250, 0.4)' },
+          'Product': { light: 'rgba(139, 92, 246, 0.5)', dark: 'rgba(167, 139, 250, 0.4)' },
+          'Design': { light: 'rgba(236, 72, 153, 0.5)', dark: 'rgba(244, 114, 182, 0.4)' },
+          'Marketing': { light: 'rgba(34, 197, 94, 0.5)', dark: 'rgba(74, 222, 128, 0.4)' },
+          'Sales': { light: 'rgba(251, 146, 60, 0.5)', dark: 'rgba(251, 191, 36, 0.4)' }
+        };
+        
+        const deptColor = deptColors[node.department] || { light: 'rgba(107, 114, 128, 0.3)', dark: 'rgba(156, 163, 175, 0.3)' };
+        ctx.fillStyle = isDarkMode ? deptColor.dark : deptColor.light;
+        ctx.fill();
+        ctx.restore();
+        
+        // Text with better positioning
+        ctx.textBaseline = 'top';
+        ctx.fillStyle = isDarkMode ? 'rgba(255, 255, 255, 0.95)' : 'rgba(0, 0, 0, 0.9)';
         ctx.font = '600 14px -apple-system, BlinkMacSystemFont, "SF Pro Display", "Helvetica Neue", sans-serif';
-        ctx.fillText(node.name, node.x + 10, node.y + 20);
+        ctx.fillText(node.name, node.x + 15, node.y + 15);
         
         ctx.font = '400 12px -apple-system, BlinkMacSystemFont, "SF Pro Display", "Helvetica Neue", sans-serif';
-        ctx.fillStyle = isDarkMode ? 'rgba(255, 255, 255, 0.6)' : 'rgba(0, 0, 0, 0.6)';
-        ctx.fillText(node.role || 'No role', node.x + 10, node.y + 40);
-        ctx.fillText(node.department || 'No dept', node.x + 10, node.y + 60);
+        ctx.fillStyle = isDarkMode ? 'rgba(255, 255, 255, 0.7)' : 'rgba(0, 0, 0, 0.6)';
+        ctx.fillText(node.role || 'No role', node.x + 15, node.y + 38);
+        
+        // Department with icon-like styling
+        ctx.fillStyle = isDarkMode ? 'rgba(255, 255, 255, 0.5)' : 'rgba(0, 0, 0, 0.5)';
+        ctx.font = '400 11px -apple-system, BlinkMacSystemFont, "SF Pro Display", "Helvetica Neue", sans-serif';
+        ctx.fillText(node.department || 'No department', node.x + 15, node.y + 58);
       });
     }, [nodes, isDarkMode, dragging]);
 
