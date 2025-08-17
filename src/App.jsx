@@ -2432,7 +2432,8 @@ function EmployeesContent() {
   return (
     <div className="flex flex-col lg:flex-row h-full w-full overflow-hidden">
       {/* Main Content */}
-      <div className="flex-1 p-4 md:p-6 overflow-auto min-w-0 max-w-full lg:max-w-[calc(100%-24rem)]">
+      <div className="flex-1 p-4 md:p-6 overflow-hidden min-w-0">
+        <div className="w-full max-w-[1400px] mx-auto h-full flex flex-col">
         <header className="glass-card-large p-6 mb-6">
           <div className="flex items-center justify-between mb-4">
             <div>
@@ -2482,7 +2483,7 @@ function EmployeesContent() {
 
         {/* Employee Table or Org Chart */}
         {viewMode === 'table' ? (
-          <div className="glass-card-large flex flex-col" style={{ minHeight: '500px', maxHeight: 'calc(100vh - 250px)' }}>
+          <div className="glass-card-large flex flex-col overflow-hidden flex-1">
             {/* Apple-style Segmented Control and Controls */}
             <div className="p-4 border-b border-white/10 flex justify-between items-center">
               <div className="inline-flex p-1 rounded-2xl" style={{ 
@@ -2562,24 +2563,24 @@ function EmployeesContent() {
               )}
             </div>
             <div className="flex-1 overflow-auto">
-            <table className="w-full min-w-max">
+            <table className="w-full">
               <thead>
                 <tr className="border-b border-white/10">
-                  <th className="text-left p-4 text-white/70 font-medium min-w-[80px]">ID</th>
-                  <th className="text-left p-4 text-white/70 font-medium min-w-[150px]">Name</th>
-                  <th className="text-left p-4 text-white/70 font-medium min-w-[120px]">Division</th>
-                  <th className="text-left p-4 text-white/70 font-medium min-w-[100px]">Squad</th>
-                  <th className="text-left p-4 text-white/70 font-medium min-w-[100px]">Team</th>
-                  <th className="text-left p-4 text-white/70 font-medium min-w-[120px]">Role</th>
-                  <th className="text-left p-4 text-white/70 font-medium min-w-[100px]">Seniority</th>
-                  <th className="text-left p-4 text-white/70 font-medium min-w-[120px]">Manager</th>
-                  <th className="text-left p-4 text-white/70 font-medium min-w-[120px]">Birthday</th>
-                  <th className="text-left p-4 text-white/70 font-medium min-w-[120px]">Start Date</th>
-                  <th className="text-left p-4 text-white/70 font-medium min-w-[120px]">Exit Date</th>
-                  <th className="text-right p-4 text-white/70 font-medium min-w-[120px]">Net Salary</th>
-                  <th className="text-right p-4 text-white/70 font-medium min-w-[120px]">Gross Salary</th>
-                  <th className="text-right p-4 text-white/70 font-medium min-w-[120px]">Total Salary</th>
-                  <th className="text-center p-4 text-white/70 font-medium min-w-[100px]">Actions</th>
+                  <th className="text-left p-4 text-white/70 font-medium w-20">ID</th>
+                  <th className="text-left p-4 text-white/70 font-medium w-40">Name</th>
+                  <th className="text-left p-4 text-white/70 font-medium w-32">Division</th>
+                  <th className="text-left p-4 text-white/70 font-medium w-28">Squad</th>
+                  <th className="text-left p-4 text-white/70 font-medium w-28">Team</th>
+                  <th className="text-left p-4 text-white/70 font-medium w-32">Role</th>
+                  <th className="text-left p-4 text-white/70 font-medium w-28">Seniority</th>
+                  <th className="text-left p-4 text-white/70 font-medium w-32">Manager</th>
+                  <th className="text-left p-4 text-white/70 font-medium w-32">Birthday</th>
+                  <th className="text-left p-4 text-white/70 font-medium w-32">Start Date</th>
+                  <th className="text-left p-4 text-white/70 font-medium w-32">Exit Date</th>
+                  <th className="text-right p-4 text-white/70 font-medium w-32">Net Salary</th>
+                  <th className="text-right p-4 text-white/70 font-medium w-32">Gross Salary</th>
+                  <th className="text-right p-4 text-white/70 font-medium w-32">Total Salary</th>
+                  <th className="text-center p-4 text-white/70 font-medium w-28">Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -2592,39 +2593,47 @@ function EmployeesContent() {
                 ) : (
                   filteredEmployees.map(emp => (
                     <tr key={emp.id} className="border-b border-white/5 hover:bg-white/5 transition-colors">
-                      <td className="p-4">
-                        <div className="font-medium text-blue-300">{emp.employeeId || '-'}</div>
+                      <td className="p-4 w-20">
+                        <div className="font-medium text-blue-300 truncate">{emp.employeeId || '-'}</div>
                       </td>
-                      <td className="p-4">
-                        <div className="font-medium text-white">{emp.name}</div>
+                      <td className="p-4 w-40">
+                        <div className="font-medium text-white truncate" title={emp.name}>{emp.name}</div>
                       </td>
-                      <td className="p-4 text-white/70">{emp.division || '-'}</td>
-                      <td className="p-4 text-white/70">{emp.squad || '-'}</td>
-                      <td className="p-4 text-white/70">{emp.team || '-'}</td>
-                      <td className="p-4 text-white/70">{emp.role || '-'}</td>
-                      <td className="p-4 text-white/70">{emp.seniority || '-'}</td>
-                      <td className="p-4 text-white/70">
-                        {emp.managerId ? employees.find(m => m.id === emp.managerId)?.name || 'Unknown' : '-'}
+                      <td className="p-4 text-white/70 w-32 truncate" title={emp.division || '-'}>{emp.division || '-'}</td>
+                      <td className="p-4 text-white/70 w-28 truncate" title={emp.squad || '-'}>{emp.squad || '-'}</td>
+                      <td className="p-4 text-white/70 w-28 truncate" title={emp.team || '-'}>{emp.team || '-'}</td>
+                      <td className="p-4 text-white/70 w-32 truncate" title={emp.role || '-'}>{emp.role || '-'}</td>
+                      <td className="p-4 text-white/70 w-28 truncate" title={emp.seniority || '-'}>{emp.seniority || '-'}</td>
+                      <td className="p-4 text-white/70 w-32">
+                        <div className="truncate" title={emp.managerId ? employees.find(m => m.id === emp.managerId)?.name || 'Unknown' : '-'}>
+                          {emp.managerId ? employees.find(m => m.id === emp.managerId)?.name || 'Unknown' : '-'}
+                        </div>
                       </td>
-                      <td className="p-4 text-white/70">
+                      <td className="p-4 text-white/70 w-32">
                         {emp.birthday ? new Date(emp.birthday).toLocaleDateString() : '-'}
                       </td>
-                      <td className="p-4 text-white/70">
+                      <td className="p-4 text-white/70 w-32">
                         {emp.startDate ? new Date(emp.startDate).toLocaleDateString() : '-'}
                       </td>
-                      <td className="p-4 text-white/70">
+                      <td className="p-4 text-white/70 w-32">
                         {emp.exitDate ? new Date(emp.exitDate).toLocaleDateString() : '-'}
                       </td>
-                      <td className="p-4 text-white/70 text-right">
-                        {emp.netSalary ? new Intl.NumberFormat().format(emp.netSalary) : '-'}
+                      <td className="p-4 text-white/70 text-right w-32">
+                        <div className="truncate" title={emp.netSalary ? new Intl.NumberFormat().format(emp.netSalary) : '-'}>
+                          {emp.netSalary ? new Intl.NumberFormat().format(emp.netSalary) : '-'}
+                        </div>
                       </td>
-                      <td className="p-4 text-white/70 text-right">
-                        {emp.grossSalary ? new Intl.NumberFormat().format(emp.grossSalary) : '-'}
+                      <td className="p-4 text-white/70 text-right w-32">
+                        <div className="truncate" title={emp.grossSalary ? new Intl.NumberFormat().format(emp.grossSalary) : '-'}>
+                          {emp.grossSalary ? new Intl.NumberFormat().format(emp.grossSalary) : '-'}
+                        </div>
                       </td>
-                      <td className="p-4 text-white/70 text-right">
-                        {emp.totalSalary ? new Intl.NumberFormat().format(emp.totalSalary) : '-'}
+                      <td className="p-4 text-white/70 text-right w-32">
+                        <div className="truncate" title={emp.totalSalary ? new Intl.NumberFormat().format(emp.totalSalary) : '-'}>
+                          {emp.totalSalary ? new Intl.NumberFormat().format(emp.totalSalary) : '-'}
+                        </div>
                       </td>
-                      <td className="p-4">
+                      <td className="p-4 w-28">
                         <div className="flex items-center justify-center gap-2">
                           <button
                             onClick={() => setEditingEmployee(emp)}
@@ -2763,6 +2772,7 @@ function EmployeesContent() {
             </div>
           </div>
         )}
+        </div>
       </div>
 
       {/* Right Sidebar - Add Employee Widget */}
