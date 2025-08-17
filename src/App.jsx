@@ -1501,6 +1501,9 @@ function EmployeesContent() {
     const [panOffset, setPanOffset] = useState({ x: 0, y: 0 });
     const [isPanning, setIsPanning] = useState(false);
     const [panStart, setPanStart] = useState({ x: 0, y: 0 });
+    const [selectedNodes, setSelectedNodes] = useState(new Set());
+    const [selectionBox, setSelectionBox] = useState(null);
+    const [isMultiSelecting, setIsMultiSelecting] = useState(false);
     const [themeKey, setThemeKey] = useState(0); // Force re-render when theme changes
 
     // Listen for theme changes and force re-render
@@ -1565,15 +1568,15 @@ function EmployeesContent() {
           levelGroups[level].push(nodeId);
         });
         
-        // Position nodes
-        const HORIZONTAL_SPACING = 250;
-        const VERTICAL_SPACING = 120;
-        const START_Y = 50;
+        // Position nodes with more spacing
+        const HORIZONTAL_SPACING = 320;
+        const VERTICAL_SPACING = 200;
+        const START_Y = 100;
         
         Object.entries(levelGroups).forEach(([level, nodeIds]) => {
           const levelNum = parseInt(level);
           const totalWidth = nodeIds.length * HORIZONTAL_SPACING;
-          const startX = (1200 - totalWidth) / 2 + HORIZONTAL_SPACING / 2;
+          const startX = (1400 - totalWidth) / 2 + HORIZONTAL_SPACING / 2;
           
           nodeIds.forEach((nodeId, index) => {
             if (nodeMap[nodeId]) {
@@ -1600,8 +1603,8 @@ function EmployeesContent() {
       const dpr = window.devicePixelRatio || 1;
       
       // Set display size (css pixels)
-      const displayWidth = 1200;
-      const displayHeight = 600;
+      const displayWidth = 1400;
+      const displayHeight = 800;
       
       // Set actual canvas size accounting for device pixel ratio
       canvas.width = displayWidth * dpr;
@@ -1777,14 +1780,19 @@ function EmployeesContent() {
         ctx.lineWidth = 1;
         ctx.stroke();
         
-        // Highlight border if dragging
-        if (dragging === node.id) {
+        // Highlight border if selected or dragging
+        if (selectedNodes.has(node.id) || dragging === node.id || dragging === 'multiple') {
           drawRoundedRect(node.x, node.y, node.width, node.height, radius);
           const highlightGradient = ctx.createLinearGradient(node.x, node.y, node.x + node.width, node.y + node.height);
-          highlightGradient.addColorStop(0, 'rgba(96, 165, 250, 0.6)');
-          highlightGradient.addColorStop(1, 'rgba(147, 51, 234, 0.6)');
+          if (selectedNodes.has(node.id)) {
+            highlightGradient.addColorStop(0, 'rgba(34, 197, 94, 0.6)');
+            highlightGradient.addColorStop(1, 'rgba(16, 185, 129, 0.6)');
+          } else {
+            highlightGradient.addColorStop(0, 'rgba(96, 165, 250, 0.6)');
+            highlightGradient.addColorStop(1, 'rgba(147, 51, 234, 0.6)');
+          }
           ctx.strokeStyle = highlightGradient;
-          ctx.lineWidth = 2;
+          ctx.lineWidth = 3;
           ctx.stroke();
         }
         
@@ -2037,19 +2045,36 @@ function EmployeesContent() {
         }
       });
       
+      // Draw selection box if multi-selecting
+      if (isMultiSelecting && selectionBox) {
+        ctx.strokeStyle = 'rgba(59, 130, 246, 0.5)';
+        ctx.fillStyle = 'rgba(59, 130, 246, 0.1)';
+        ctx.lineWidth = 2;
+        ctx.setLineDash([5, 5]);
+        
+        const minX = Math.min(selectionBox.startX, selectionBox.endX);
+        const minY = Math.min(selectionBox.startY, selectionBox.endY);
+        const width = Math.abs(selectionBox.endX - selectionBox.startX);
+        const height = Math.abs(selectionBox.endY - selectionBox.startY);
+        
+        ctx.fillRect(minX, minY, width, height);
+        ctx.strokeRect(minX, minY, width, height);
+        ctx.setLineDash([]);
+      }
+      
       // Restore the context
       ctx.restore();
-    }, [nodes, dragging, hoveredConnection, isDrawingConnection, connectionStart, mousePos, zoom, panOffset, themeKey]);
+    }, [nodes, dragging, hoveredConnection, isDrawingConnection, connectionStart, mousePos, zoom, panOffset, themeKey, selectedNodes, isMultiSelecting, selectionBox]);
 
     const handleMouseDown = (e) => {
       const canvas = canvasRef.current;
       const rect = canvas.getBoundingClientRect();
-      const rawX = (e.clientX - rect.left) * (1200 / rect.width);
-      const rawY = (e.clientY - rect.top) * (600 / rect.height);
+      const rawX = (e.clientX - rect.left) * (1400 / rect.width);
+      const rawY = (e.clientY - rect.top) * (800 / rect.height);
       
       // Adjust for zoom, translation and pan
-      const x = (rawX - (1200 * (1 - zoom)) / 2 - panOffset.x) / zoom;
-      const y = (rawY - (600 * (1 - zoom)) / 2 - panOffset.y) / zoom;
+      const x = (rawX - (1400 * (1 - zoom)) / 2 - panOffset.x) / zoom;
+      const y = (rawY - (800 * (1 - zoom)) / 2 - panOffset.y) / zoom;
       
       // Check if clicking on delete X button on connection line
       if (hoveredConnection) {
@@ -2104,21 +2129,39 @@ function EmployeesContent() {
         }
       }
       
+      // Check if Shift is held for multi-select
+      if (e.shiftKey) {
+        setIsMultiSelecting(true);
+        setSelectionBox({ startX: x, startY: y, endX: x, endY: y });
+        canvas.style.cursor = 'crosshair';
+        return;
+      }
+      
       // Find which node was clicked for dragging
       let nodeClicked = false;
       for (const [id, node] of Object.entries(nodes)) {
         if (x >= node.x && x <= node.x + node.width &&
             y >= node.y && y <= node.y + node.height) {
-          setDragging(id);
-          setDragStart({ x: x - node.x, y: y - node.y });
+          
+          // If the node is part of selected nodes, drag all selected
+          if (selectedNodes.has(id)) {
+            setDragging('multiple');
+            setDragStart({ x, y });
+          } else {
+            // Clear selection and drag only this node
+            setSelectedNodes(new Set());
+            setDragging(id);
+            setDragStart({ x: x - node.x, y: y - node.y });
+          }
           canvas.style.cursor = 'grabbing';
           nodeClicked = true;
           break;
         }
       }
       
-      // If no node was clicked, start panning
+      // If no node was clicked, clear selection and start panning
       if (!nodeClicked && !isDrawingConnection) {
+        setSelectedNodes(new Set());
         setIsPanning(true);
         setPanStart({ x: rawX, y: rawY });
         canvas.style.cursor = 'grabbing';
@@ -2128,14 +2171,35 @@ function EmployeesContent() {
     const handleMouseMove = (e) => {
       const canvas = canvasRef.current;
       const rect = canvas.getBoundingClientRect();
-      const rawX = (e.clientX - rect.left) * (1200 / rect.width);
-      const rawY = (e.clientY - rect.top) * (600 / rect.height);
+      const rawX = (e.clientX - rect.left) * (1400 / rect.width);
+      const rawY = (e.clientY - rect.top) * (800 / rect.height);
       
       // Adjust for zoom, translation and pan
-      const x = (rawX - (1200 * (1 - zoom)) / 2 - panOffset.x) / zoom;
-      const y = (rawY - (600 * (1 - zoom)) / 2 - panOffset.y) / zoom;
+      const x = (rawX - (1400 * (1 - zoom)) / 2 - panOffset.x) / zoom;
+      const y = (rawY - (800 * (1 - zoom)) / 2 - panOffset.y) / zoom;
       
       setMousePos({ x, y });
+      
+      if (isMultiSelecting && selectionBox) {
+        // Update selection box
+        setSelectionBox(prev => ({ ...prev, endX: x, endY: y }));
+        
+        // Find nodes within selection box
+        const minX = Math.min(selectionBox.startX, x);
+        const maxX = Math.max(selectionBox.startX, x);
+        const minY = Math.min(selectionBox.startY, y);
+        const maxY = Math.max(selectionBox.startY, y);
+        
+        const selected = new Set();
+        Object.entries(nodes).forEach(([id, node]) => {
+          if (node.x >= minX && node.x + node.width <= maxX &&
+              node.y >= minY && node.y + node.height <= maxY) {
+            selected.add(id);
+          }
+        });
+        setSelectedNodes(selected);
+        return;
+      }
       
       if (isDrawingConnection) {
         canvas.style.cursor = 'crosshair';
@@ -2152,13 +2216,31 @@ function EmployeesContent() {
         }));
         setPanStart({ x: rawX, y: rawY });
         canvas.style.cursor = 'grabbing';
+      } else if (dragging === 'multiple') {
+        // Move all selected nodes together
+        const deltaX = x - dragStart.x;
+        const deltaY = y - dragStart.y;
+        setNodes(prev => {
+          const updated = { ...prev };
+          selectedNodes.forEach(id => {
+            if (updated[id]) {
+              updated[id] = {
+                ...updated[id],
+                x: Math.max(-800, Math.min(2000, updated[id].x + deltaX)),
+                y: Math.max(-400, Math.min(1200, updated[id].y + deltaY))
+              };
+            }
+          });
+          return updated;
+        });
+        setDragStart({ x, y });
       } else if (dragging) {
         setNodes(prev => ({
           ...prev,
           [dragging]: {
             ...prev[dragging],
-            x: Math.max(0, Math.min(1000, x - dragStart.x)),
-            y: Math.max(0, Math.min(520, y - dragStart.y))
+            x: Math.max(-800, Math.min(2000, x - dragStart.x)),
+            y: Math.max(-400, Math.min(1200, y - dragStart.y))
           }
         }));
       } else {
@@ -2215,12 +2297,12 @@ function EmployeesContent() {
       
       if (isDrawingConnection) {
         const rect = canvas.getBoundingClientRect();
-        const rawX = (e.clientX - rect.left) * (1200 / rect.width);
-        const rawY = (e.clientY - rect.top) * (600 / rect.height);
+        const rawX = (e.clientX - rect.left) * (1400 / rect.width);
+        const rawY = (e.clientY - rect.top) * (800 / rect.height);
         
         // Adjust for zoom, translation and pan
-        const x = (rawX - (1200 * (1 - zoom)) / 2 - panOffset.x) / zoom;
-        const y = (rawY - (600 * (1 - zoom)) / 2 - panOffset.y) / zoom;
+        const x = (rawX - (1400 * (1 - zoom)) / 2 - panOffset.x) / zoom;
+        const y = (rawY - (800 * (1 - zoom)) / 2 - panOffset.y) / zoom;
         
         // Find which node we're dropping on
         let foundTarget = false;
@@ -2253,6 +2335,8 @@ function EmployeesContent() {
       
       setDragging(null);
       setIsPanning(false);
+      setIsMultiSelecting(false);
+      setSelectionBox(null);
       if (canvas) {
         canvas.style.cursor = 'move';
       }
@@ -2261,8 +2345,8 @@ function EmployeesContent() {
     return (
       <canvas
         ref={canvasRef}
-        width={1200}
-        height={600}
+        width={1400}
+        height={800}
         className="w-full rounded-xl"
         style={{ 
           background: isDarkMode 
@@ -2546,15 +2630,18 @@ function EmployeesContent() {
               
               {/* Zoom Controls */}
               <div className="absolute right-6 top-1/2 -translate-y-1/2 flex flex-col gap-2">
+                <div className="glass-card px-3 py-1 rounded-full text-white text-sm font-medium text-center mb-2">
+                  {Math.round(zoom * 100)}%
+                </div>
                 <button 
-                  onClick={() => setZoom(prev => Math.min(prev + 0.2, 2))}
+                  onClick={() => setZoom(prev => Math.min(prev + 0.2, 3))}
                   className="glass-button w-12 h-12 rounded-full flex items-center justify-center text-white hover:scale-110 transition-transform"
                   title="Zoom In"
                 >
                   <Plus size={20} />
                 </button>
                 <button 
-                  onClick={() => setZoom(prev => Math.max(prev - 0.2, 0.5))}
+                  onClick={() => setZoom(prev => Math.max(prev - 0.2, 0.25))}
                   className="glass-button w-12 h-12 rounded-full flex items-center justify-center text-white hover:scale-110 transition-transform"
                   title="Zoom Out"
                 >
