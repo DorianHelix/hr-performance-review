@@ -41,6 +41,12 @@ function Sidebar({ isCollapsed, onToggle, currentView, onViewChange, isDarkMode,
       active: currentView === 'dashboard'
     },
     {
+      id: 'employees',
+      label: 'Employees',
+      icon: Users,
+      active: currentView === 'employees'
+    },
+    {
       id: 'performance',
       label: 'Performance',
       icon: BarChart3,
@@ -1297,6 +1303,376 @@ function DatePicker({ label, value, onChange }) {
 }
 
 /* -----------------------------------------------------------
+   Employees Content Component
+----------------------------------------------------------- */
+function EmployeesContent() {
+  const [employees, setEmployees] = useState(() => {
+    return lsRead(LS_EMPLOYEES, []);
+  });
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [editingEmployee, setEditingEmployee] = useState(null);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [filterDepartment, setFilterDepartment] = useState('');
+
+  // Add new employee
+  const handleAddEmployee = (employeeData) => {
+    const newEmployee = {
+      id: `emp-${uid()}`,
+      ...employeeData,
+      startDate: employeeData.startDate || new Date().toISOString().split('T')[0]
+    };
+    
+    const updated = [...employees, newEmployee];
+    setEmployees(updated);
+    lsWrite(LS_EMPLOYEES, updated);
+    setShowAddModal(false);
+  };
+
+  // Update employee
+  const handleUpdateEmployee = (id, updates) => {
+    const updated = employees.map(emp => 
+      emp.id === id ? { ...emp, ...updates } : emp
+    );
+    setEmployees(updated);
+    lsWrite(LS_EMPLOYEES, updated);
+    setEditingEmployee(null);
+  };
+
+  // Delete employee
+  const handleDeleteEmployee = (id) => {
+    if (!confirm("Are you sure you want to delete this employee?")) return;
+    
+    const updated = employees.filter(emp => emp.id !== id);
+    setEmployees(updated);
+    lsWrite(LS_EMPLOYEES, updated);
+  };
+
+  // Filter employees
+  const filteredEmployees = employees.filter(emp => {
+    const matchesSearch = emp.name.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesDepartment = !filterDepartment || emp.department === filterDepartment;
+    return matchesSearch && matchesDepartment;
+  });
+
+  // Get unique departments
+  const departments = [...new Set(employees.map(emp => emp.department))].filter(Boolean);
+
+  return (
+    <div className="flex h-full">
+      {/* Main Content - Employee Table */}
+      <div className="flex-1 p-6">
+        <header className="glass-card-large p-6 mb-6">
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h1 className="text-2xl font-bold text-white mb-2 flex items-center gap-3">
+                <div className="glass-card p-2 rounded-2xl bg-gradient-to-br from-blue-400/20 to-purple-600/20 border-blue-400/30">
+                  <Users size={24} className="text-blue-300" />
+                </div>
+                Employee Management
+              </h1>
+              <p className="text-white/60">Manage your team members and organizational structure</p>
+            </div>
+            <div className="text-3xl font-bold text-white">
+              {employees.length}
+              <span className="text-sm font-normal text-white/60 ml-2">Total Employees</span>
+            </div>
+          </div>
+
+          {/* Search and Filter Bar */}
+          <div className="flex gap-3">
+            <div className="flex-1 relative">
+              <input
+                type="text"
+                placeholder="Search employees..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full glass-input pl-10 pr-4 py-2"
+              />
+              <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+            </div>
+            <select
+              value={filterDepartment}
+              onChange={(e) => setFilterDepartment(e.target.value)}
+              className="glass-input px-4 py-2"
+            >
+              <option value="">All Departments</option>
+              {departments.map(dept => (
+                <option key={dept} value={dept}>{dept}</option>
+              ))}
+            </select>
+          </div>
+        </header>
+
+        {/* Employee Table */}
+        <div className="glass-card-large overflow-hidden">
+          <table className="w-full">
+            <thead>
+              <tr className="border-b border-white/10">
+                <th className="text-left p-4 text-white/70 font-medium">Name</th>
+                <th className="text-left p-4 text-white/70 font-medium">Department</th>
+                <th className="text-left p-4 text-white/70 font-medium">Role</th>
+                <th className="text-left p-4 text-white/70 font-medium">Seniority</th>
+                <th className="text-left p-4 text-white/70 font-medium">Manager</th>
+                <th className="text-left p-4 text-white/70 font-medium">Start Date</th>
+                <th className="text-center p-4 text-white/70 font-medium">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filteredEmployees.length === 0 ? (
+                <tr>
+                  <td colSpan="7" className="text-center p-8 text-white/50">
+                    No employees found. Add your first employee to get started.
+                  </td>
+                </tr>
+              ) : (
+                filteredEmployees.map(emp => (
+                  <tr key={emp.id} className="border-b border-white/5 hover:bg-white/5 transition-colors">
+                    <td className="p-4">
+                      <div className="font-medium text-white">{emp.name}</div>
+                    </td>
+                    <td className="p-4 text-white/70">{emp.department || '-'}</td>
+                    <td className="p-4 text-white/70">{emp.role || '-'}</td>
+                    <td className="p-4 text-white/70">{emp.seniority || '-'}</td>
+                    <td className="p-4 text-white/70">
+                      {emp.managerId ? employees.find(m => m.id === emp.managerId)?.name || 'Unknown' : '-'}
+                    </td>
+                    <td className="p-4 text-white/70">
+                      {emp.startDate ? new Date(emp.startDate).toLocaleDateString() : '-'}
+                    </td>
+                    <td className="p-4">
+                      <div className="flex items-center justify-center gap-2">
+                        <button
+                          onClick={() => setEditingEmployee(emp)}
+                          className="p-2 rounded-lg hover:bg-white/10 transition-colors"
+                          title="Edit"
+                        >
+                          <Pencil size={16} className="text-white/70" />
+                        </button>
+                        <button
+                          onClick={() => handleDeleteEmployee(emp.id)}
+                          className="p-2 rounded-lg hover:bg-red-500/20 transition-colors"
+                          title="Delete"
+                        >
+                          <Trash2 size={16} className="text-red-400" />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {/* Right Sidebar - Add Employee Widget */}
+      <div className="w-96 p-6 space-y-6">
+        <div className="glass-card-large p-6">
+          <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+            <PlusCircle size={20} className="text-blue-400" />
+            Add New Employee
+          </h3>
+          
+          <button
+            onClick={() => setShowAddModal(true)}
+            className="w-full glass-button py-3 font-medium hover:scale-105 transition-transform flex items-center justify-center gap-2"
+          >
+            <Plus size={20} />
+            Add Employee
+          </button>
+
+          <div className="mt-6 space-y-4">
+            <div className="p-4 rounded-xl bg-white/5 border border-white/10">
+              <h4 className="text-sm font-medium text-white/70 mb-2">Quick Stats</h4>
+              <div className="space-y-2">
+                <div className="flex justify-between">
+                  <span className="text-sm text-white/50">Total Employees</span>
+                  <span className="text-sm font-medium text-white">{employees.length}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-sm text-white/50">Departments</span>
+                  <span className="text-sm font-medium text-white">{departments.length}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-sm text-white/50">Managers</span>
+                  <span className="text-sm font-medium text-white">
+                    {employees.filter(e => employees.some(emp => emp.managerId === e.id)).length}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <div className="p-4 rounded-xl bg-gradient-to-br from-blue-500/10 to-purple-500/10 border border-blue-400/20">
+              <h4 className="text-sm font-medium text-white mb-2">Recent Activity</h4>
+              <p className="text-xs text-white/60">
+                {employees.length > 0 
+                  ? `Last employee added: ${employees[employees.length - 1].name}`
+                  : 'No employees added yet'}
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Add/Edit Employee Modal */}
+      {(showAddModal || editingEmployee) && (
+        <AddEmployeeModal
+          employee={editingEmployee}
+          employees={employees}
+          onSave={(data) => {
+            if (editingEmployee) {
+              handleUpdateEmployee(editingEmployee.id, data);
+            } else {
+              handleAddEmployee(data);
+            }
+          }}
+          onClose={() => {
+            setShowAddModal(false);
+            setEditingEmployee(null);
+          }}
+        />
+      )}
+    </div>
+  );
+}
+
+/* -----------------------------------------------------------
+   Add Employee Modal Component
+----------------------------------------------------------- */
+function AddEmployeeModal({ employee, employees, onSave, onClose }) {
+  const [formData, setFormData] = useState({
+    name: employee?.name || '',
+    department: employee?.department || '',
+    role: employee?.role || '',
+    seniority: employee?.seniority || '',
+    managerId: employee?.managerId || '',
+    startDate: employee?.startDate || new Date().toISOString().split('T')[0]
+  });
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    if (!formData.name) {
+      alert('Please enter employee name');
+      return;
+    }
+    onSave(formData);
+  };
+
+  // Get potential managers (exclude self if editing)
+  const potentialManagers = employees.filter(emp => 
+    emp.id !== employee?.id
+  );
+
+  return (
+    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+      <div className="glass-card-large w-full max-w-lg">
+        <div className="p-6 border-b border-white/10">
+          <h2 className="text-xl font-semibold text-white">
+            {employee ? 'Edit Employee' : 'Add New Employee'}
+          </h2>
+        </div>
+
+        <form onSubmit={handleSubmit} className="p-6 space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-white/70 mb-2">
+              Name <span className="text-red-400">*</span>
+            </label>
+            <input
+              type="text"
+              value={formData.name}
+              onChange={(e) => setFormData({...formData, name: e.target.value})}
+              className="w-full glass-input px-4 py-2"
+              placeholder="John Doe"
+              required
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-white/70 mb-2">Department</label>
+            <input
+              type="text"
+              value={formData.department}
+              onChange={(e) => setFormData({...formData, department: e.target.value})}
+              className="w-full glass-input px-4 py-2"
+              placeholder="Engineering"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-white/70 mb-2">Role</label>
+            <input
+              type="text"
+              value={formData.role}
+              onChange={(e) => setFormData({...formData, role: e.target.value})}
+              className="w-full glass-input px-4 py-2"
+              placeholder="Software Engineer"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-white/70 mb-2">Seniority</label>
+            <select
+              value={formData.seniority}
+              onChange={(e) => setFormData({...formData, seniority: e.target.value})}
+              className="w-full glass-input px-4 py-2"
+            >
+              <option value="">Select seniority</option>
+              <option value="Junior">Junior</option>
+              <option value="Mid">Mid</option>
+              <option value="Senior">Senior</option>
+              <option value="Lead">Lead</option>
+              <option value="Principal">Principal</option>
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-white/70 mb-2">Manager</label>
+            <select
+              value={formData.managerId}
+              onChange={(e) => setFormData({...formData, managerId: e.target.value})}
+              className="w-full glass-input px-4 py-2"
+            >
+              <option value="">No Manager</option>
+              {potentialManagers.map(mgr => (
+                <option key={mgr.id} value={mgr.id}>{mgr.name}</option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-white/70 mb-2">Start Date</label>
+            <input
+              type="date"
+              value={formData.startDate}
+              onChange={(e) => setFormData({...formData, startDate: e.target.value})}
+              className="w-full glass-input px-4 py-2"
+            />
+          </div>
+
+          <div className="flex justify-end gap-3 pt-4">
+            <button
+              type="button"
+              onClick={onClose}
+              className="px-6 py-2 rounded-xl text-white/70 hover:bg-white/10 transition-colors"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              className="glass-button px-6 py-2 font-medium hover:scale-105 transition-transform"
+            >
+              {employee ? 'Update' : 'Add'} Employee
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+/* -----------------------------------------------------------
    Main App Component
 ----------------------------------------------------------- */
 export default function App() {
@@ -1701,6 +2077,8 @@ export default function App() {
       >
       {/* Conditional Content Based on Current View */}
       {currentView === 'dashboard' && <DashboardContent />}
+      
+      {currentView === 'employees' && <EmployeesContent />}
       
       {currentView === 'performance' && (
         <>
