@@ -327,28 +327,49 @@ const LS_REVIEWS = "hr_weekly_reviews";
       { 
         id: "emp-001", 
         name: "Sarah Johnson", 
-        department: "Engineering", 
+        division: "Engineering", 
+        squad: "Frontend", 
+        team: "Core", 
         role: "Senior Developer",
         seniority: "Senior",
+        birthday: "1985-06-15",
         startDate: "2022-03-15",
+        exitDate: "",
+        netSalary: 95000,
+        grossSalary: 115000,
+        totalSalary: 130000,
         managerId: null
       },
       { 
         id: "emp-002", 
         name: "Michael Chen", 
-        department: "Product", 
+        division: "Product", 
+        squad: "Growth", 
+        team: "Analytics", 
         role: "Product Manager",
         seniority: "Mid",
+        birthday: "1988-12-03",
         startDate: "2023-01-10",
+        exitDate: "",
+        netSalary: 85000,
+        grossSalary: 105000,
+        totalSalary: 120000,
         managerId: "emp-001"
       },
       { 
         id: "emp-003", 
         name: "Emily Davis", 
-        department: "Design", 
+        division: "Design", 
+        squad: "User Experience", 
+        team: "Research", 
         role: "UX Designer",
         seniority: "Junior",
+        birthday: "1995-04-20",
         startDate: "2024-09-01",
+        exitDate: "",
+        netSalary: 65000,
+        grossSalary: 80000,
+        totalSalary: 90000,
         managerId: "emp-001"
       },
     ];
@@ -587,7 +608,7 @@ function WeeklyEvaluationModal({ employee, week, categories, onSave, onClose }) 
     const payload = {
       employee: {
         name: employee.name,
-        department: employee.department,
+        division: employee.division,
         role: employee.role,
         seniority: employee.seniority
       },
@@ -861,7 +882,7 @@ Continue monitoring progress with focus on identified improvement areas.`;
         <div className="sticky bottom-0 bg-black/80 backdrop-blur-md border-t border-white/20 p-6 flex justify-end gap-3">
           <button
             onClick={onClose}
-            className="glass-button px-4 py-2 text-white/80 hover:scale-105"
+            className="glass-button px-4 py-2 text-white hover:scale-105 bg-red-900/80 hover:bg-red-800 border-red-700/50"
           >
             Cancel
           </button>
@@ -883,10 +904,17 @@ Continue monitoring progress with focus on identified improvement areas.`;
 function EmployeeSettingsModal({ employee, employees, onSave, onClose }) {
   const [formData, setFormData] = useState({
     name: employee.name,
-    department: employee.department || "",
+    division: employee.division || "",
+    squad: employee.squad || "",
+    team: employee.team || "",
     role: employee.role || "",
     seniority: employee.seniority || "Junior",
+    birthday: employee.birthday || "",
     startDate: employee.startDate || new Date().toISOString().slice(0, 10),
+    exitDate: employee.exitDate || "",
+    netSalary: employee.netSalary || "",
+    grossSalary: employee.grossSalary || "",
+    totalSalary: employee.totalSalary || "",
     managerId: employee.managerId || ""
   });
 
@@ -934,14 +962,34 @@ function EmployeeSettingsModal({ employee, employees, onSave, onClose }) {
             />
           </div>
 
-          <div>
-            <label className="text-sm font-medium text-white/80">Department</label>
-            <input
-              value={formData.department}
-              onChange={(e) => setFormData(prev => ({ ...prev, department: e.target.value }))}
-              className="mt-1 w-full glass-input px-3 py-2"
-              placeholder="e.g., Engineering, Product, Design"
-            />
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+              <label className="text-sm font-medium text-white/80">Division</label>
+              <input
+                value={formData.division}
+                onChange={(e) => setFormData(prev => ({ ...prev, division: e.target.value }))}
+                className="mt-1 w-full glass-input px-3 py-2"
+                placeholder="e.g., Engineering, Product, Design"
+              />
+            </div>
+            <div>
+              <label className="text-sm font-medium text-white/80">Squad</label>
+              <input
+                value={formData.squad}
+                onChange={(e) => setFormData(prev => ({ ...prev, squad: e.target.value }))}
+                className="mt-1 w-full glass-input px-3 py-2"
+                placeholder="e.g., Frontend, Backend, Mobile"
+              />
+            </div>
+            <div>
+              <label className="text-sm font-medium text-white/80">Team</label>
+              <input
+                value={formData.team}
+                onChange={(e) => setFormData(prev => ({ ...prev, team: e.target.value }))}
+                className="mt-1 w-full glass-input px-3 py-2"
+                placeholder="e.g., Core, Growth, Research"
+              />
+            </div>
           </div>
 
           <div>
@@ -986,19 +1034,72 @@ function EmployeeSettingsModal({ employee, employees, onSave, onClose }) {
             </select>
           </div>
 
-          <div>
-            <label className="text-sm font-medium text-white/80">Start Date</label>
-            <input
-              type="date"
-              value={formData.startDate}
-              onChange={(e) => setFormData(prev => ({ ...prev, startDate: e.target.value }))}
-              className="mt-1 w-full glass-input px-3 py-2"
-            />
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+              <label className="text-sm font-medium text-white/80">Birthday</label>
+              <input
+                type="date"
+                value={formData.birthday}
+                onChange={(e) => setFormData(prev => ({ ...prev, birthday: e.target.value }))}
+                className="mt-1 w-full glass-input px-3 py-2"
+              />
+            </div>
+            <div>
+              <label className="text-sm font-medium text-white/80">Start Date</label>
+              <input
+                type="date"
+                value={formData.startDate}
+                onChange={(e) => setFormData(prev => ({ ...prev, startDate: e.target.value }))}
+                className="mt-1 w-full glass-input px-3 py-2"
+              />
+            </div>
+            <div>
+              <label className="text-sm font-medium text-white/80">Exit Date</label>
+              <input
+                type="date"
+                value={formData.exitDate}
+                onChange={(e) => setFormData(prev => ({ ...prev, exitDate: e.target.value }))}
+                className="mt-1 w-full glass-input px-3 py-2"
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+              <label className="text-sm font-medium text-white/80">Net Salary</label>
+              <input
+                type="number"
+                value={formData.netSalary}
+                onChange={(e) => setFormData(prev => ({ ...prev, netSalary: e.target.value }))}
+                className="mt-1 w-full glass-input px-3 py-2"
+                placeholder="e.g., 85000"
+              />
+            </div>
+            <div>
+              <label className="text-sm font-medium text-white/80">Gross Salary</label>
+              <input
+                type="number"
+                value={formData.grossSalary}
+                onChange={(e) => setFormData(prev => ({ ...prev, grossSalary: e.target.value }))}
+                className="mt-1 w-full glass-input px-3 py-2"
+                placeholder="e.g., 105000"
+              />
+            </div>
+            <div>
+              <label className="text-sm font-medium text-white/80">Total Salary</label>
+              <input
+                type="number"
+                value={formData.totalSalary}
+                onChange={(e) => setFormData(prev => ({ ...prev, totalSalary: e.target.value }))}
+                className="mt-1 w-full glass-input px-3 py-2"
+                placeholder="e.g., 120000"
+              />
+            </div>
           </div>
         </div>
 
         <div className="p-6 border-t border-white/20 flex justify-end gap-3">
-          <button onClick={onClose} className="glass-button px-4 py-2 text-white/80 hover:scale-105">
+          <button onClick={onClose} className="glass-button px-4 py-2 text-white hover:scale-105 bg-red-900/80 hover:bg-red-800 border-red-700/50">
             Cancel
           </button>
           <button onClick={handleSave} className="glass-button px-4 py-2 bg-blue-600/80 text-white hover:scale-105 hover:bg-blue-600">
@@ -1162,7 +1263,7 @@ function CategoryManagementModal({ categories, onSave, onClose }) {
         </div>
 
         <div className="sticky bottom-0 glass-card p-4 border-t border-white/10 flex justify-end gap-2 rounded-b-2xl">
-          <button onClick={onClose} className="px-4 py-2 rounded-lg hover:bg-white/10 text-white/70">
+          <button onClick={onClose} className="px-4 py-2 rounded-lg bg-red-900/80 hover:bg-red-800 border border-red-700/50 text-white">
             Cancel
           </button>
           <button onClick={handleSave} className="px-4 py-2 glass-button rounded-lg">
@@ -1303,6 +1404,7 @@ function EmployeesContent() {
     return lsRead(LS_EMPLOYEES, []);
   });
   const [showAddModal, setShowAddModal] = useState(false);
+  const [showBulkImportModal, setShowBulkImportModal] = useState(false);
   const [editingEmployee, setEditingEmployee] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterDepartment, setFilterDepartment] = useState('');
@@ -1363,12 +1465,12 @@ function EmployeesContent() {
   // Filter employees
   const filteredEmployees = employees.filter(emp => {
     const matchesSearch = emp.name.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesDepartment = !filterDepartment || emp.department === filterDepartment;
-    return matchesSearch && matchesDepartment;
+    const matchesDivision = !filterDepartment || emp.division === filterDepartment;
+    return matchesSearch && matchesDivision;
   });
 
-  // Get unique departments
-  const departments = [...new Set(employees.map(emp => emp.department))].filter(Boolean);
+  // Get unique divisions
+  const departments = [...new Set(employees.map(emp => emp.division))].filter(Boolean);
 
   // Simple Org Chart Component
   const OrgChart = ({ onQuickAdd, onEditEmployee, onDeleteEmployee, zoom, onZoomChange, isDarkMode }) => {
@@ -1718,8 +1820,8 @@ function EmployeesContent() {
           ctx.fillText(roleText, roleX + rolePadding, roleY + 3);
         }
         
-        // Department badge
-        if (node.department) {
+        // Division badge
+        if (node.division) {
           const deptColors = {
             'Engineering': { light: 'rgba(59, 130, 246, 0.2)', dark: 'rgba(96, 165, 250, 0.25)' },
             'Product': { light: 'rgba(139, 92, 246, 0.2)', dark: 'rgba(167, 139, 250, 0.25)' },
@@ -1729,18 +1831,18 @@ function EmployeesContent() {
           };
           
           ctx.font = '500 10px -apple-system, BlinkMacSystemFont, "SF Pro Display", "Helvetica Neue", sans-serif';
-          const deptText = node.department;
+          const deptText = node.division;
           const deptMetrics = ctx.measureText(deptText);
           const deptX = node.x + 35;
           const deptY = node.y + 53;
           const deptPadding = 4;
           const deptHeight = 16;
           
-          // Department badge background with department color
-          const deptBadgeColor = deptColors[node.department] || { light: 'rgba(107, 114, 128, 0.2)', dark: 'rgba(156, 163, 175, 0.2)' };
+          // Division badge background with division color
+          const deptBadgeColor = deptColors[node.division] || { light: 'rgba(107, 114, 128, 0.2)', dark: 'rgba(156, 163, 175, 0.2)' };
           ctx.fillStyle = isDarkMode ? deptBadgeColor.dark : deptBadgeColor.light;
           
-          // Draw rounded rectangle for department badge
+          // Draw rounded rectangle for division badge
           const deptWidth = deptMetrics.width + deptPadding * 2;
           ctx.beginPath();
           ctx.moveTo(deptX + 4, deptY);
@@ -1764,7 +1866,7 @@ function EmployeesContent() {
             'Sales': { light: 'rgba(251, 146, 60, 0.9)', dark: 'rgba(253, 224, 71, 1)' }
           };
           
-          const textColor = textColors[node.department] || { light: 'rgba(107, 114, 128, 0.9)', dark: 'rgba(209, 213, 219, 1)' };
+          const textColor = textColors[node.division] || { light: 'rgba(107, 114, 128, 0.9)', dark: 'rgba(209, 213, 219, 1)' };
           ctx.fillStyle = isDarkMode ? textColor.dark : textColor.light;
           ctx.fillText(deptText, deptX + deptPadding, deptY + 3);
         }
@@ -2277,18 +2379,25 @@ function EmployeesContent() {
               <thead>
                 <tr className="border-b border-white/10">
                   <th className="text-left p-4 text-white/70 font-medium">Name</th>
-                  <th className="text-left p-4 text-white/70 font-medium">Department</th>
+                  <th className="text-left p-4 text-white/70 font-medium">Division</th>
+                  <th className="text-left p-4 text-white/70 font-medium">Squad</th>
+                  <th className="text-left p-4 text-white/70 font-medium">Team</th>
                   <th className="text-left p-4 text-white/70 font-medium">Role</th>
                   <th className="text-left p-4 text-white/70 font-medium">Seniority</th>
                   <th className="text-left p-4 text-white/70 font-medium">Manager</th>
+                  <th className="text-left p-4 text-white/70 font-medium">Birthday</th>
                   <th className="text-left p-4 text-white/70 font-medium">Start Date</th>
+                  <th className="text-left p-4 text-white/70 font-medium">Exit Date</th>
+                  <th className="text-right p-4 text-white/70 font-medium">Net Salary</th>
+                  <th className="text-right p-4 text-white/70 font-medium">Gross Salary</th>
+                  <th className="text-right p-4 text-white/70 font-medium">Total Salary</th>
                   <th className="text-center p-4 text-white/70 font-medium">Actions</th>
                 </tr>
               </thead>
               <tbody>
                 {filteredEmployees.length === 0 ? (
                   <tr>
-                    <td colSpan="7" className="text-center p-8 text-white/50">
+                    <td colSpan="14" className="text-center p-8 text-white/50">
                       No employees found. Add your first employee to get started.
                     </td>
                   </tr>
@@ -2298,14 +2407,31 @@ function EmployeesContent() {
                       <td className="p-4">
                         <div className="font-medium text-white">{emp.name}</div>
                       </td>
-                      <td className="p-4 text-white/70">{emp.department || '-'}</td>
+                      <td className="p-4 text-white/70">{emp.division || '-'}</td>
+                      <td className="p-4 text-white/70">{emp.squad || '-'}</td>
+                      <td className="p-4 text-white/70">{emp.team || '-'}</td>
                       <td className="p-4 text-white/70">{emp.role || '-'}</td>
                       <td className="p-4 text-white/70">{emp.seniority || '-'}</td>
                       <td className="p-4 text-white/70">
                         {emp.managerId ? employees.find(m => m.id === emp.managerId)?.name || 'Unknown' : '-'}
                       </td>
                       <td className="p-4 text-white/70">
+                        {emp.birthday ? new Date(emp.birthday).toLocaleDateString() : '-'}
+                      </td>
+                      <td className="p-4 text-white/70">
                         {emp.startDate ? new Date(emp.startDate).toLocaleDateString() : '-'}
+                      </td>
+                      <td className="p-4 text-white/70">
+                        {emp.exitDate ? new Date(emp.exitDate).toLocaleDateString() : '-'}
+                      </td>
+                      <td className="p-4 text-white/70 text-right">
+                        {emp.netSalary ? new Intl.NumberFormat().format(emp.netSalary) : '-'}
+                      </td>
+                      <td className="p-4 text-white/70 text-right">
+                        {emp.grossSalary ? new Intl.NumberFormat().format(emp.grossSalary) : '-'}
+                      </td>
+                      <td className="p-4 text-white/70 text-right">
+                        {emp.totalSalary ? new Intl.NumberFormat().format(emp.totalSalary) : '-'}
                       </td>
                       <td className="p-4">
                         <div className="flex items-center justify-center gap-2">
@@ -2314,7 +2440,7 @@ function EmployeesContent() {
                             className="p-2 rounded-lg hover:bg-white/10 transition-colors"
                             title="Edit"
                           >
-                            <Pencil size={16} className="text-white/70" />
+                            <Settings size={16} className="text-white/70" />
                           </button>
                           <button
                             onClick={() => handleDeleteEmployee(emp.id)}
@@ -2429,13 +2555,23 @@ function EmployeesContent() {
             Add New Employee
           </h3>
           
-          <button
-            onClick={() => setShowAddModal(true)}
-            className="w-full glass-button py-3 font-medium hover:scale-105 transition-transform flex items-center justify-center gap-2"
-          >
-            <Plus size={20} />
-            Add Employee
-          </button>
+          <div className="space-y-3">
+            <button
+              onClick={() => setShowAddModal(true)}
+              className="w-full glass-button py-3 font-medium hover:scale-105 transition-transform flex items-center justify-center gap-2"
+            >
+              <Plus size={20} />
+              Add Employee
+            </button>
+            
+            <button
+              onClick={() => setShowBulkImportModal(true)}
+              className="w-full glass-button py-3 font-medium hover:scale-105 transition-transform flex items-center justify-center gap-2"
+            >
+              <Upload size={20} />
+              Bulk Import
+            </button>
+          </div>
 
           <div className="mt-6 space-y-4">
             <div className="p-4 rounded-xl bg-white/5 border border-white/10">
@@ -2499,10 +2635,17 @@ function EmployeesContent() {
               id: `emp-${uid()}`,
               name,
               managerId: quickAddModal.managerId,
-              department: '',
+              division: '',
+              squad: '',
+              team: '',
               role: '',
               seniority: '',
-              startDate: new Date().toISOString().split('T')[0]
+              birthday: '',
+              startDate: new Date().toISOString().split('T')[0],
+              exitDate: '',
+              netSalary: '',
+              grossSalary: '',
+              totalSalary: ''
             };
             
             const updated = [...employees, newEmployee];
@@ -2513,6 +2656,287 @@ function EmployeesContent() {
           onClose={() => setQuickAddModal(null)}
         />
       )}
+
+      {/* Bulk Import Modal */}
+      {showBulkImportModal && (
+        <BulkImportModal
+          onSave={(importedEmployees) => {
+            const updated = [...employees, ...importedEmployees];
+            setEmployees(updated);
+            lsWrite(LS_EMPLOYEES, updated);
+            setShowBulkImportModal(false);
+          }}
+          onClose={() => setShowBulkImportModal(false)}
+        />
+      )}
+    </div>
+  );
+}
+
+/* -----------------------------------------------------------
+   Bulk Import Modal Component  
+------------------------------------------------------------ */
+function BulkImportModal({ onSave, onClose }) {
+  const [importMethod, setImportMethod] = useState('paste'); // 'paste' or 'csv'
+  const [csvData, setCsvData] = useState('');
+  const [csvFile, setCsvFile] = useState(null);
+  const [previewData, setPreviewData] = useState(null);
+  const [isProcessing, setIsProcessing] = useState(false);
+
+  const expectedHeaders = [
+    'Name', 'Division', 'Squad', 'Team', 'Role', 'Seniority', 
+    'Manager', 'Birthday', 'Start Date', 'Exit Date', 
+    'Net Salary', 'Gross Salary', 'Total Salary'
+  ];
+
+  const parseCSVData = (data) => {
+    const lines = data.trim().split('\n');
+    if (lines.length < 2) return null;
+
+    const headers = lines[0].split('\t').map(h => h.trim());
+    const rows = lines.slice(1).map(line => line.split('\t').map(cell => cell.trim()));
+
+    return { headers, rows };
+  };
+
+  const handlePasteData = () => {
+    if (!csvData.trim()) {
+      alert('Please paste your data first');
+      return;
+    }
+
+    const parsed = parseCSVData(csvData);
+    if (!parsed) {
+      alert('Invalid data format. Please check your data.');
+      return;
+    }
+
+    setPreviewData(parsed);
+  };
+
+  const handleFileUpload = (event) => {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    setCsvFile(file);
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const content = e.target.result;
+      const parsed = parseCSVData(content);
+      if (parsed) {
+        setPreviewData(parsed);
+      } else {
+        alert('Invalid CSV format');
+      }
+    };
+    reader.readAsText(file);
+  };
+
+  const convertToEmployees = (data) => {
+    const { headers, rows } = data;
+    
+    // Create mapping between expected headers and actual headers
+    const headerMap = {};
+    expectedHeaders.forEach(expected => {
+      const found = headers.find(h => 
+        h.toLowerCase().includes(expected.toLowerCase()) ||
+        expected.toLowerCase().includes(h.toLowerCase())
+      );
+      if (found) {
+        headerMap[expected] = headers.indexOf(found);
+      }
+    });
+
+    return rows.map(row => {
+      const employee = {
+        id: `emp-${uid()}`,
+        name: row[headerMap['Name']] || '',
+        division: row[headerMap['Division']] || '',
+        squad: row[headerMap['Squad']] || '',
+        team: row[headerMap['Team']] || '',
+        role: row[headerMap['Role']] || '',
+        seniority: row[headerMap['Seniority']] || 'Junior',
+        birthday: row[headerMap['Birthday']] || '',
+        startDate: row[headerMap['Start Date']] || new Date().toISOString().split('T')[0],
+        exitDate: row[headerMap['Exit Date']] || '',
+        netSalary: row[headerMap['Net Salary']] || '',
+        grossSalary: row[headerMap['Gross Salary']] || '',
+        totalSalary: row[headerMap['Total Salary']] || '',
+        managerId: '' // Manager will need to be set manually later
+      };
+
+      // Clean up salary fields - convert to numbers if possible
+      ['netSalary', 'grossSalary', 'totalSalary'].forEach(field => {
+        if (employee[field]) {
+          const num = parseFloat(employee[field].toString().replace(/[^0-9.-]/g, ''));
+          if (!isNaN(num)) {
+            employee[field] = num;
+          }
+        }
+      });
+
+      return employee;
+    }).filter(emp => emp.name); // Only include employees with names
+  };
+
+  const handleImport = () => {
+    if (!previewData) {
+      alert('No data to import');
+      return;
+    }
+
+    setIsProcessing(true);
+    try {
+      const employees = convertToEmployees(previewData);
+      onSave(employees);
+    } catch (error) {
+      alert('Error processing data: ' + error.message);
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+      <div className="glass-card-large w-full max-w-4xl max-h-[90vh] overflow-y-auto">
+        <div className="p-6 border-b border-white/10">
+          <div className="flex items-center justify-between">
+            <h2 className="text-xl font-semibold text-white">Bulk Import Employees</h2>
+            <button onClick={onClose} className="glass-button p-2 rounded-lg hover:scale-110">
+              <X size={20} className="text-white/80" />
+            </button>
+          </div>
+        </div>
+
+        <div className="p-6 space-y-6">
+          {/* Import Method Selection */}
+          <div>
+            <label className="block text-sm font-medium text-white/70 mb-3">Import Method</label>
+            <div className="flex gap-4">
+              <button
+                onClick={() => setImportMethod('paste')}
+                className={`px-4 py-2 rounded-lg transition-all ${
+                  importMethod === 'paste' 
+                    ? 'bg-blue-500/30 text-blue-300 border border-blue-400/50' 
+                    : 'glass-button'
+                }`}
+              >
+                Paste from Google Sheets
+              </button>
+              <button
+                onClick={() => setImportMethod('csv')}
+                className={`px-4 py-2 rounded-lg transition-all ${
+                  importMethod === 'csv' 
+                    ? 'bg-blue-500/30 text-blue-300 border border-blue-400/50' 
+                    : 'glass-button'
+                }`}
+              >
+                Upload CSV File
+              </button>
+            </div>
+          </div>
+
+          {/* Expected Headers Info */}
+          <div className="p-4 rounded-lg bg-blue-500/10 border border-blue-400/20">
+            <h4 className="text-sm font-medium text-blue-300 mb-2">Expected Headers</h4>
+            <div className="text-xs text-white/70 grid grid-cols-3 gap-2">
+              {expectedHeaders.map(header => (
+                <span key={header} className="bg-white/10 px-2 py-1 rounded">{header}</span>
+              ))}
+            </div>
+          </div>
+
+          {/* Import Method Content */}
+          {importMethod === 'paste' ? (
+            <div>
+              <label className="block text-sm font-medium text-white/70 mb-2">
+                Paste your data from Google Sheets (Tab-separated)
+              </label>
+              <textarea
+                value={csvData}
+                onChange={(e) => setCsvData(e.target.value)}
+                className="w-full h-40 glass-input px-4 py-3 resize-none"
+                placeholder="Copy and paste your employee data from Google Sheets here..."
+              />
+              <button
+                onClick={handlePasteData}
+                className="mt-3 glass-button px-4 py-2 hover:scale-105"
+              >
+                Parse Data
+              </button>
+            </div>
+          ) : (
+            <div>
+              <label className="block text-sm font-medium text-white/70 mb-2">
+                Upload CSV File
+              </label>
+              <input
+                type="file"
+                accept=".csv"
+                onChange={handleFileUpload}
+                className="w-full glass-input px-4 py-2 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-white/10 file:text-white/80"
+              />
+            </div>
+          )}
+
+          {/* Preview Data */}
+          {previewData && (
+            <div>
+              <h4 className="text-sm font-medium text-white/70 mb-3">
+                Preview ({previewData.rows.length} employees found)
+              </h4>
+              <div className="border border-white/20 rounded-lg overflow-hidden">
+                <div className="overflow-x-auto max-h-60">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="bg-white/5">
+                        {previewData.headers.map((header, index) => (
+                          <th key={index} className="text-left p-2 text-white/70 font-medium border-r border-white/10 last:border-r-0">
+                            {header}
+                          </th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {previewData.rows.slice(0, 5).map((row, index) => (
+                        <tr key={index} className="border-t border-white/10">
+                          {row.map((cell, cellIndex) => (
+                            <td key={cellIndex} className="p-2 text-white/70 border-r border-white/10 last:border-r-0">
+                              {cell}
+                            </td>
+                          ))}
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+              {previewData.rows.length > 5 && (
+                <p className="text-xs text-white/50 mt-2">
+                  Showing first 5 rows. {previewData.rows.length - 5} more rows will be imported.
+                </p>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* Footer */}
+        <div className="p-6 border-t border-white/20 flex justify-end gap-3">
+          <button 
+            onClick={onClose} 
+            className="glass-button px-4 py-2 text-white hover:scale-105 bg-red-900/80 hover:bg-red-800 border-red-700/50"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={handleImport}
+            disabled={!previewData || isProcessing}
+            className="glass-button px-4 py-2 bg-blue-600/80 text-white hover:scale-105 hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {isProcessing ? 'Importing...' : `Import ${previewData?.rows.length || 0} Employees`}
+          </button>
+        </div>
+      </div>
     </div>
   );
 }
@@ -2523,11 +2947,18 @@ function EmployeesContent() {
 function AddEmployeeModal({ employee, employees, onSave, onClose }) {
   const [formData, setFormData] = useState({
     name: employee?.name || '',
-    department: employee?.department || '',
+    division: employee?.division || '',
+    squad: employee?.squad || '',
+    team: employee?.team || '',
     role: employee?.role || '',
     seniority: employee?.seniority || '',
     managerId: employee?.managerId || '',
-    startDate: employee?.startDate || new Date().toISOString().split('T')[0]
+    birthday: employee?.birthday || '',
+    startDate: employee?.startDate || new Date().toISOString().split('T')[0],
+    exitDate: employee?.exitDate || '',
+    netSalary: employee?.netSalary || '',
+    grossSalary: employee?.grossSalary || '',
+    totalSalary: employee?.totalSalary || ''
   });
 
   const handleSubmit = (e) => {
@@ -2568,15 +2999,37 @@ function AddEmployeeModal({ employee, employees, onSave, onClose }) {
             />
           </div>
 
-          <div>
-            <label className="block text-sm font-medium text-white/70 mb-2">Department</label>
-            <input
-              type="text"
-              value={formData.department}
-              onChange={(e) => setFormData({...formData, department: e.target.value})}
-              className="w-full glass-input px-4 py-2"
-              placeholder="Engineering"
-            />
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-white/70 mb-2">Division</label>
+              <input
+                type="text"
+                value={formData.division}
+                onChange={(e) => setFormData({...formData, division: e.target.value})}
+                className="w-full glass-input px-4 py-2"
+                placeholder="Marketing"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-white/70 mb-2">Squad</label>
+              <input
+                type="text"
+                value={formData.squad}
+                onChange={(e) => setFormData({...formData, squad: e.target.value})}
+                className="w-full glass-input px-4 py-2"
+                placeholder="Creative"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-white/70 mb-2">Team</label>
+              <input
+                type="text"
+                value={formData.team}
+                onChange={(e) => setFormData({...formData, team: e.target.value})}
+                className="w-full glass-input px-4 py-2"
+                placeholder="Production™"
+              />
+            </div>
           </div>
 
           <div>
@@ -2586,7 +3039,7 @@ function AddEmployeeModal({ employee, employees, onSave, onClose }) {
               value={formData.role}
               onChange={(e) => setFormData({...formData, role: e.target.value})}
               className="w-full glass-input px-4 py-2"
-              placeholder="Software Engineer"
+              placeholder="Production Lead"
             />
           </div>
 
@@ -2620,21 +3073,74 @@ function AddEmployeeModal({ employee, employees, onSave, onClose }) {
             </select>
           </div>
 
-          <div>
-            <label className="block text-sm font-medium text-white/70 mb-2">Start Date</label>
-            <input
-              type="date"
-              value={formData.startDate}
-              onChange={(e) => setFormData({...formData, startDate: e.target.value})}
-              className="w-full glass-input px-4 py-2"
-            />
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-white/70 mb-2">Birthday</label>
+              <input
+                type="date"
+                value={formData.birthday}
+                onChange={(e) => setFormData({...formData, birthday: e.target.value})}
+                className="w-full glass-input px-4 py-2"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-white/70 mb-2">Start Date</label>
+              <input
+                type="date"
+                value={formData.startDate}
+                onChange={(e) => setFormData({...formData, startDate: e.target.value})}
+                className="w-full glass-input px-4 py-2"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-white/70 mb-2">Exit Date</label>
+              <input
+                type="date"
+                value={formData.exitDate}
+                onChange={(e) => setFormData({...formData, exitDate: e.target.value})}
+                className="w-full glass-input px-4 py-2"
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-white/70 mb-2">Net Salary</label>
+              <input
+                type="number"
+                value={formData.netSalary}
+                onChange={(e) => setFormData({...formData, netSalary: e.target.value})}
+                className="w-full glass-input px-4 py-2"
+                placeholder="600000"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-white/70 mb-2">Gross Salary</label>
+              <input
+                type="number"
+                value={formData.grossSalary}
+                onChange={(e) => setFormData({...formData, grossSalary: e.target.value})}
+                className="w-full glass-input px-4 py-2"
+                placeholder="348800"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-white/70 mb-2">Total Salary</label>
+              <input
+                type="number"
+                value={formData.totalSalary}
+                onChange={(e) => setFormData({...formData, totalSalary: e.target.value})}
+                className="w-full glass-input px-4 py-2"
+                placeholder="751728"
+              />
+            </div>
           </div>
 
           <div className="flex justify-end gap-3 pt-4">
             <button
               type="button"
               onClick={onClose}
-              className="px-6 py-2 rounded-xl text-white/70 hover:bg-white/10 transition-colors"
+              className="px-6 py-2 rounded-xl text-white bg-red-900/80 hover:bg-red-800 border border-red-700/50 transition-colors"
             >
               Cancel
             </button>
@@ -2720,7 +3226,7 @@ function QuickAddEmployeeModal({ managerId, employees, onSave, onClose }) {
             <button 
               type="button"
               onClick={onClose} 
-              className="flex-1 px-4 py-2 rounded-lg hover:bg-white/10 text-white/70"
+              className="flex-1 px-4 py-2 rounded-lg bg-red-900/80 hover:bg-red-800 border border-red-700/50 text-white"
             >
               Cancel
             </button>
@@ -2791,10 +3297,17 @@ export default function App() {
     const newEmployee = {
       id: `emp-${uid()}`,
       name,
-      department: "",
+      division: "",
+      squad: "",
+      team: "",
       role: "",
       seniority: "Junior",
+      birthday: "",
       startDate: new Date().toISOString().slice(0, 10),
+      exitDate: "",
+      netSalary: "",
+      grossSalary: "",
+      totalSalary: "",
       managerId: null
     };
     
@@ -2809,10 +3322,17 @@ export default function App() {
     const newEmployees = names.map(name => ({
       id: `emp-${uid()}`,
       name,
-      department: "",
+      division: "",
+      squad: "",
+      team: "",
       role: "",
       seniority: "Junior",
+      birthday: "",
       startDate: new Date().toISOString().slice(0, 10),
+      exitDate: "",
+      netSalary: "",
+      grossSalary: "",
+      totalSalary: "",
       managerId: null
     }));
     
@@ -3280,7 +3800,7 @@ export default function App() {
                                 <div>
                                   <div className="font-medium text-white">{emp.name}</div>
                                   <div className="text-xs text-white/60">
-                                    {[emp.department, emp.role, emp.seniority].filter(Boolean).join(" · ")}
+                                    {[emp.division, emp.role, emp.seniority].filter(Boolean).join(" · ")}
                                   </div>
                                   {emp.managerId && (
                                     <div className="text-xs text-blue-400">
