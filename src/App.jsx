@@ -1425,7 +1425,7 @@ function EmployeesContent() {
   const [filterDepartment, setFilterDepartment] = useState('');
   const [viewMode, setViewMode] = useState('table'); // 'table' or 'chart'
   const [quickAddModal, setQuickAddModal] = useState(null); // For quick employee creation
-  const [zoom, setZoom] = useState(1); // Zoom state for org chart
+  const [zoom, setZoom] = useState(2.5); // Zoom state for org chart - default 250%
   const [isFullscreen, setIsFullscreen] = useState(false); // Fullscreen state for org chart
   const [isDarkMode, setIsDarkMode] = useState(() => document.documentElement.getAttribute('data-theme') !== 'light');
 
@@ -2377,7 +2377,7 @@ function EmployeesContent() {
       if (e.metaKey || e.ctrlKey) {
         e.preventDefault();
         const delta = e.deltaY > 0 ? -0.1 : 0.1;
-        onZoomChange(prev => Math.max(0.25, Math.min(3, prev + delta)));
+        onZoomChange(prev => Math.max(0.25, Math.min(5, prev + delta)));
       }
     };
 
@@ -2414,7 +2414,7 @@ function EmployeesContent() {
   };
 
   return (
-    <div className="flex flex-col xl:flex-row h-full">
+    <div className="flex flex-col 2xl:flex-row h-full">
       {/* Main Content */}
       <div className="flex-1 p-4 md:p-6 overflow-auto min-w-0">
         <header className="glass-card-large p-6 mb-6">
@@ -2466,7 +2466,7 @@ function EmployeesContent() {
 
         {/* Employee Table or Org Chart */}
         {viewMode === 'table' ? (
-          <div className="glass-card-large flex flex-col" style={{ minHeight: '400px', maxHeight: 'calc(100vh - 350px)' }}>
+          <div className="glass-card-large flex flex-col" style={{ minHeight: '500px', maxHeight: 'calc(100vh - 250px)' }}>
             {/* Apple-style Segmented Control */}
             <div className="p-4 border-b border-white/10">
               <div className="inline-flex p-1 rounded-2xl" style={{ 
@@ -2691,7 +2691,7 @@ function EmployeesContent() {
                   {Math.round(zoom * 100)}%
                 </div>
                 <button 
-                  onClick={() => setZoom(prev => Math.min(prev + 0.2, 3))}
+                  onClick={() => setZoom(prev => Math.min(prev + 0.2, 5))}
                   className="glass-button w-12 h-12 rounded-full flex items-center justify-center text-white hover:scale-110 transition-transform"
                   title="Zoom In"
                 >
@@ -2711,7 +2711,7 @@ function EmployeesContent() {
       </div>
 
       {/* Right Sidebar - Add Employee Widget */}
-      <div className="w-full xl:w-96 p-4 md:p-6 space-y-6 xl:max-h-screen xl:overflow-y-auto">
+      <div className="w-full 2xl:w-96 p-4 md:p-6 space-y-6 2xl:max-h-screen 2xl:overflow-y-auto">
         <div className="glass-card-large p-6">
           <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
             <PlusCircle size={20} className="text-blue-400" />
