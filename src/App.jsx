@@ -1568,15 +1568,15 @@ function EmployeesContent() {
           levelGroups[level].push(nodeId);
         });
         
-        // Position nodes with more spacing
+        // Position nodes with more spacing - centered in larger canvas
         const HORIZONTAL_SPACING = 320;
         const VERTICAL_SPACING = 200;
-        const START_Y = 100;
+        const START_Y = 800; // Start more centered in the 2000px high canvas
         
         Object.entries(levelGroups).forEach(([level, nodeIds]) => {
           const levelNum = parseInt(level);
           const totalWidth = nodeIds.length * HORIZONTAL_SPACING;
-          const startX = (1400 - totalWidth) / 2 + HORIZONTAL_SPACING / 2;
+          const startX = (3000 - totalWidth) / 2 + HORIZONTAL_SPACING / 2;
           
           nodeIds.forEach((nodeId, index) => {
             if (nodeMap[nodeId]) {
@@ -1602,9 +1602,9 @@ function EmployeesContent() {
       // Handle high-DPI displays for sharp rendering
       const dpr = window.devicePixelRatio || 1;
       
-      // Set display size (css pixels)
-      const displayWidth = 1400;
-      const displayHeight = 800;
+      // Set display size (css pixels) - much larger for full movement at 25% zoom
+      const displayWidth = 3000;
+      const displayHeight = 2000;
       
       // Set actual canvas size accounting for device pixel ratio
       canvas.width = displayWidth * dpr;
@@ -1622,8 +1622,8 @@ function EmployeesContent() {
       ctx.imageSmoothingEnabled = true;
       ctx.imageSmoothingQuality = 'high';
       
-      // Clear canvas
-      ctx.clearRect(-displayWidth, -displayHeight, displayWidth * 3, displayHeight * 3);
+      // Clear canvas with larger area
+      ctx.clearRect(-displayWidth * 2, -displayHeight * 2, displayWidth * 5, displayHeight * 5);
       
       // Store connection midpoints for interaction
       const connections = [];
@@ -2069,12 +2069,12 @@ function EmployeesContent() {
     const handleMouseDown = (e) => {
       const canvas = canvasRef.current;
       const rect = canvas.getBoundingClientRect();
-      const rawX = (e.clientX - rect.left) * (1400 / rect.width);
-      const rawY = (e.clientY - rect.top) * (800 / rect.height);
+      const rawX = (e.clientX - rect.left) * (3000 / rect.width);
+      const rawY = (e.clientY - rect.top) * (2000 / rect.height);
       
       // Adjust for zoom, translation and pan
-      const x = (rawX - (1400 * (1 - zoom)) / 2 - panOffset.x) / zoom;
-      const y = (rawY - (800 * (1 - zoom)) / 2 - panOffset.y) / zoom;
+      const x = (rawX - (3000 * (1 - zoom)) / 2 - panOffset.x) / zoom;
+      const y = (rawY - (2000 * (1 - zoom)) / 2 - panOffset.y) / zoom;
       
       // Check if clicking on delete X button on connection line
       if (hoveredConnection) {
@@ -2171,12 +2171,12 @@ function EmployeesContent() {
     const handleMouseMove = (e) => {
       const canvas = canvasRef.current;
       const rect = canvas.getBoundingClientRect();
-      const rawX = (e.clientX - rect.left) * (1400 / rect.width);
-      const rawY = (e.clientY - rect.top) * (800 / rect.height);
+      const rawX = (e.clientX - rect.left) * (3000 / rect.width);
+      const rawY = (e.clientY - rect.top) * (2000 / rect.height);
       
       // Adjust for zoom, translation and pan
-      const x = (rawX - (1400 * (1 - zoom)) / 2 - panOffset.x) / zoom;
-      const y = (rawY - (800 * (1 - zoom)) / 2 - panOffset.y) / zoom;
+      const x = (rawX - (3000 * (1 - zoom)) / 2 - panOffset.x) / zoom;
+      const y = (rawY - (2000 * (1 - zoom)) / 2 - panOffset.y) / zoom;
       
       setMousePos({ x, y });
       
@@ -2226,8 +2226,8 @@ function EmployeesContent() {
             if (updated[id]) {
               updated[id] = {
                 ...updated[id],
-                x: Math.max(-800, Math.min(2000, updated[id].x + deltaX)),
-                y: Math.max(-400, Math.min(1200, updated[id].y + deltaY))
+                x: Math.max(-1500, Math.min(4500, updated[id].x + deltaX)),
+                y: Math.max(-1000, Math.min(3000, updated[id].y + deltaY))
               };
             }
           });
@@ -2239,8 +2239,8 @@ function EmployeesContent() {
           ...prev,
           [dragging]: {
             ...prev[dragging],
-            x: Math.max(-800, Math.min(2000, x - dragStart.x)),
-            y: Math.max(-400, Math.min(1200, y - dragStart.y))
+            x: Math.max(-1500, Math.min(4500, x - dragStart.x)),
+            y: Math.max(-1000, Math.min(3000, y - dragStart.y))
           }
         }));
       } else {
@@ -2297,12 +2297,12 @@ function EmployeesContent() {
       
       if (isDrawingConnection) {
         const rect = canvas.getBoundingClientRect();
-        const rawX = (e.clientX - rect.left) * (1400 / rect.width);
-        const rawY = (e.clientY - rect.top) * (800 / rect.height);
+        const rawX = (e.clientX - rect.left) * (3000 / rect.width);
+        const rawY = (e.clientY - rect.top) * (2000 / rect.height);
         
         // Adjust for zoom, translation and pan
-        const x = (rawX - (1400 * (1 - zoom)) / 2 - panOffset.x) / zoom;
-        const y = (rawY - (800 * (1 - zoom)) / 2 - panOffset.y) / zoom;
+        const x = (rawX - (3000 * (1 - zoom)) / 2 - panOffset.x) / zoom;
+        const y = (rawY - (2000 * (1 - zoom)) / 2 - panOffset.y) / zoom;
         
         // Find which node we're dropping on
         let foundTarget = false;
@@ -2345,8 +2345,8 @@ function EmployeesContent() {
     return (
       <canvas
         ref={canvasRef}
-        width={1400}
-        height={800}
+        width={3000}
+        height={2000}
         className="w-full rounded-xl"
         style={{ 
           background: isDarkMode 
@@ -2354,7 +2354,8 @@ function EmployeesContent() {
             : 'radial-gradient(circle at 1px 1px, rgba(0, 0, 0, 0.15) 1px, transparent 0)',
           backgroundSize: isDarkMode ? 'auto' : '20px 20px',
           maxWidth: '100%',
-          height: 'auto'
+          maxHeight: '600px',
+          aspectRatio: '1.5'
         }}
         onMouseDown={handleMouseDown}
         onMouseMove={handleMouseMove}
