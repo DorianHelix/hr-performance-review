@@ -4,7 +4,7 @@ import {
   Download, Trash2, Pencil, Settings, PlusCircle, X,
   ChevronLeft, ChevronRight, Calendar, Plus, Users, 
   TrendingUp, Clock, FileText, Briefcase, Upload,
-  Bot, Save, Edit2, Star, Home, BarChart3, Sun, Moon, Menu, ArrowLeft, Network
+  Bot, Save, Edit2, Star, Home, BarChart3, Sun, Moon, Menu, ArrowLeft, Network, Minus
 } from "lucide-react";
 
 /* -----------------------------------------------------------
@@ -1309,6 +1309,7 @@ function EmployeesContent() {
   const [filterDepartment, setFilterDepartment] = useState('');
   const [viewMode, setViewMode] = useState('table'); // 'table' or 'chart'
   const [quickAddModal, setQuickAddModal] = useState(null); // For quick employee creation
+  const [zoom, setZoom] = useState(1); // Zoom state for org chart
 
   // Add new employee
   const handleAddEmployee = (employeeData) => {
@@ -1357,8 +1358,9 @@ function EmployeesContent() {
   const isDarkMode = document.documentElement.getAttribute('data-theme') !== 'light';
   
   // Simple Org Chart Component
-  const OrgChart = ({ onQuickAdd, onEditEmployee, onDeleteEmployee }) => {
+  const OrgChart = ({ onQuickAdd, onEditEmployee, onDeleteEmployee, zoom, onZoomChange }) => {
     const canvasRef = useRef(null);
+    const containerRef = useRef(null);
     const [nodes, setNodes] = useState({});
     const [dragging, setDragging] = useState(null);
     const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
@@ -1457,12 +1459,17 @@ function EmployeesContent() {
       // Scale the drawing context to match device pixel ratio
       ctx.scale(dpr, dpr);
       
+      // Apply zoom transformation
+      ctx.save();
+      ctx.scale(zoom, zoom);
+      ctx.translate((displayWidth * (1 - zoom)) / (2 * zoom), (displayHeight * (1 - zoom)) / (2 * zoom));
+      
       // Enable better text rendering
       ctx.imageSmoothingEnabled = true;
       ctx.imageSmoothingQuality = 'high';
       
       // Clear canvas
-      ctx.clearRect(0, 0, displayWidth, displayHeight);
+      ctx.clearRect(-displayWidth, -displayHeight, displayWidth * 3, displayHeight * 3);
       
       // Store connection midpoints for interaction
       const connections = [];
@@ -1878,13 +1885,20 @@ function EmployeesContent() {
           ctx.fill();
         }
       });
-    }, [nodes, isDarkMode, dragging, hoveredConnection, isDrawingConnection, connectionStart, mousePos]);
+      
+      // Restore the context
+      ctx.restore();
+    }, [nodes, isDarkMode, dragging, hoveredConnection, isDrawingConnection, connectionStart, mousePos, zoom]);
 
     const handleMouseDown = (e) => {
       const canvas = canvasRef.current;
       const rect = canvas.getBoundingClientRect();
-      const x = (e.clientX - rect.left) * (1200 / rect.width);
-      const y = (e.clientY - rect.top) * (600 / rect.height);
+      const rawX = (e.clientX - rect.left) * (1200 / rect.width);
+      const rawY = (e.clientY - rect.top) * (600 / rect.height);
+      
+      // Adjust for zoom and translation
+      const x = (rawX - (1200 * (1 - zoom)) / 2) / zoom;
+      const y = (rawY - (600 * (1 - zoom)) / 2) / zoom;
       
       // Check if clicking on delete X button on connection line
       if (hoveredConnection) {
@@ -1954,8 +1968,12 @@ function EmployeesContent() {
     const handleMouseMove = (e) => {
       const canvas = canvasRef.current;
       const rect = canvas.getBoundingClientRect();
-      const x = (e.clientX - rect.left) * (1200 / rect.width);
-      const y = (e.clientY - rect.top) * (600 / rect.height);
+      const rawX = (e.clientX - rect.left) * (1200 / rect.width);
+      const rawY = (e.clientY - rect.top) * (600 / rect.height);
+      
+      // Adjust for zoom and translation
+      const x = (rawX - (1200 * (1 - zoom)) / 2) / zoom;
+      const y = (rawY - (600 * (1 - zoom)) / 2) / zoom;
       
       setMousePos({ x, y });
       
@@ -2027,8 +2045,12 @@ function EmployeesContent() {
       
       if (isDrawingConnection) {
         const rect = canvas.getBoundingClientRect();
-        const x = (e.clientX - rect.left) * (1200 / rect.width);
-        const y = (e.clientY - rect.top) * (600 / rect.height);
+        const rawX = (e.clientX - rect.left) * (1200 / rect.width);
+        const rawY = (e.clientY - rect.top) * (600 / rect.height);
+        
+        // Adjust for zoom and translation
+        const x = (rawX - (1200 * (1 - zoom)) / 2) / zoom;
+        const y = (rawY - (600 * (1 - zoom)) / 2) / zoom;
         
         // Find which node we're dropping on
         let foundTarget = false;
@@ -2310,12 +2332,32 @@ function EmployeesContent() {
                 </button>
               </div>
             </div>
-            <div className="p-6">
+            <div className="p-6 relative">
               <OrgChart 
                 onQuickAdd={setQuickAddModal}
                 onEditEmployee={setEditingEmployee}
                 onDeleteEmployee={handleDeleteEmployee}
+                zoom={zoom}
+                onZoomChange={setZoom}
               />
+              
+              {/* Zoom Controls */}
+              <div className="absolute right-6 top-1/2 -translate-y-1/2 flex flex-col gap-2">
+                <button 
+                  onClick={() => setZoom(prev => Math.min(prev + 0.2, 2))}
+                  className="glass-button w-12 h-12 rounded-full flex items-center justify-center text-white hover:scale-110 transition-transform"
+                  title="Zoom In"
+                >
+                  <Plus size={20} />
+                </button>
+                <button 
+                  onClick={() => setZoom(prev => Math.max(prev - 0.2, 0.5))}
+                  className="glass-button w-12 h-12 rounded-full flex items-center justify-center text-white hover:scale-110 transition-transform"
+                  title="Zoom Out"
+                >
+                  <Minus size={20} />
+                </button>
+              </div>
             </div>
           </div>
         )}
