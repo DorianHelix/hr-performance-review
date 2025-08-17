@@ -2281,9 +2281,9 @@ function EmployeesContent() {
   };
 
   return (
-    <div className="flex h-full">
+    <div className="flex flex-col lg:flex-row h-full">
       {/* Main Content */}
-      <div className="flex-1 p-6">
+      <div className="flex-1 p-4 md:p-6 overflow-auto">
         <header className="glass-card-large p-6 mb-6">
           <div className="flex items-center justify-between mb-4">
             <div>
@@ -2333,7 +2333,7 @@ function EmployeesContent() {
 
         {/* Employee Table or Org Chart */}
         {viewMode === 'table' ? (
-          <div className="glass-card-large">
+          <div className="glass-card-large flex flex-col" style={{ minHeight: '400px', maxHeight: 'calc(100vh - 350px)' }}>
             {/* Apple-style Segmented Control */}
             <div className="p-4 border-b border-white/10">
               <div className="inline-flex p-1 rounded-2xl" style={{ 
@@ -2389,25 +2389,25 @@ function EmployeesContent() {
                 </button>
               </div>
             </div>
-            <div className="overflow-hidden">
-            <table className="w-full">
+            <div className="flex-1 overflow-auto">
+            <table className="w-full min-w-max">
               <thead>
                 <tr className="border-b border-white/10">
-                  <th className="text-left p-4 text-white/70 font-medium">ID</th>
-                  <th className="text-left p-4 text-white/70 font-medium">Name</th>
-                  <th className="text-left p-4 text-white/70 font-medium">Division</th>
-                  <th className="text-left p-4 text-white/70 font-medium">Squad</th>
-                  <th className="text-left p-4 text-white/70 font-medium">Team</th>
-                  <th className="text-left p-4 text-white/70 font-medium">Role</th>
-                  <th className="text-left p-4 text-white/70 font-medium">Seniority</th>
-                  <th className="text-left p-4 text-white/70 font-medium">Manager</th>
-                  <th className="text-left p-4 text-white/70 font-medium">Birthday</th>
-                  <th className="text-left p-4 text-white/70 font-medium">Start Date</th>
-                  <th className="text-left p-4 text-white/70 font-medium">Exit Date</th>
-                  <th className="text-right p-4 text-white/70 font-medium">Net Salary</th>
-                  <th className="text-right p-4 text-white/70 font-medium">Gross Salary</th>
-                  <th className="text-right p-4 text-white/70 font-medium">Total Salary</th>
-                  <th className="text-center p-4 text-white/70 font-medium">Actions</th>
+                  <th className="text-left p-4 text-white/70 font-medium min-w-[80px]">ID</th>
+                  <th className="text-left p-4 text-white/70 font-medium min-w-[150px]">Name</th>
+                  <th className="text-left p-4 text-white/70 font-medium min-w-[120px]">Division</th>
+                  <th className="text-left p-4 text-white/70 font-medium min-w-[100px]">Squad</th>
+                  <th className="text-left p-4 text-white/70 font-medium min-w-[100px]">Team</th>
+                  <th className="text-left p-4 text-white/70 font-medium min-w-[120px]">Role</th>
+                  <th className="text-left p-4 text-white/70 font-medium min-w-[100px]">Seniority</th>
+                  <th className="text-left p-4 text-white/70 font-medium min-w-[120px]">Manager</th>
+                  <th className="text-left p-4 text-white/70 font-medium min-w-[120px]">Birthday</th>
+                  <th className="text-left p-4 text-white/70 font-medium min-w-[120px]">Start Date</th>
+                  <th className="text-left p-4 text-white/70 font-medium min-w-[120px]">Exit Date</th>
+                  <th className="text-right p-4 text-white/70 font-medium min-w-[120px]">Net Salary</th>
+                  <th className="text-right p-4 text-white/70 font-medium min-w-[120px]">Gross Salary</th>
+                  <th className="text-right p-4 text-white/70 font-medium min-w-[120px]">Total Salary</th>
+                  <th className="text-center p-4 text-white/70 font-medium min-w-[100px]">Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -2567,7 +2567,7 @@ function EmployeesContent() {
       </div>
 
       {/* Right Sidebar - Add Employee Widget */}
-      <div className="w-96 p-6 space-y-6">
+      <div className="w-full lg:w-96 p-6 space-y-6">
         <div className="glass-card-large p-6">
           <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
             <PlusCircle size={20} className="text-blue-400" />
@@ -2590,6 +2590,21 @@ function EmployeesContent() {
               <Upload size={20} />
               Bulk Import
             </button>
+            
+            {employees.length > 0 && (
+              <button
+                onClick={() => {
+                  if (window.confirm('Are you sure you want to delete ALL employees? This action cannot be undone.')) {
+                    setEmployees([]);
+                    lsWrite(LS_EMPLOYEES, []);
+                  }
+                }}
+                className="w-full py-3 font-medium transition-all flex items-center justify-center gap-2 rounded-2xl border bg-red-900/80 hover:bg-red-800 border-red-700/50 text-white hover:scale-105"
+              >
+                <Trash2 size={20} />
+                Delete All Employees
+              </button>
+            )}
           </div>
 
           <div className="mt-6 space-y-4">
@@ -3578,12 +3593,12 @@ export default function App() {
 
   // Dashboard Content Component
   const DashboardContent = () => (
-    <div className="min-h-screen">
+    <div className="flex h-full flex-col p-6 overflow-auto">
       <div className="mb-8">
-        <h1 className="text-4xl font-bold text-white mb-2 bg-gradient-to-r from-white to-white/80 bg-clip-text text-transparent">
+        <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold text-white mb-2 bg-gradient-to-r from-white to-white/80 bg-clip-text text-transparent">
           Performance Dashboard
         </h1>
-        <p className="text-white/60 text-lg">Overview of your team's performance metrics</p>
+        <p className="text-white/60 text-base md:text-lg">Overview of your team's performance metrics</p>
       </div>
       
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
@@ -3743,8 +3758,8 @@ export default function App() {
       {currentView === 'employees' && <EmployeesContent />}
       
       {currentView === 'performance' && (
-        <>
-          <header className="glass-card-large m-4 mb-6 p-6">
+        <div className="flex h-full flex-col p-6">
+          <header className="glass-card-large mb-6 p-6">
             <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
               <div>
                 <h1 className="text-2xl font-bold flex items-center gap-3 text-white mb-2">
@@ -4132,7 +4147,7 @@ export default function App() {
       </div>
 
           {/* Modals - End of Performance View */}
-        </>
+        </div>
       )}
 
       {/* Global Modals */}
