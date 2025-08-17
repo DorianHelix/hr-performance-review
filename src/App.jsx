@@ -1352,17 +1352,20 @@ function EmployeesContent() {
   // Get unique departments
   const departments = [...new Set(employees.map(emp => emp.department))].filter(Boolean);
 
+  // Get current theme
+  const isDarkMode = document.documentElement.getAttribute('data-theme') !== 'light';
+  
   // Simple Org Chart Component
   const OrgChart = () => {
     const canvasRef = useRef(null);
     const [nodes, setNodes] = useState({});
     const [dragging, setDragging] = useState(null);
     const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
-    const [isDarkMode] = useState(() => document.documentElement.getAttribute('data-theme') !== 'light');
     const [hoveredConnection, setHoveredConnection] = useState(null);
     const [isDrawingConnection, setIsDrawingConnection] = useState(false);
     const [connectionStart, setConnectionStart] = useState(null);
     const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
+    const [isDarkMode] = useState(() => document.documentElement.getAttribute('data-theme') !== 'light');
 
     useEffect(() => {
       // Build hierarchy and calculate positions
@@ -1940,31 +1943,6 @@ function EmployeesContent() {
             </div>
           </div>
 
-          {/* View Mode Tabs */}
-          <div className="flex gap-2 mb-4">
-            <button
-              onClick={() => setViewMode('table')}
-              className={`px-4 py-2 rounded-xl font-medium transition-all ${
-                viewMode === 'table' 
-                  ? 'glass-button bg-white/10' 
-                  : 'glass-button hover:bg-white/5'
-              }`}
-            >
-              <Users size={16} className="inline mr-2" />
-              Table View
-            </button>
-            <button
-              onClick={() => setViewMode('chart')}
-              className={`px-4 py-2 rounded-xl font-medium transition-all ${
-                viewMode === 'chart' 
-                  ? 'glass-button bg-white/10' 
-                  : 'glass-button hover:bg-white/5'
-              }`}
-            >
-              <Network size={16} className="inline mr-2" />
-              Org Chart
-            </button>
-          </div>
 
           {/* Search and Filter Bar - Only show in table view */}
           {viewMode === 'table' && (
@@ -1997,7 +1975,63 @@ function EmployeesContent() {
 
         {/* Employee Table or Org Chart */}
         {viewMode === 'table' ? (
-          <div className="glass-card-large overflow-hidden">
+          <div className="glass-card-large">
+            {/* Apple-style Segmented Control */}
+            <div className="p-4 border-b border-white/10">
+              <div className="inline-flex p-1 rounded-2xl" style={{ 
+                background: isDarkMode ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.06)',
+                backdropFilter: 'blur(20px)',
+                boxShadow: isDarkMode 
+                  ? '0 1px 3px rgba(0, 0, 0, 0.3), inset 0 1px 1px rgba(255, 255, 255, 0.1)' 
+                  : '0 1px 3px rgba(0, 0, 0, 0.1), inset 0 1px 1px rgba(255, 255, 255, 0.5)'
+              }}>
+                <button
+                  onClick={() => setViewMode('table')}
+                  className={`relative px-6 py-2 rounded-xl font-semibold transition-all duration-300 flex items-center gap-2 ${
+                    viewMode === 'table' 
+                      ? 'text-white'
+                      : isDarkMode ? 'text-white/60 hover:text-white/80' : 'text-black/50 hover:text-black/70'
+                  }`}
+                  style={{ minWidth: '100px' }}
+                >
+                  {viewMode === 'table' && (
+                    <div 
+                      className="absolute inset-0 rounded-xl"
+                      style={{
+                        background: 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)',
+                        boxShadow: '0 3px 8px rgba(59, 130, 246, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.2)',
+                        transition: 'all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94)'
+                      }}
+                    />
+                  )}
+                  <Users size={16} className="relative z-10" />
+                  <span className="relative z-10 text-xs">Table</span>
+                </button>
+                <button
+                  onClick={() => setViewMode('chart')}
+                  className={`relative px-6 py-2 rounded-xl font-semibold transition-all duration-300 flex items-center gap-2 ${
+                    viewMode === 'chart' 
+                      ? 'text-white'
+                      : isDarkMode ? 'text-white/60 hover:text-white/80' : 'text-black/50 hover:text-black/70'
+                  }`}
+                  style={{ minWidth: '100px' }}
+                >
+                  {viewMode === 'chart' && (
+                    <div 
+                      className="absolute inset-0 rounded-xl"
+                      style={{
+                        background: 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)',
+                        boxShadow: '0 3px 8px rgba(59, 130, 246, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.2)',
+                        transition: 'all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94)'
+                      }}
+                    />
+                  )}
+                  <Network size={16} className="relative z-10" />
+                  <span className="relative z-10 text-xs">Org Chart</span>
+                </button>
+              </div>
+            </div>
+            <div className="overflow-hidden">
             <table className="w-full">
               <thead>
                 <tr className="border-b border-white/10">
@@ -2055,10 +2089,68 @@ function EmployeesContent() {
                 )}
               </tbody>
             </table>
+            </div>
           </div>
         ) : (
-          <div className="glass-card-large p-6">
-            <OrgChart />
+          <div className="glass-card-large">
+            {/* Apple-style Segmented Control */}
+            <div className="p-4 border-b border-white/10">
+              <div className="inline-flex p-1 rounded-2xl" style={{ 
+                background: isDarkMode ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.06)',
+                backdropFilter: 'blur(20px)',
+                boxShadow: isDarkMode 
+                  ? '0 1px 3px rgba(0, 0, 0, 0.3), inset 0 1px 1px rgba(255, 255, 255, 0.1)' 
+                  : '0 1px 3px rgba(0, 0, 0, 0.1), inset 0 1px 1px rgba(255, 255, 255, 0.5)'
+              }}>
+                <button
+                  onClick={() => setViewMode('table')}
+                  className={`relative px-6 py-2 rounded-xl font-semibold transition-all duration-300 flex items-center gap-2 ${
+                    viewMode === 'table' 
+                      ? 'text-white'
+                      : isDarkMode ? 'text-white/60 hover:text-white/80' : 'text-black/50 hover:text-black/70'
+                  }`}
+                  style={{ minWidth: '100px' }}
+                >
+                  {viewMode === 'table' && (
+                    <div 
+                      className="absolute inset-0 rounded-xl"
+                      style={{
+                        background: 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)',
+                        boxShadow: '0 3px 8px rgba(59, 130, 246, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.2)',
+                        transition: 'all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94)'
+                      }}
+                    />
+                  )}
+                  <Users size={16} className="relative z-10" />
+                  <span className="relative z-10 text-xs">Table</span>
+                </button>
+                <button
+                  onClick={() => setViewMode('chart')}
+                  className={`relative px-6 py-2 rounded-xl font-semibold transition-all duration-300 flex items-center gap-2 ${
+                    viewMode === 'chart' 
+                      ? 'text-white'
+                      : isDarkMode ? 'text-white/60 hover:text-white/80' : 'text-black/50 hover:text-black/70'
+                  }`}
+                  style={{ minWidth: '100px' }}
+                >
+                  {viewMode === 'chart' && (
+                    <div 
+                      className="absolute inset-0 rounded-xl"
+                      style={{
+                        background: 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)',
+                        boxShadow: '0 3px 8px rgba(59, 130, 246, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.2)',
+                        transition: 'all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94)'
+                      }}
+                    />
+                  )}
+                  <Network size={16} className="relative z-10" />
+                  <span className="relative z-10 text-xs">Org Chart</span>
+                </button>
+              </div>
+            </div>
+            <div className="p-6">
+              <OrgChart />
+            </div>
           </div>
         )}
       </div>
