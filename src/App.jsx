@@ -1594,12 +1594,12 @@ function EmployeesContent() {
         // Position nodes with more spacing - centered in larger canvas
         const HORIZONTAL_SPACING = 320;
         const VERTICAL_SPACING = 200;
-        const START_Y = isFullscreen ? 1200 : 800; // Start more centered based on canvas size
+        const START_Y = isFullscreen ? 2500 : 1600; // Start more centered in doubled canvas
         
         Object.entries(levelGroups).forEach(([level, nodeIds]) => {
           const levelNum = parseInt(level);
           const totalWidth = nodeIds.length * HORIZONTAL_SPACING;
-          const canvasWidth = isFullscreen ? 5000 : 3000;
+          const canvasWidth = isFullscreen ? 10000 : 6000;
           const startX = (canvasWidth - totalWidth) / 2 + HORIZONTAL_SPACING / 2;
           
           nodeIds.forEach((nodeId, index) => {
@@ -1626,9 +1626,9 @@ function EmployeesContent() {
       // Handle high-DPI displays for sharp rendering
       const dpr = window.devicePixelRatio || 1;
       
-      // Set display size (css pixels) - even larger in fullscreen mode
-      const displayWidth = isFullscreen ? 5000 : 3000;
-      const displayHeight = isFullscreen ? 3000 : 2000;
+      // Set display size (css pixels) - doubled for more workspace
+      const displayWidth = isFullscreen ? 10000 : 6000;
+      const displayHeight = isFullscreen ? 6000 : 4000;
       
       // Set actual canvas size accounting for device pixel ratio
       canvas.width = displayWidth * dpr;
@@ -2093,8 +2093,8 @@ function EmployeesContent() {
     const handleMouseDown = (e) => {
       const canvas = canvasRef.current;
       const rect = canvas.getBoundingClientRect();
-      const canvasWidth = isFullscreen ? 5000 : 3000;
-      const canvasHeight = isFullscreen ? 3000 : 2000;
+      const canvasWidth = isFullscreen ? 10000 : 6000;
+      const canvasHeight = isFullscreen ? 6000 : 4000;
       const rawX = (e.clientX - rect.left) * (canvasWidth / rect.width);
       const rawY = (e.clientY - rect.top) * (canvasHeight / rect.height);
       
@@ -2197,8 +2197,8 @@ function EmployeesContent() {
     const handleMouseMove = (e) => {
       const canvas = canvasRef.current;
       const rect = canvas.getBoundingClientRect();
-      const canvasWidth = isFullscreen ? 5000 : 3000;
-      const canvasHeight = isFullscreen ? 3000 : 2000;
+      const canvasWidth = isFullscreen ? 10000 : 6000;
+      const canvasHeight = isFullscreen ? 6000 : 4000;
       const rawX = (e.clientX - rect.left) * (canvasWidth / rect.width);
       const rawY = (e.clientY - rect.top) * (canvasHeight / rect.height);
       
@@ -2254,8 +2254,8 @@ function EmployeesContent() {
             if (updated[id]) {
               updated[id] = {
                 ...updated[id],
-                x: Math.max(-1500, Math.min(4500, updated[id].x + deltaX)),
-                y: Math.max(-1000, Math.min(3000, updated[id].y + deltaY))
+                x: Math.max(-3000, Math.min(12000, updated[id].x + deltaX)),
+                y: Math.max(-2000, Math.min(8000, updated[id].y + deltaY))
               };
             }
           });
@@ -2267,8 +2267,8 @@ function EmployeesContent() {
           ...prev,
           [dragging]: {
             ...prev[dragging],
-            x: Math.max(-1500, Math.min(4500, x - dragStart.x)),
-            y: Math.max(-1000, Math.min(3000, y - dragStart.y))
+            x: Math.max(-3000, Math.min(12000, x - dragStart.x)),
+            y: Math.max(-2000, Math.min(8000, y - dragStart.y))
           }
         }));
       } else {
@@ -2325,8 +2325,8 @@ function EmployeesContent() {
       
       if (isDrawingConnection) {
         const rect = canvas.getBoundingClientRect();
-        const canvasWidth = isFullscreen ? 5000 : 3000;
-        const canvasHeight = isFullscreen ? 3000 : 2000;
+        const canvasWidth = isFullscreen ? 10000 : 6000;
+        const canvasHeight = isFullscreen ? 6000 : 4000;
         const rawX = (e.clientX - rect.left) * (canvasWidth / rect.width);
         const rawY = (e.clientY - rect.top) * (canvasHeight / rect.height);
         
@@ -2372,17 +2372,28 @@ function EmployeesContent() {
       }
     };
 
+    // Handle wheel zoom with Cmd/Ctrl
+    const handleWheel = (e) => {
+      if (e.metaKey || e.ctrlKey) {
+        e.preventDefault();
+        const delta = e.deltaY > 0 ? -0.1 : 0.1;
+        onZoomChange(prev => Math.max(0.25, Math.min(3, prev + delta)));
+      }
+    };
+
     return (
       <canvas
         ref={canvasRef}
-        width={isFullscreen ? 5000 : 3000}
-        height={isFullscreen ? 3000 : 2000}
+        width={isFullscreen ? 10000 : 6000}
+        height={isFullscreen ? 6000 : 4000}
         className={`${isFullscreen ? 'w-full h-full' : 'w-full rounded-xl'}`}
         style={{ 
           background: isDarkMode 
             ? 'rgba(0, 0, 0, 0.2)' 
-            : 'radial-gradient(circle at 1px 1px, rgba(0, 0, 0, 0.15) 1px, transparent 0)',
-          backgroundSize: isDarkMode ? 'auto' : '20px 20px',
+            : 'rgba(0, 0, 0, 0.05)',
+          border: isDarkMode 
+            ? '1px solid rgba(255, 255, 255, 0.15)'
+            : '1px solid rgba(0, 0, 0, 0.15)',
           ...(isFullscreen ? {
             width: '100%',
             height: '100%',
@@ -2390,21 +2401,22 @@ function EmployeesContent() {
           } : {
             maxWidth: '100%',
             height: 'auto',
-            aspectRatio: '3000 / 2000'
+            aspectRatio: '6000 / 4000'
           })
         }}
         onMouseDown={handleMouseDown}
         onMouseMove={handleMouseMove}
         onMouseUp={handleMouseUp}
         onMouseLeave={handleMouseUp}
+        onWheel={handleWheel}
       />
     );
   };
 
   return (
-    <div className="flex flex-col lg:flex-row h-full">
+    <div className="flex flex-col xl:flex-row h-full">
       {/* Main Content */}
-      <div className="flex-1 p-4 md:p-6 overflow-auto">
+      <div className="flex-1 p-4 md:p-6 overflow-auto min-w-0">
         <header className="glass-card-large p-6 mb-6">
           <div className="flex items-center justify-between mb-4">
             <div>
@@ -2699,7 +2711,7 @@ function EmployeesContent() {
       </div>
 
       {/* Right Sidebar - Add Employee Widget */}
-      <div className="w-full lg:w-96 p-6 space-y-6">
+      <div className="w-full xl:w-96 p-4 md:p-6 space-y-6 xl:max-h-screen xl:overflow-y-auto">
         <div className="glass-card-large p-6">
           <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
             <PlusCircle size={20} className="text-blue-400" />
