@@ -206,14 +206,36 @@
 }
 
 /* Light Mode Select/Option Overrides */
+[data-theme="light"] select.glass-input {
+  background: rgba(255, 255, 255, 0.9) !important;
+  color: rgba(0, 0, 0, 0.9) !important;
+  border: 1px solid rgba(0, 0, 0, 0.2) !important;
+}
+
 [data-theme="light"] select.glass-input option {
   background: white !important;
   color: black !important;
 }
 
-[data-theme="light"] select.glass-input {
-  background: rgba(255, 255, 255, 0.9) !important;
-  color: rgba(0, 0, 0, 0.9) !important;
+/* Fix select dropdown in browsers */
+select.glass-input option {
+  background: #1f2937 !important;
+  color: white !important;
+}
+
+[data-theme="light"] select.glass-input:focus {
+  outline: none !important;
+  border-color: rgba(0, 0, 0, 0.3) !important;
+  box-shadow: 0 0 0 4px rgba(0, 0, 0, 0.1) !important;
+}
+
+/* Light mode ring offset fix */
+[data-theme="light"] .ring-offset-black\/50 {
+  --tw-ring-offset-color: rgba(255, 255, 255, 0.5) !important;
+}
+
+[data-theme="light"] .ring-white\/50 {
+  --tw-ring-color: rgba(0, 0, 0, 0.5) !important;
 }
 
 /* Light Mode Gradient Text Overrides */
@@ -399,9 +421,13 @@ html, body, #root {
 input[type="range"] {
   appearance: none;
   height: 4px;
-  background: #ddd;
+  background: rgba(255, 255, 255, 0.2);
   border-radius: 2px;
   outline: none;
+}
+
+[data-theme="light"] input[type="range"] {
+  background: rgba(0, 0, 0, 0.2);
 }
 
 input[type="range"]::-webkit-slider-thumb {

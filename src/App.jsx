@@ -218,12 +218,12 @@ function scoreToTier(score) {
 }
 
 function tierStyles(score) {
-  if (score == null) return { bg: "bg-transparent", text: "text-gray-700" };
+  if (score == null) return { bg: "bg-transparent", text: "text-white/50" };
   const t = scoreToTier(score);
   switch (t) {
     case 1: return { bg: "bg-green-500", text: "text-white" };
     case 2: return { bg: "bg-green-400", text: "text-white" };
-    case 3: return { bg: "bg-yellow-400", text: "text-black" };
+    case 3: return { bg: "bg-yellow-400", text: "text-gray-900" };
     case 4: return { bg: "bg-orange-500", text: "text-white" };
     default: return { bg: "bg-red-600", text: "text-white" };
   }
@@ -488,7 +488,7 @@ function QuickScoreModal({ employee, week, category, currentScore, onSave, onDel
                     onSave(n);
                     onClose();
                   }}
-                  className={`h-10 rounded-lg ${styles.bg} ${styles.text} font-bold hover:scale-110 transition-transform ${score === n ? 'ring-2 ring-offset-2 ring-gray-400' : ''}`}
+                  className={`h-10 rounded-lg ${styles.bg} ${styles.text} font-bold hover:scale-110 transition-transform ${score === n ? 'ring-2 ring-offset-2 ring-white/50 ring-offset-black/50' : ''}`}
                 >
                   {n === 10 ? '10' : n}
                 </button>
@@ -1031,7 +1031,7 @@ function CategoryManagementModal({ categories, onSave, onClose }) {
       label: "New Category",
       short: "N",
       accent: "border-l-gray-500",
-      tag: "bg-gray-500",
+      tag: "bg-white/20",
       iconName: "Star",
       description: "New category description",
       weight: 10
@@ -1066,19 +1066,19 @@ function CategoryManagementModal({ categories, onSave, onClose }) {
   };
 
   return (
-    <div className="fixed inset-0 z-50 grid place-items-center bg-black/50 p-4" onClick={onClose}>
-      <div className="w-full max-w-3xl max-h-[80vh] overflow-y-auto rounded-xl bg-white shadow-2xl" onClick={e => e.stopPropagation()}>
-        <div className="sticky top-0 bg-white p-4 border-b flex items-center justify-between">
-          <h2 className="text-lg font-semibold">Manage Evaluation Categories</h2>
-          <button onClick={onClose} className="p-2 rounded-lg hover:bg-gray-100">
-            <X size={20} />
+    <div className="fixed inset-0 z-50 grid place-items-center bg-black/50 backdrop-blur-sm p-4" onClick={onClose}>
+      <div className="w-full max-w-3xl max-h-[80vh] overflow-y-auto glass-card-large rounded-2xl" onClick={e => e.stopPropagation()}>
+        <div className="sticky top-0 glass-card p-4 border-b border-white/10 flex items-center justify-between rounded-t-2xl">
+          <h2 className="text-lg font-semibold text-white">Manage Evaluation Categories</h2>
+          <button onClick={onClose} className="p-2 rounded-lg hover:bg-white/10">
+            <X size={20} className="text-white/80" />
           </button>
         </div>
 
         <div className="p-6">
           <div className="space-y-3">
             {localCategories.map(cat => (
-              <div key={cat.id} className="p-4 border rounded-lg">
+              <div key={cat.id} className="p-4 glass-card rounded-lg">
                 {editingId === cat.id ? (
                   <div className="space-y-3">
                     <div className="grid grid-cols-2 gap-3">
@@ -1086,38 +1086,38 @@ function CategoryManagementModal({ categories, onSave, onClose }) {
                         value={cat.label}
                         onChange={(e) => handleUpdate(cat.id, { label: e.target.value })}
                         placeholder="Category Name"
-                        className="px-3 py-2 border rounded"
+                        className="glass-input px-3 py-2"
                       />
                       <input
                         value={cat.key}
                         onChange={(e) => handleUpdate(cat.id, { key: e.target.value.toUpperCase() })}
                         placeholder="KEY"
                         maxLength={5}
-                        className="px-3 py-2 border rounded"
+                        className="glass-input px-3 py-2"
                       />
                     </div>
                     <input
                       value={cat.description}
                       onChange={(e) => handleUpdate(cat.id, { description: e.target.value })}
                       placeholder="Description"
-                      className="w-full px-3 py-2 border rounded"
+                      className="w-full glass-input px-3 py-2"
                     />
                     <div className="flex items-center gap-3">
-                      <label className="text-sm">Weight:</label>
+                      <label className="text-sm text-white/80">Weight:</label>
                       <input
                         type="number"
                         value={cat.weight}
                         onChange={(e) => handleUpdate(cat.id, { weight: Number(e.target.value) })}
                         min="0"
                         max="100"
-                        className="w-20 px-3 py-2 border rounded"
+                        className="w-20 glass-input px-3 py-2"
                       />
-                      <span className="text-sm text-gray-500">%</span>
+                      <span className="text-sm text-white/50">%</span>
                     </div>
                     <div className="flex gap-2">
                       <button
                         onClick={() => setEditingId(null)}
-                        className="px-3 py-1 bg-gray-900 text-white rounded"
+                        className="px-3 py-1 glass-button rounded"
                       >
                         Done
                       </button>
@@ -1126,22 +1126,22 @@ function CategoryManagementModal({ categories, onSave, onClose }) {
                 ) : (
                   <div className="flex items-center justify-between">
                     <div>
-                      <div className="font-medium">{cat.label}</div>
-                      <div className="text-sm text-gray-500">{cat.description}</div>
-                      <div className="text-xs text-gray-400 mt-1">
+                      <div className="font-medium text-white">{cat.label}</div>
+                      <div className="text-sm text-white/60">{cat.description}</div>
+                      <div className="text-xs text-white/40 mt-1">
                         Key: {cat.key} | Weight: {cat.weight}%
                       </div>
                     </div>
                     <div className="flex gap-2">
                       <button
                         onClick={() => setEditingId(cat.id)}
-                        className="p-2 rounded hover:bg-gray-100"
+                        className="p-2 rounded hover:bg-white/10"
                       >
-                        <Edit2 size={16} />
+                        <Edit2 size={16} className="text-white/70" />
                       </button>
                       <button
                         onClick={() => handleDelete(cat.id)}
-                        className="p-2 rounded hover:bg-red-50 text-red-600"
+                        className="p-2 rounded hover:bg-red-500/20 text-red-400"
                       >
                         <Trash2 size={16} />
                       </button>
@@ -1154,13 +1154,13 @@ function CategoryManagementModal({ categories, onSave, onClose }) {
 
           <button
             onClick={handleAdd}
-            className="mt-4 w-full py-2 border-2 border-dashed border-gray-300 rounded-lg hover:border-gray-400 text-gray-600"
+            className="mt-4 w-full py-2 border-2 border-dashed border-white/30 rounded-lg hover:border-white/50 text-white/60"
           >
             + Add Category
           </button>
 
-          <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
-            <p className="text-sm text-yellow-800">
+          <div className="mt-4 p-3 glass-card rounded-lg bg-yellow-500/10 border border-yellow-400/30">
+            <p className="text-sm text-yellow-300">
               Total Weight: {localCategories.reduce((sum, cat) => sum + cat.weight, 0)}%
               {localCategories.reduce((sum, cat) => sum + cat.weight, 0) !== 100 && 
                 " (Weights will be normalized to 100%)"}
@@ -1168,11 +1168,11 @@ function CategoryManagementModal({ categories, onSave, onClose }) {
           </div>
         </div>
 
-        <div className="sticky bottom-0 bg-white p-4 border-t flex justify-end gap-2">
-          <button onClick={onClose} className="px-4 py-2 border rounded-lg hover:bg-gray-50">
+        <div className="sticky bottom-0 glass-card p-4 border-t border-white/10 flex justify-end gap-2 rounded-b-2xl">
+          <button onClick={onClose} className="px-4 py-2 rounded-lg hover:bg-white/10 text-white/70">
             Cancel
           </button>
-          <button onClick={handleSave} className="px-4 py-2 bg-gray-900 text-white rounded-lg hover:bg-gray-800">
+          <button onClick={handleSave} className="px-4 py-2 glass-button rounded-lg">
             Save Categories
           </button>
         </div>
