@@ -761,11 +761,9 @@ Continue monitoring progress with focus on identified improvement areas.`;
                     <label className="text-sm font-medium text-white/80">Daily Reports (Required for first 3 months)</label>
                     <button
                       onClick={() => handleFileUpload('daily')}
-                      className="inline-flex items-center gap-2 px-3 py-2 text-xs font-medium glass-card rounded-xl hover:scale-105 transition-all duration-300 bg-gradient-to-r from-blue-500/20 to-purple-500/20 border border-blue-400/30 shadow-lg shadow-blue-500/10 text-blue-300 hover:text-blue-200"
+                      className="inline-flex items-center gap-2 px-3 py-2 text-xs font-medium glass-button rounded-xl hover:scale-105 transition-all"
                     >
-                      <div className="p-1 rounded-lg bg-blue-500/30">
-                        <Upload size={10} className="text-blue-200" />
-                      </div>
+                      <Upload size={14} />
                       Upload
                     </button>
                   </div>
@@ -784,11 +782,9 @@ Continue monitoring progress with focus on identified improvement areas.`;
                   <label className="text-sm font-medium text-white/80">Weekly Reports</label>
                   <button
                     onClick={() => handleFileUpload('weekly')}
-                    className="inline-flex items-center gap-2 px-3 py-2 text-xs font-medium glass-card rounded-xl hover:scale-105 transition-all duration-300 bg-gradient-to-r from-green-500/20 to-emerald-500/20 border border-green-400/30 shadow-lg shadow-green-500/10 text-green-300 hover:text-green-200"
+                    className="inline-flex items-center gap-2 px-3 py-2 text-xs font-medium glass-button rounded-xl hover:scale-105 transition-all"
                   >
-                    <div className="p-1 rounded-lg bg-green-500/30">
-                      <Upload size={10} className="text-green-200" />
-                    </div>
+                    <Upload size={14} />
                     Upload
                   </button>
                 </div>
@@ -796,7 +792,7 @@ Continue monitoring progress with focus on identified improvement areas.`;
                   value={reports.weekly}
                   onChange={(e) => setReports(prev => ({ ...prev, weekly: e.target.value }))}
                   placeholder="Paste weekly reports or upload file..."
-                  className="w-full px-3 py-2 border rounded-lg text-sm resize-none"
+                  className="w-full glass-input px-3 py-2 text-sm resize-none"
                   rows={3}
                 />
               </div>
@@ -806,11 +802,9 @@ Continue monitoring progress with focus on identified improvement areas.`;
                   <label className="text-sm font-medium text-white/80">Monthly Reports</label>
                   <button
                     onClick={() => handleFileUpload('monthly')}
-                    className="inline-flex items-center gap-2 px-3 py-2 text-xs font-medium glass-card rounded-xl hover:scale-105 transition-all duration-300 bg-gradient-to-r from-orange-500/20 to-red-500/20 border border-orange-400/30 shadow-lg shadow-orange-500/10 text-orange-300 hover:text-orange-200"
+                    className="inline-flex items-center gap-2 px-3 py-2 text-xs font-medium glass-button rounded-xl hover:scale-105 transition-all"
                   >
-                    <div className="p-1 rounded-lg bg-orange-500/30">
-                      <Upload size={10} className="text-orange-200" />
-                    </div>
+                    <Upload size={14} />
                     Upload
                   </button>
                 </div>
@@ -818,7 +812,7 @@ Continue monitoring progress with focus on identified improvement areas.`;
                   value={reports.monthly}
                   onChange={(e) => setReports(prev => ({ ...prev, monthly: e.target.value }))}
                   placeholder="Paste monthly reports or upload file..."
-                  className="w-full px-3 py-2 border rounded-lg text-sm resize-none"
+                  className="w-full glass-input px-3 py-2 text-sm resize-none"
                   rows={3}
                 />
               </div>
@@ -832,7 +826,7 @@ Continue monitoring progress with focus on identified improvement areas.`;
               value={manualReview}
               onChange={(e) => setManualReview(e.target.value)}
               placeholder="Write your performance review for this employee..."
-              className="w-full px-3 py-2 border rounded-lg text-sm resize-none"
+              className="w-full glass-input px-3 py-2 text-sm resize-none"
               rows={5}
             />
           </div>
