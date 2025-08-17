@@ -1308,6 +1308,7 @@ function EmployeesContent() {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterDepartment, setFilterDepartment] = useState('');
   const [viewMode, setViewMode] = useState('table'); // 'table' or 'chart'
+  const [quickAddModal, setQuickAddModal] = useState(null); // For quick employee creation
 
   // Add new employee
   const handleAddEmployee = (employeeData) => {
@@ -1356,7 +1357,7 @@ function EmployeesContent() {
   const isDarkMode = document.documentElement.getAttribute('data-theme') !== 'light';
   
   // Simple Org Chart Component
-  const OrgChart = () => {
+  const OrgChart = ({ onQuickAdd }) => {
     const canvasRef = useRef(null);
     const [nodes, setNodes] = useState({});
     const [dragging, setDragging] = useState(null);
@@ -1879,6 +1880,7 @@ function EmployeesContent() {
         const y = (e.clientY - rect.top) * (600 / rect.height);
         
         // Find which node we're dropping on
+        let foundTarget = false;
         for (const [id, node] of Object.entries(nodes)) {
           if (x >= node.x && x <= node.x + node.width &&
               y >= node.y && y <= node.y + node.height &&
@@ -1889,8 +1891,17 @@ function EmployeesContent() {
             );
             setEmployees(updatedEmployees);
             lsWrite(LS_EMPLOYEES, updatedEmployees);
+            foundTarget = true;
             break;
           }
+        }
+        
+        // If dropped on empty canvas, trigger quick add modal
+        if (!foundTarget && connectionStart && onQuickAdd) {
+          onQuickAdd({ 
+            managerId: connectionStart.nodeId,
+            position: { x, y }
+          });
         }
         
         setIsDrawingConnection(false);
@@ -2149,7 +2160,7 @@ function EmployeesContent() {
               </div>
             </div>
             <div className="p-6">
-              <OrgChart />
+              <OrgChart onQuickAdd={setQuickAddModal} />
             </div>
           </div>
         )}
@@ -2220,6 +2231,31 @@ function EmployeesContent() {
             setShowAddModal(false);
             setEditingEmployee(null);
           }}
+        />
+      )}
+      
+      {/* Quick Add Employee Modal */}
+      {quickAddModal && (
+        <QuickAddEmployeeModal
+          managerId={quickAddModal.managerId}
+          employees={employees}
+          onSave={(name) => {
+            const newEmployee = {
+              id: `emp-${uid()}`,
+              name,
+              managerId: quickAddModal.managerId,
+              department: '',
+              role: '',
+              seniority: '',
+              startDate: new Date().toISOString().split('T')[0]
+            };
+            
+            const updated = [...employees, newEmployee];
+            setEmployees(updated);
+            lsWrite(LS_EMPLOYEES, updated);
+            setQuickAddModal(null);
+          }}
+          onClose={() => setQuickAddModal(null)}
         />
       )}
     </div>
@@ -2352,6 +2388,92 @@ function AddEmployeeModal({ employee, employees, onSave, onClose }) {
               className="glass-button px-6 py-2 font-medium hover:scale-105 transition-transform"
             >
               {employee ? 'Update' : 'Add'} Employee
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+/* -----------------------------------------------------------
+   Quick Add Employee Modal Component
+----------------------------------------------------------- */
+function QuickAddEmployeeModal({ managerId, employees, onSave, onClose }) {
+  const [name, setName] = useState('');
+  const inputRef = useRef(null);
+  
+  useEffect(() => {
+    // Auto-focus the input when modal opens
+    if (inputRef.current) {
+      inputRef.current.focus();
+    }
+  }, []);
+  
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    if (!name.trim()) {
+      alert('Please enter employee name');
+      return;
+    }
+    onSave(name.trim());
+  };
+  
+  const handleKeyDown = (e) => {
+    if (e.key === 'Escape') {
+      onClose();
+    }
+  };
+  
+  // Find manager name
+  const manager = employees.find(emp => emp.id === managerId);
+  
+  return (
+    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={onClose}>
+      <div className="glass-card-large w-full max-w-sm" onClick={(e) => e.stopPropagation()}>
+        <div className="p-6 border-b border-white/10">
+          <h2 className="text-xl font-semibold text-white">Quick Add Employee</h2>
+          {manager && (
+            <p className="text-sm text-white/60 mt-1">
+              Reports to: <span className="text-white/80">{manager.name}</span>
+            </p>
+          )}
+        </div>
+        
+        <form onSubmit={handleSubmit} className="p-6">
+          <div>
+            <label className="block text-sm font-medium text-white/70 mb-2">
+              Employee Name <span className="text-red-400">*</span>
+            </label>
+            <input
+              ref={inputRef}
+              type="text"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              onKeyDown={handleKeyDown}
+              className="w-full glass-input px-4 py-3 text-lg"
+              placeholder="Enter name..."
+              required
+              autoFocus
+            />
+            <p className="text-xs text-white/50 mt-2">
+              Press Enter to add, Escape to cancel
+            </p>
+          </div>
+          
+          <div className="flex gap-2 mt-6">
+            <button 
+              type="button"
+              onClick={onClose} 
+              className="flex-1 px-4 py-2 rounded-lg hover:bg-white/10 text-white/70"
+            >
+              Cancel
+            </button>
+            <button 
+              type="submit" 
+              className="flex-1 px-4 py-2 glass-button rounded-lg font-medium"
+            >
+              Add Employee
             </button>
           </div>
         </form>
