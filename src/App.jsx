@@ -132,11 +132,10 @@ function Sidebar({ isCollapsed, onToggle, currentView, onViewChange, isDarkMode,
       <div className="p-6" style={{ borderTop: '1px solid var(--glass-border)' }}>
         <button 
           onClick={onThemeToggle}
-          className={`${isCollapsed ? 'flex-none min-w-[56px] max-w-[56px] h-14 justify-center p-0' : 'w-full flex gap-4 p-4'} flex items-center rounded-2xl transition-all duration-300 group hover:glass-card hover:bg-yellow-500/10 hover:border-yellow-400/20`}
-          style={{ color: 'var(--text-secondary)' }}
+          className={`${isCollapsed ? 'flex-none min-w-[56px] max-w-[56px] h-14 justify-center p-0' : 'w-full flex gap-4 p-4'} flex items-center rounded-2xl transition-all duration-300 group text-white/70 hover:text-white hover:glass-card hover:bg-white/5`}
           title={isCollapsed ? (isDarkMode ? 'Switch to Light Mode' : 'Switch to Dark Mode') : ''}
         >
-          <div className="p-3 w-14 h-14 rounded-xl bg-white/10 group-hover:bg-yellow-500/20 transition-all duration-300 flex items-center justify-center">
+          <div className="p-3 w-14 h-14 rounded-xl bg-white/10 group-hover:bg-white/20 transition-all duration-300 flex items-center justify-center">
             {isDarkMode ? <Sun size={20} className="flex-shrink-0" /> : <Moon size={20} className="flex-shrink-0" />}
           </div>
           {!isCollapsed && (
@@ -1310,6 +1309,23 @@ function EmployeesContent() {
   const [viewMode, setViewMode] = useState('table'); // 'table' or 'chart'
   const [quickAddModal, setQuickAddModal] = useState(null); // For quick employee creation
   const [zoom, setZoom] = useState(1); // Zoom state for org chart
+  const [isDarkMode, setIsDarkMode] = useState(() => document.documentElement.getAttribute('data-theme') !== 'light');
+
+  // Listen for theme changes and update isDarkMode
+  useEffect(() => {
+    const handleThemeChange = () => {
+      setIsDarkMode(document.documentElement.getAttribute('data-theme') !== 'light');
+    };
+
+    // Create a MutationObserver to watch for attribute changes on documentElement
+    const observer = new MutationObserver(handleThemeChange);
+    observer.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ['data-theme']
+    });
+
+    return () => observer.disconnect();
+  }, []);
 
   // Add new employee
   const handleAddEmployee = (employeeData) => {
@@ -1354,11 +1370,8 @@ function EmployeesContent() {
   // Get unique departments
   const departments = [...new Set(employees.map(emp => emp.department))].filter(Boolean);
 
-  // Get current theme
-  const isDarkMode = document.documentElement.getAttribute('data-theme') !== 'light';
-  
   // Simple Org Chart Component
-  const OrgChart = ({ onQuickAdd, onEditEmployee, onDeleteEmployee, zoom, onZoomChange }) => {
+  const OrgChart = ({ onQuickAdd, onEditEmployee, onDeleteEmployee, zoom, onZoomChange, isDarkMode }) => {
     const canvasRef = useRef(null);
     const containerRef = useRef(null);
     const [nodes, setNodes] = useState({});
@@ -1368,10 +1381,26 @@ function EmployeesContent() {
     const [isDrawingConnection, setIsDrawingConnection] = useState(false);
     const [connectionStart, setConnectionStart] = useState(null);
     const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
-    const [isDarkMode] = useState(() => document.documentElement.getAttribute('data-theme') !== 'light');
     const [panOffset, setPanOffset] = useState({ x: 0, y: 0 });
     const [isPanning, setIsPanning] = useState(false);
     const [panStart, setPanStart] = useState({ x: 0, y: 0 });
+    const [themeKey, setThemeKey] = useState(0); // Force re-render when theme changes
+
+    // Listen for theme changes and force re-render
+    useEffect(() => {
+      const handleThemeChange = () => {
+        setThemeKey(prev => prev + 1);
+      };
+
+      // Create a MutationObserver to watch for attribute changes on documentElement
+      const observer = new MutationObserver(handleThemeChange);
+      observer.observe(document.documentElement, {
+        attributes: true,
+        attributeFilter: ['data-theme']
+      });
+
+      return () => observer.disconnect();
+    }, []);
 
     useEffect(() => {
       // Build hierarchy and calculate positions
@@ -1447,6 +1476,8 @@ function EmployeesContent() {
       const canvas = canvasRef.current;
       if (!canvas) return;
       const ctx = canvas.getContext('2d', { alpha: true });
+      
+      // isDarkMode comes from the component state
       
       // Handle high-DPI displays for sharp rendering
       const dpr = window.devicePixelRatio || 1;
@@ -1891,7 +1922,7 @@ function EmployeesContent() {
       
       // Restore the context
       ctx.restore();
-    }, [nodes, isDarkMode, dragging, hoveredConnection, isDrawingConnection, connectionStart, mousePos, zoom, panOffset]);
+    }, [nodes, dragging, hoveredConnection, isDrawingConnection, connectionStart, mousePos, zoom, panOffset, themeKey]);
 
     const handleMouseDown = (e) => {
       const canvas = canvasRef.current;
@@ -2117,7 +2148,10 @@ function EmployeesContent() {
         height={600}
         className="w-full rounded-xl"
         style={{ 
-          background: isDarkMode ? 'rgba(0, 0, 0, 0.2)' : 'rgba(0, 0, 0, 0.05)',
+          background: isDarkMode 
+            ? 'rgba(0, 0, 0, 0.2)' 
+            : 'radial-gradient(circle at 1px 1px, rgba(0, 0, 0, 0.15) 1px, transparent 0)',
+          backgroundSize: isDarkMode ? 'auto' : '20px 20px',
           maxWidth: '100%',
           height: 'auto'
         }}
@@ -2211,8 +2245,8 @@ function EmployeesContent() {
                       }}
                     />
                   )}
-                  <Users size={16} className="relative z-10" />
-                  <span className="relative z-10 text-xs">Table</span>
+                  <Users size={16} className="relative z-10 text-white" />
+                  <span className="relative z-10 text-xs text-white">Table</span>
                 </button>
                 <button
                   onClick={() => setViewMode('chart')}
@@ -2233,8 +2267,8 @@ function EmployeesContent() {
                       }}
                     />
                   )}
-                  <Network size={16} className="relative z-10" />
-                  <span className="relative z-10 text-xs">Org Chart</span>
+                  <Network size={16} className="relative z-10 text-white" />
+                  <span className="relative z-10 text-xs text-white">Org Chart</span>
                 </button>
               </div>
             </div>
@@ -2328,8 +2362,8 @@ function EmployeesContent() {
                       }}
                     />
                   )}
-                  <Users size={16} className="relative z-10" />
-                  <span className="relative z-10 text-xs">Table</span>
+                  <Users size={16} className="relative z-10 text-white" />
+                  <span className="relative z-10 text-xs text-white">Table</span>
                 </button>
                 <button
                   onClick={() => setViewMode('chart')}
@@ -2350,8 +2384,8 @@ function EmployeesContent() {
                       }}
                     />
                   )}
-                  <Network size={16} className="relative z-10" />
-                  <span className="relative z-10 text-xs">Org Chart</span>
+                  <Network size={16} className="relative z-10 text-white" />
+                  <span className="relative z-10 text-xs text-white">Org Chart</span>
                 </button>
               </div>
             </div>
@@ -2362,6 +2396,7 @@ function EmployeesContent() {
                 onDeleteEmployee={handleDeleteEmployee}
                 zoom={zoom}
                 onZoomChange={setZoom}
+                isDarkMode={isDarkMode}
               />
               
               {/* Zoom Controls */}
