@@ -113,7 +113,7 @@ function Sidebar({ isCollapsed, onToggle, currentView, onViewChange, isDarkMode,
                       ? 'bg-gradient-to-br from-blue-400 to-blue-600 shadow-lg shadow-blue-500/30' 
                       : 'bg-white/10 group-hover:bg-white/20'
                   }`}>
-                    <Icon size={20} className={`flex-shrink-0 ${item.active ? 'text-white' : 'text-white/80'}`} />
+                    <Icon size={20} className={`flex-shrink-0 ${item.active ? 'text-white' : isDarkMode ? 'text-white/80' : 'text-white'}`} />
                   </div>
                   {!isCollapsed && (
                     <span className="font-semibold text-lg tracking-wide">{item.label}</span>
@@ -129,7 +129,7 @@ function Sidebar({ isCollapsed, onToggle, currentView, onViewChange, isDarkMode,
       </nav>
 
       {/* Theme Toggle at Bottom */}
-      <div className="p-6" style={{ borderTop: '1px solid var(--glass-border)' }}>
+      <div className={`p-6 ${isCollapsed ? 'flex justify-center' : ''}`} style={{ borderTop: '1px solid var(--glass-border)' }}>
         <button 
           onClick={onThemeToggle}
           className={`${isCollapsed ? 'flex-none min-w-[56px] max-w-[56px] h-14 justify-center p-0' : 'w-full flex gap-4 p-4'} flex items-center rounded-2xl transition-all duration-300 group text-white/70 hover:text-white hover:glass-card hover:bg-white/5`}
@@ -2245,8 +2245,8 @@ function EmployeesContent() {
                       }}
                     />
                   )}
-                  <Users size={16} className="relative z-10 text-white" />
-                  <span className="relative z-10 text-xs text-white">Table</span>
+                  <Users size={16} className={`relative z-10 ${viewMode === 'table' ? '!text-white' : ''}`} />
+                  <span className={`relative z-10 text-xs ${viewMode === 'table' ? '!text-white' : ''}`}>Table</span>
                 </button>
                 <button
                   onClick={() => setViewMode('chart')}
@@ -2267,8 +2267,8 @@ function EmployeesContent() {
                       }}
                     />
                   )}
-                  <Network size={16} className="relative z-10 text-white" />
-                  <span className="relative z-10 text-xs text-white">Org Chart</span>
+                  <Network size={16} className={`relative z-10 ${viewMode === 'chart' ? '!text-white' : ''}`} />
+                  <span className={`relative z-10 text-xs ${viewMode === 'chart' ? '!text-white' : ''}`}>Org Chart</span>
                 </button>
               </div>
             </div>
@@ -2362,8 +2362,8 @@ function EmployeesContent() {
                       }}
                     />
                   )}
-                  <Users size={16} className="relative z-10 text-white" />
-                  <span className="relative z-10 text-xs text-white">Table</span>
+                  <Users size={16} className={`relative z-10 ${viewMode === 'table' ? '!text-white' : ''}`} />
+                  <span className={`relative z-10 text-xs ${viewMode === 'table' ? '!text-white' : ''}`}>Table</span>
                 </button>
                 <button
                   onClick={() => setViewMode('chart')}
@@ -2384,8 +2384,8 @@ function EmployeesContent() {
                       }}
                     />
                   )}
-                  <Network size={16} className="relative z-10 text-white" />
-                  <span className="relative z-10 text-xs text-white">Org Chart</span>
+                  <Network size={16} className={`relative z-10 ${viewMode === 'chart' ? '!text-white' : ''}`} />
+                  <span className={`relative z-10 text-xs ${viewMode === 'chart' ? '!text-white' : ''}`}>Org Chart</span>
                 </button>
               </div>
             </div>
