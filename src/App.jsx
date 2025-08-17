@@ -1675,8 +1675,8 @@ export default function App() {
 
       {/* Main Content */}
       <div 
-        className={`flex-1 transition-all duration-500 ${sidebarCollapsed ? 'ml-24' : ''}`}
-        style={!sidebarCollapsed ? { marginLeft: '304px' } : {}}
+        className={`flex-1 transition-all duration-500`}
+        style={{ marginLeft: '0px' }}
       >
       {/* Conditional Content Based on Current View */}
       {currentView === 'dashboard' && <DashboardContent />}
