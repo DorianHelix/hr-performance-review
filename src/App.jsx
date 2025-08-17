@@ -2433,8 +2433,8 @@ function EmployeesContent() {
     <div className="flex flex-col lg:flex-row h-full w-full overflow-hidden">
       {/* Main Content */}
       <div className="flex-1 p-4 md:p-6 overflow-hidden min-w-0">
-        <div className="w-full max-w-[1400px] mx-auto h-full flex flex-col">
-        <header className="glass-card-large p-6 mb-6">
+        <div className="w-full max-w-[1556px] mx-auto h-full flex flex-col">
+        <header className="glass-card-large p-6 mb-6" style={{ minHeight: '170px' }}>
           <div className="flex items-center justify-between mb-4">
             <div>
               <h1 className="text-2xl font-bold text-white mb-2 flex items-center gap-3">
@@ -2453,7 +2453,7 @@ function EmployeesContent() {
 
 
           {/* Search and Filter Bar - Only show in table view */}
-          {viewMode === 'table' && (
+          {viewMode === 'table' ? (
             <div className="flex gap-3">
             <div className="flex-1 relative">
               <input
@@ -2478,6 +2478,8 @@ function EmployeesContent() {
               ))}
             </select>
           </div>
+          ) : (
+            <div style={{ height: '44px' }}></div>
           )}
         </header>
 
