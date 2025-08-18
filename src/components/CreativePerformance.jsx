@@ -106,88 +106,20 @@ function CreativePerformance({
             </p>
           </div>
 
-          <div className="flex flex-wrap gap-3 items-center">
-            {DateRangePicker && (
-              <div className="glass-card p-1 rounded-2xl">
-                <DateRangePicker 
-                  label="Date Range" 
-                  startDate={startDate} 
-                  endDate={endDate} 
-                  onRangeChange={(start, end) => {
-                    setStartDate(start);
-                    setEndDate(end);
-                  }}
-                />
-              </div>
-            )}
-
-            {presetPrevMonth && (
-              <div className="flex gap-2">
-                <button onClick={presetPrevMonth} className="glass-button px-4 py-2 text-sm">
-                  ◀ Month
-                </button>
-                <button onClick={presetThisMonth} className="glass-button px-4 py-2 text-sm">
-                  This Month
-                </button>
-                <button onClick={presetNextMonth} className="glass-button px-4 py-2 text-sm">
-                  Month ▶
-                </button>
-              </div>
-            )}
-
-            {setFilterMinTier && (
-              <select 
-                value={filterMinTier} 
-                onChange={e => setFilterMinTier(Number(e.target.value))}
-                className="glass-input px-3 py-2 text-sm"
-              >
-                <option value={5}>Show all</option>
-                <option value={1}>Exceptional only</option>
-                <option value={2}>Exceeds+</option>
-                <option value={3}>Meets+</option>
-                <option value={4}>Needs Improvement+</option>
-              </select>
-            )}
-
-            {setCellSize && (
-              <div className="glass-card p-3 rounded-2xl flex items-center gap-3">
-                <label className="text-sm text-white/70">Cell size</label>
-                <input 
-                  type="range" 
-                  min={80} 
-                  max={150} 
-                  step={10} 
-                  value={cellSize}
-                  onChange={e => setCellSize(Number(e.target.value))}
-                  className="w-20"
-                />
-              </div>
-            )}
-
-            {/* Creative Mode Toggle */}
-            <div className="glass-card p-2 rounded-2xl flex items-center gap-2">
-              <button
-                onClick={() => setCreativeMode('standard')}
-                className={`px-3 py-1 rounded-lg text-sm ${creativeMode === 'standard' ? 'bg-purple-500 text-white' : 'text-white/60'}`}
-              >
-                Standard
-              </button>
-              <button
-                onClick={() => setCreativeMode('creative')}
-                className={`px-3 py-1 rounded-lg text-sm ${creativeMode === 'creative' ? 'bg-pink-500 text-white' : 'text-white/60'}`}
-              >
-                Creative
-              </button>
-            </div>
-
-            {exportData && (
-              <button
-                onClick={exportData}
-                className="glass-button inline-flex items-center gap-2 px-4 py-2 text-sm font-medium hover:scale-105"
-              >
-                <Download size={16} /> Export
-              </button>
-            )}
+          {/* Creative Mode Toggle - Keep in header */}
+          <div className="glass-card p-2 rounded-2xl flex items-center gap-2">
+            <button
+              onClick={() => setCreativeMode('standard')}
+              className={`px-3 py-1 rounded-lg text-sm ${creativeMode === 'standard' ? 'bg-purple-500 text-white' : 'text-white/60'}`}
+            >
+              Standard
+            </button>
+            <button
+              onClick={() => setCreativeMode('creative')}
+              className={`px-3 py-1 rounded-lg text-sm ${creativeMode === 'creative' ? 'bg-pink-500 text-white' : 'text-white/60'}`}
+            >
+              Creative
+            </button>
           </div>
         </div>
       </header>
@@ -235,8 +167,83 @@ function CreativePerformance({
 
       <div className="grid lg:grid-cols-[1fr,24rem] grid-cols-1 gap-6 flex-1 min-h-0 px-6 pb-6">
         {/* Main table - Fixed width container with horizontal scroll */}
-        <div className="min-w-0 overflow-hidden">
-          <div ref={scrollRef} className="overflow-x-auto overflow-y-auto h-full glass-card-large p-2">
+        <div className="min-w-0 overflow-hidden flex flex-col gap-4">
+          {/* Table Controls Bar */}
+          <div className="glass-card-large p-4">
+            <div className="flex flex-wrap gap-3 items-center justify-between">
+              <div className="flex flex-wrap gap-3 items-center">
+                {DateRangePicker && (
+                  <DateRangePicker 
+                    label="Date Range" 
+                    startDate={startDate} 
+                    endDate={endDate} 
+                    onRangeChange={(start, end) => {
+                      setStartDate(start);
+                      setEndDate(end);
+                    }}
+                  />
+                )}
+
+                {presetPrevMonth && (
+                  <div className="flex gap-2">
+                    <button onClick={presetPrevMonth} className="glass-button px-3 py-2 text-sm">
+                      ◀ Month
+                    </button>
+                    <button onClick={presetThisMonth} className="glass-button px-3 py-2 text-sm">
+                      This Month
+                    </button>
+                    <button onClick={presetNextMonth} className="glass-button px-3 py-2 text-sm">
+                      Month ▶
+                    </button>
+                  </div>
+                )}
+              </div>
+
+              <div className="flex flex-wrap gap-3 items-center">
+                {setFilterMinTier && (
+                  <select 
+                    value={filterMinTier} 
+                    onChange={e => setFilterMinTier(Number(e.target.value))}
+                    className="glass-input px-3 py-2 text-sm"
+                  >
+                    <option value={5}>Show all</option>
+                    <option value={1}>Exceptional only</option>
+                    <option value={2}>Exceeds+</option>
+                    <option value={3}>Meets+</option>
+                    <option value={4}>Needs Improvement+</option>
+                  </select>
+                )}
+
+                {setCellSize && (
+                  <div className="flex items-center gap-2">
+                    <label className="text-xs text-white/70">Cell size</label>
+                    <input 
+                      type="range" 
+                      min={80} 
+                      max={150} 
+                      step={10} 
+                      value={cellSize}
+                      onChange={e => setCellSize(Number(e.target.value))}
+                      className="w-20"
+                    />
+                    <span className="text-xs text-white/50 w-8">{cellSize}</span>
+                  </div>
+                )}
+
+                {exportData && (
+                  <button
+                    onClick={exportData}
+                    className="glass-button inline-flex items-center gap-2 px-3 py-2 text-sm font-medium hover:scale-105"
+                  >
+                    <Download size={14} /> Export
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Table */}
+          <div ref={scrollRef} className="overflow-x-auto overflow-y-auto flex-1 glass-card-large p-2">
             {loading ? (
               <div className="p-8 text-white/60">Loading...</div>
             ) : (
