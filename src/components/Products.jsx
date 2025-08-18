@@ -93,10 +93,10 @@ function Products() {
   const totalProducts = products.length;
 
   return (
-    <div className="flex flex-col lg:flex-row h-full w-full overflow-hidden">
-      {/* Main Content */}
-      <div className="flex-1 p-4 md:p-6 overflow-hidden min-w-0">
-        <div className="w-full max-w-[1556px] mx-auto h-full flex flex-col">
+    <div className="flex h-full overflow-hidden">
+      {/* Main Content - Fixed width container */}
+      <div className="flex-1 min-w-0 max-w-[calc(100%-24rem)] p-4 md:p-6 overflow-hidden">
+        <div className="w-full h-full flex flex-col">
           <header className="glass-card-large p-6 mb-6" style={{ minHeight: '170px' }}>
             <div className="flex items-center justify-between mb-4">
               <div>
@@ -167,18 +167,18 @@ function Products() {
 
           {/* Products Table */}
           <div className="glass-card-large flex flex-col overflow-hidden flex-1">
-            <div className="flex-1 overflow-auto">
-              <table className="w-full">
+            <div className="flex-1 overflow-x-auto overflow-y-auto">
+              <table className="w-max">
                 <thead>
                   <tr className="border-b border-white/10">
-                    <th className="text-left p-4 text-white/70 font-medium">SKU</th>
-                    <th className="text-left p-4 text-white/70 font-medium">Product Name</th>
-                    <th className="text-left p-4 text-white/70 font-medium">Category</th>
-                    <th className="text-right p-4 text-white/70 font-medium">Price</th>
-                    <th className="text-right p-4 text-white/70 font-medium">Stock</th>
-                    <th className="text-right p-4 text-white/70 font-medium">Value</th>
-                    <th className="text-left p-4 text-white/70 font-medium">Status</th>
-                    <th className="text-center p-4 text-white/70 font-medium">Actions</th>
+                    <th className="text-left p-4 text-white/70 font-medium min-w-[100px]">SKU</th>
+                    <th className="text-left p-4 text-white/70 font-medium min-w-[200px]">Product Name</th>
+                    <th className="text-left p-4 text-white/70 font-medium min-w-[120px]">Category</th>
+                    <th className="text-right p-4 text-white/70 font-medium min-w-[100px]">Price</th>
+                    <th className="text-right p-4 text-white/70 font-medium min-w-[100px]">Stock</th>
+                    <th className="text-right p-4 text-white/70 font-medium min-w-[120px]">Value</th>
+                    <th className="text-left p-4 text-white/70 font-medium min-w-[100px]">Status</th>
+                    <th className="text-center p-4 text-white/70 font-medium min-w-[100px]">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -265,8 +265,8 @@ function Products() {
         </div>
       </div>
 
-      {/* Right Sidebar - Add Product Widget */}
-      <div className="w-full lg:w-96 p-4 md:p-6 space-y-6 lg:h-full lg:overflow-y-auto flex-shrink-0">
+      {/* Right Sidebar - Fixed position */}
+      <div className="w-96 flex-shrink-0 p-4 md:p-6 space-y-6 h-full overflow-y-auto">
         <div className="glass-card-large p-6">
           <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
             <PlusCircle size={20} className="text-purple-400" />

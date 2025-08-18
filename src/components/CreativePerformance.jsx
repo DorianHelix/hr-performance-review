@@ -91,8 +91,8 @@ function CreativePerformance({
   const [showCreativeMetrics, setShowCreativeMetrics] = useState(true);
   
   return (
-    <div className="flex h-full flex-col p-6">
-      <header className="glass-card-large mb-6 p-6">
+    <div className="flex flex-col h-full w-full overflow-hidden" style={{ maxWidth: '100vw' }}>
+      <header className="glass-card-large p-6 m-6 mb-4">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
           <div>
             <h1 className="text-2xl font-bold flex items-center gap-3 text-white mb-2">
@@ -121,13 +121,13 @@ function CreativePerformance({
             {presetPrevMonth && (
               <div className="flex gap-2">
                 <button onClick={presetPrevMonth} className="glass-button px-4 py-2 text-sm">
-                  ◀ Week
+                  ◀ 7 Days
                 </button>
                 <button onClick={presetThisMonth} className="glass-button px-4 py-2 text-sm">
-                  This Week
+                  Today +7
                 </button>
                 <button onClick={presetNextMonth} className="glass-button px-4 py-2 text-sm">
-                  Week ▶
+                  7 Days ▶
                 </button>
               </div>
             )}
@@ -191,7 +191,7 @@ function CreativePerformance({
 
       {/* Test Metrics Cards - Only show in creative mode */}
       {creativeMode === 'creative' && showCreativeMetrics && (
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mx-6 mb-4">
           <div className="glass-card p-4 rounded-2xl bg-gradient-to-br from-purple-500/10 to-pink-500/10">
             <div className="flex items-center gap-3 mb-3">
               <Zap className="text-purple-400" size={20} />
@@ -230,17 +230,17 @@ function CreativePerformance({
         </div>
       )}
 
-      <div className="flex h-[calc(100vh-300px)] mx-4">
-        {/* Main table */}
-        <div className="flex-1 mr-6">
-          <div ref={scrollRef} className="overflow-auto h-full glass-card-large p-2">
+      <div className="grid lg:grid-cols-[1fr,24rem] grid-cols-1 gap-6 flex-1 min-h-0 px-6 pb-6">
+        {/* Main table - Fixed width container with horizontal scroll */}
+        <div className="min-w-0 overflow-hidden">
+          <div ref={scrollRef} className="overflow-x-auto overflow-y-auto h-full glass-card-large p-2">
             {loading ? (
               <div className="p-8 text-white/60">Loading...</div>
             ) : (
-              <table className="w-full" style={{ borderCollapse: "separate", borderSpacing: "8px" }}>
+              <table className="w-max" style={{ borderCollapse: "separate", borderSpacing: "8px" }}>
                 <thead>
                   <tr>
-                    <th className="sticky top-0 left-0 z-10 glass-card w-80 p-4 text-left rounded-2xl">
+                    <th className="sticky top-0 left-0 z-20 glass-card p-4 text-left rounded-2xl" style={{ minWidth: '20rem', maxWidth: '20rem' }}>
                       <div className="flex items-center justify-between">
                         <span className="font-semibold text-white">Product</span>
                         <span className="text-sm text-white/60">Average</span>
@@ -272,7 +272,7 @@ function CreativePerformance({
                       <React.Fragment key={emp.id}>
                         {/* Main employee row */}
                         <tr className="group hover:bg-white/5">
-                          <td className="sticky left-0 z-5 glass-card border-r border-white/10 border-b border-white/10 w-80 p-3">
+                          <td className="sticky left-0 z-10 glass-card border-r border-white/10 border-b border-white/10 p-3" style={{ minWidth: '20rem', maxWidth: '20rem' }}>
                             <div className="flex items-center justify-between">
                               <div className="flex items-center gap-2">
                                 {toggleExpand && (
@@ -362,7 +362,7 @@ function CreativePerformance({
                           
                           return (
                             <tr key={cat.key} className="bg-white/5">
-                              <td className={`sticky left-0 z-5 glass-card border-r border-white/10 border-b border-white/10 w-80 p-2 pl-12 border-l-4 ${cat.accent}`}>
+                              <td className={`sticky left-0 z-10 glass-card border-r border-white/10 border-b border-white/10 p-2 pl-12 border-l-4 ${cat.accent}`} style={{ minWidth: '20rem', maxWidth: '20rem' }}>
                                 <div className="flex items-center gap-2">
                                   <div className={`p-1 rounded ${cat.tag}`}>
                                     <Icon size={12} className="text-white" />
@@ -416,8 +416,8 @@ function CreativePerformance({
           </div>
         </div>
 
-        {/* Right sidebar */}
-        <div className="w-96 space-y-6 overflow-y-auto">
+        {/* Right sidebar - Fixed position */}
+        <div className="space-y-6 overflow-y-auto h-full lg:h-full lg:max-h-none max-h-96">
           {/* Test Insights Panel */}
           {creativeMode === 'creative' && (
             <div className="glass-card-large p-6 bg-gradient-to-br from-purple-500/5 to-pink-500/5">

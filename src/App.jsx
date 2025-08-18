@@ -3630,8 +3630,16 @@ export default function App() {
   });
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [startDate, setStartDate] = useState(() => startOfMonth(new Date()).toISOString().slice(0, 10));
-  const [endDate, setEndDate] = useState(() => endOfMonth(new Date()).toISOString().slice(0, 10));
+  const [startDate, setStartDate] = useState(() => {
+    // Default to today for Creative view (7 days)
+    return new Date().toISOString().slice(0, 10);
+  });
+  const [endDate, setEndDate] = useState(() => {
+    // Default to 7 days from today for Creative view
+    const end = new Date();
+    end.setDate(end.getDate() + 6);
+    return end.toISOString().slice(0, 10);
+  });
   const [cellSize, setCellSize] = useState(100);
   const [filterMinTier, setFilterMinTier] = useState(5);
   
@@ -3884,32 +3892,32 @@ export default function App() {
   // Presets for daily view (Creative component)
   const presetThisWeek = () => {
     const today = new Date();
-    const monday = new Date(today);
-    monday.setDate(today.getDate() - (today.getDay() || 7) + 1);
-    const sunday = new Date(monday);
-    sunday.setDate(monday.getDate() + 6);
-    setStartDate(monday.toISOString().slice(0, 10));
-    setEndDate(sunday.toISOString().slice(0, 10));
+    const endDay = new Date(today);
+    endDay.setDate(today.getDate() + 6);
+    setStartDate(today.toISOString().slice(0, 10));
+    setEndDate(endDay.toISOString().slice(0, 10));
   };
 
   const presetPrevWeek = () => {
-    const today = new Date();
-    const monday = new Date(today);
-    monday.setDate(today.getDate() - (today.getDay() || 7) + 1 - 7);
-    const sunday = new Date(monday);
-    sunday.setDate(monday.getDate() + 6);
-    setStartDate(monday.toISOString().slice(0, 10));
-    setEndDate(sunday.toISOString().slice(0, 10));
+    // Move back 7 days from current start date
+    const currentStart = new Date(startDate);
+    const newStart = new Date(currentStart);
+    newStart.setDate(currentStart.getDate() - 7);
+    const newEnd = new Date(newStart);
+    newEnd.setDate(newStart.getDate() + 6);
+    setStartDate(newStart.toISOString().slice(0, 10));
+    setEndDate(newEnd.toISOString().slice(0, 10));
   };
 
   const presetNextWeek = () => {
-    const today = new Date();
-    const monday = new Date(today);
-    monday.setDate(today.getDate() - (today.getDay() || 7) + 1 + 7);
-    const sunday = new Date(monday);
-    sunday.setDate(monday.getDate() + 6);
-    setStartDate(monday.toISOString().slice(0, 10));
-    setEndDate(sunday.toISOString().slice(0, 10));
+    // Move forward 7 days from current start date
+    const currentStart = new Date(startDate);
+    const newStart = new Date(currentStart);
+    newStart.setDate(currentStart.getDate() + 7);
+    const newEnd = new Date(newStart);
+    newEnd.setDate(newStart.getDate() + 6);
+    setStartDate(newStart.toISOString().slice(0, 10));
+    setEndDate(newEnd.toISOString().slice(0, 10));
   };
 
   // Dashboard Content Component
