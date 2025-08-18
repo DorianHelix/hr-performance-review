@@ -4,7 +4,8 @@ import {
   Lightbulb, Zap, Award, Target,
   Download, Plus, ChevronRight, Settings,
   Trash2, X, Clock, FileText, Briefcase,
-  RefreshCw, MessageSquare, Users, Menu, Eye, EyeOff
+  RefreshCw, MessageSquare, Users, Menu, Eye, EyeOff,
+  PanelRightClose, PanelRightOpen
 } from 'lucide-react';
 
 // Helper functions (copied from main App)
@@ -92,8 +93,21 @@ function CreativePerformance({
   const [showCreativeMetrics, setShowCreativeMetrics] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [showTestTypesModal, setShowTestTypesModal] = useState(false);
-  const [showSidebar, setShowSidebar] = useState(false); // Hidden by default on mobile
+  const [showSidebar, setShowSidebar] = useState(() => {
+    // Check localStorage first, then default based on screen size
+    const saved = localStorage.getItem('hr_creative_sidebar_visible');
+    if (saved !== null) {
+      return JSON.parse(saved);
+    }
+    // Default to true on desktop, false on mobile
+    return window.innerWidth >= 1024;
+  });
   const [showKPICards, setShowKPICards] = useState(true); // Toggle for KPI cards
+  
+  // Save sidebar state to localStorage when it changes
+  useEffect(() => {
+    localStorage.setItem('hr_creative_sidebar_visible', JSON.stringify(showSidebar));
+  }, [showSidebar]);
   
   // Filter products based on search
   const filteredEmployees = employees.filter(emp => {
@@ -196,11 +210,11 @@ function CreativePerformance({
               </button>
             </div>
             
-            {/* Mobile toggles */}
-            <div className="flex items-center gap-1 lg:hidden">
+            {/* Toggle buttons */}
+            <div className="flex items-center gap-1">
               <button 
                 onClick={() => setShowKPICards(!showKPICards)}
-                className="glass-card p-1.5 rounded-xl hover:bg-white/10"
+                className="lg:hidden glass-card p-1.5 rounded-xl hover:bg-white/10"
                 title={showKPICards ? 'Hide KPI cards' : 'Show KPI cards'}
               >
                 {showKPICards ? <EyeOff size={16} /> : <Eye size={16} />}
@@ -208,10 +222,10 @@ function CreativePerformance({
               
               <button 
                 onClick={() => setShowSidebar(!showSidebar)}
-                className="glass-card p-1.5 rounded-xl hover:bg-white/10"
+                className="glass-card p-1.5 rounded-xl hover:bg-white/10 transition-all"
                 title={showSidebar ? 'Hide sidebar' : 'Show sidebar'}
               >
-                <Menu size={16} />
+                {showSidebar ? <PanelRightClose size={16} /> : <PanelRightOpen size={16} />}
               </button>
             </div>
           </div>
@@ -292,7 +306,7 @@ function CreativePerformance({
         </div>
       )}
 
-      <div className="grid lg:grid-cols-[1fr,18rem] grid-cols-1 gap-3 lg:gap-6 flex-1 min-h-0 px-3 lg:px-6 pb-3 lg:pb-6">
+      <div className={`grid ${showSidebar ? 'lg:grid-cols-[1fr,18rem]' : 'lg:grid-cols-1'} grid-cols-1 gap-3 lg:gap-6 flex-1 min-h-0 px-3 lg:px-6 pb-3 lg:pb-6`}>
         {/* Main table - Fixed width container with horizontal scroll */}
         <div className="min-w-0 overflow-hidden flex flex-col gap-4">
           {/* Table Controls Bar */}
@@ -627,8 +641,9 @@ function CreativePerformance({
           </div>
         </div>
 
-        {/* Right sidebar - Collapsible on mobile */}
-        <div className={`space-y-3 lg:space-y-4 overflow-y-auto h-full lg:h-full lg:max-h-none max-h-96 ${showSidebar ? 'block' : 'hidden lg:block'}`}>
+        {/* Right sidebar - Collapsible */}
+        {showSidebar && (
+        <div className="space-y-3 lg:space-y-4 overflow-y-auto h-full lg:h-full lg:max-h-none max-h-96">
           {/* Test Insights Panel - Only in Analytics mode */}
           {creativeMode === 'analytics' && (
             <div className="glass-card-large p-4 lg:p-5 bg-gradient-to-br from-purple-500/5 to-pink-500/5">
@@ -737,6 +752,7 @@ function CreativePerformance({
           </div>
           )}
         </div>
+        )}
       </div>
       
       {/* Test Types Configuration Modal */}
