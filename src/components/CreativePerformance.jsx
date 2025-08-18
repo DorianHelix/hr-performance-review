@@ -183,40 +183,124 @@ function CreativePerformance({
       {/* Test Metrics Cards - Only show in analytics mode */}
       {creativeMode === 'analytics' && showCreativeMetrics && (
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mx-6 mb-4">
-          <div className="glass-card p-4 rounded-2xl bg-gradient-to-br from-purple-500/10 to-pink-500/10">
-            <div className="flex items-center gap-3 mb-3">
-              <Zap className="text-purple-400" size={20} />
-              <h3 className="font-semibold text-white">Video Tests</h3>
+          <div className="glass-card p-4 rounded-2xl bg-gradient-to-br from-purple-500/10 to-pink-500/10 relative overflow-hidden">
+            <div className={`absolute inset-0 opacity-20 ${
+              metrics.vctAvg >= 9 ? 'bg-gradient-to-br from-green-500 to-green-600' :
+              metrics.vctAvg >= 7 ? 'bg-gradient-to-br from-green-400 to-green-500' :
+              metrics.vctAvg >= 5 ? 'bg-gradient-to-br from-yellow-400 to-yellow-500' :
+              metrics.vctAvg >= 3 ? 'bg-gradient-to-br from-orange-500 to-orange-600' :
+              metrics.vctAvg > 0 ? 'bg-gradient-to-br from-red-500 to-red-600' : ''
+            }`} />
+            <div className="relative z-10">
+              <div className="flex items-center gap-3 mb-3">
+                <Zap className="text-purple-400" size={20} />
+                <h3 className="font-semibold text-white">Video Tests</h3>
+              </div>
+              <div className="flex items-baseline gap-2">
+                <span className="text-4xl font-bold text-white">{metrics.vctAvg}</span>
+                <span className="text-sm text-white/50">/ 10</span>
+              </div>
+              <div className={`mt-2 h-1 rounded-full bg-white/10 overflow-hidden`}>
+                <div className={`h-full transition-all duration-500 ${
+                  metrics.vctAvg >= 9 ? 'bg-green-500' :
+                  metrics.vctAvg >= 7 ? 'bg-green-400' :
+                  metrics.vctAvg >= 5 ? 'bg-yellow-400' :
+                  metrics.vctAvg >= 3 ? 'bg-orange-500' :
+                  metrics.vctAvg > 0 ? 'bg-red-500' : 'bg-gray-500'
+                }`} style={{width: `${metrics.vctAvg * 10}%`}} />
+              </div>
+              <div className="text-sm text-white/60 mt-2">{metrics.vctCount} tests completed</div>
             </div>
-            <div className="text-3xl font-bold text-white">{metrics.vctCount}</div>
-            <div className="text-sm text-white/60">Avg Score: {metrics.vctAvg}</div>
           </div>
 
-          <div className="glass-card p-4 rounded-2xl bg-gradient-to-br from-blue-500/10 to-purple-500/10">
-            <div className="flex items-center gap-3 mb-3">
-              <Lightbulb className="text-blue-400" size={20} />
-              <h3 className="font-semibold text-white">Static Tests</h3>
+          <div className="glass-card p-4 rounded-2xl bg-gradient-to-br from-blue-500/10 to-purple-500/10 relative overflow-hidden">
+            <div className={`absolute inset-0 opacity-20 ${
+              metrics.sctAvg >= 9 ? 'bg-gradient-to-br from-green-500 to-green-600' :
+              metrics.sctAvg >= 7 ? 'bg-gradient-to-br from-green-400 to-green-500' :
+              metrics.sctAvg >= 5 ? 'bg-gradient-to-br from-yellow-400 to-yellow-500' :
+              metrics.sctAvg >= 3 ? 'bg-gradient-to-br from-orange-500 to-orange-600' :
+              metrics.sctAvg > 0 ? 'bg-gradient-to-br from-red-500 to-red-600' : ''
+            }`} />
+            <div className="relative z-10">
+              <div className="flex items-center gap-3 mb-3">
+                <Lightbulb className="text-blue-400" size={20} />
+                <h3 className="font-semibold text-white">Static Tests</h3>
+              </div>
+              <div className="flex items-baseline gap-2">
+                <span className="text-4xl font-bold text-white">{metrics.sctAvg}</span>
+                <span className="text-sm text-white/50">/ 10</span>
+              </div>
+              <div className={`mt-2 h-1 rounded-full bg-white/10 overflow-hidden`}>
+                <div className={`h-full transition-all duration-500 ${
+                  metrics.sctAvg >= 9 ? 'bg-green-500' :
+                  metrics.sctAvg >= 7 ? 'bg-green-400' :
+                  metrics.sctAvg >= 5 ? 'bg-yellow-400' :
+                  metrics.sctAvg >= 3 ? 'bg-orange-500' :
+                  metrics.sctAvg > 0 ? 'bg-red-500' : 'bg-gray-500'
+                }`} style={{width: `${metrics.sctAvg * 10}%`}} />
+              </div>
+              <div className="text-sm text-white/60 mt-2">{metrics.sctCount} tests completed</div>
             </div>
-            <div className="text-3xl font-bold text-white">{metrics.sctCount}</div>
-            <div className="text-sm text-white/60">Avg Score: {metrics.sctAvg}</div>
           </div>
 
-          <div className="glass-card p-4 rounded-2xl bg-gradient-to-br from-green-500/10 to-blue-500/10">
-            <div className="flex items-center gap-3 mb-3">
-              <MessageSquare className="text-green-400" size={20} />
-              <h3 className="font-semibold text-white">Copy Tests</h3>
+          <div className="glass-card p-4 rounded-2xl bg-gradient-to-br from-green-500/10 to-blue-500/10 relative overflow-hidden">
+            <div className={`absolute inset-0 opacity-20 ${
+              metrics.actAvg >= 9 ? 'bg-gradient-to-br from-green-500 to-green-600' :
+              metrics.actAvg >= 7 ? 'bg-gradient-to-br from-green-400 to-green-500' :
+              metrics.actAvg >= 5 ? 'bg-gradient-to-br from-yellow-400 to-yellow-500' :
+              metrics.actAvg >= 3 ? 'bg-gradient-to-br from-orange-500 to-orange-600' :
+              metrics.actAvg > 0 ? 'bg-gradient-to-br from-red-500 to-red-600' : ''
+            }`} />
+            <div className="relative z-10">
+              <div className="flex items-center gap-3 mb-3">
+                <MessageSquare className="text-green-400" size={20} />
+                <h3 className="font-semibold text-white">Copy Tests</h3>
+              </div>
+              <div className="flex items-baseline gap-2">
+                <span className="text-4xl font-bold text-white">{metrics.actAvg}</span>
+                <span className="text-sm text-white/50">/ 10</span>
+              </div>
+              <div className={`mt-2 h-1 rounded-full bg-white/10 overflow-hidden`}>
+                <div className={`h-full transition-all duration-500 ${
+                  metrics.actAvg >= 9 ? 'bg-green-500' :
+                  metrics.actAvg >= 7 ? 'bg-green-400' :
+                  metrics.actAvg >= 5 ? 'bg-yellow-400' :
+                  metrics.actAvg >= 3 ? 'bg-orange-500' :
+                  metrics.actAvg > 0 ? 'bg-red-500' : 'bg-gray-500'
+                }`} style={{width: `${metrics.actAvg * 10}%`}} />
+              </div>
+              <div className="text-sm text-white/60 mt-2">{metrics.actCount} tests completed</div>
             </div>
-            <div className="text-3xl font-bold text-white">{metrics.actCount}</div>
-            <div className="text-sm text-white/60">Avg Score: {metrics.actAvg}</div>
           </div>
 
-          <div className="glass-card p-4 rounded-2xl bg-gradient-to-br from-pink-500/10 to-orange-500/10">
-            <div className="flex items-center gap-3 mb-3">
-              <Award className="text-orange-400" size={20} />
-              <h3 className="font-semibold text-white">Overall Score</h3>
+          <div className="glass-card p-4 rounded-2xl bg-gradient-to-br from-pink-500/10 to-orange-500/10 relative overflow-hidden">
+            <div className={`absolute inset-0 opacity-20 ${
+              metrics.overallAvg >= 9 ? 'bg-gradient-to-br from-green-500 to-green-600' :
+              metrics.overallAvg >= 7 ? 'bg-gradient-to-br from-green-400 to-green-500' :
+              metrics.overallAvg >= 5 ? 'bg-gradient-to-br from-yellow-400 to-yellow-500' :
+              metrics.overallAvg >= 3 ? 'bg-gradient-to-br from-orange-500 to-orange-600' :
+              metrics.overallAvg > 0 ? 'bg-gradient-to-br from-red-500 to-red-600' : ''
+            }`} />
+            <div className="relative z-10">
+              <div className="flex items-center gap-3 mb-3">
+                <Award className="text-orange-400" size={20} />
+                <h3 className="font-semibold text-white">Overall Score</h3>
+              </div>
+              <div className="flex items-baseline gap-2">
+                <span className="text-4xl font-bold text-white">{metrics.overallAvg}</span>
+                <span className="text-sm text-white/50">/ 10</span>
+              </div>
+              <div className={`mt-2 h-1 rounded-full bg-white/10 overflow-hidden`}>
+                <div className={`h-full transition-all duration-500 ${
+                  metrics.overallAvg >= 9 ? 'bg-green-500' :
+                  metrics.overallAvg >= 7 ? 'bg-green-400' :
+                  metrics.overallAvg >= 5 ? 'bg-yellow-400' :
+                  metrics.overallAvg >= 3 ? 'bg-orange-500' :
+                  metrics.overallAvg > 0 ? 'bg-red-500' : 'bg-gray-500'
+                }`} style={{width: `${metrics.overallAvg * 10}%`}} />
+              </div>
+              <div className="text-sm text-white/60 mt-2">All tests combined</div>
             </div>
-            <div className="text-3xl font-bold text-white">{metrics.overallAvg}</div>
-            <div className="text-sm text-white/60">All tests combined</div>
           </div>
         </div>
       )}
