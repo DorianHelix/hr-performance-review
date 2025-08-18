@@ -529,40 +529,63 @@ function CreativePerformance({
                                 className="border-b border-white/10 hover:bg-white/5"
                                 style={{ minWidth: cellSize, width: cellSize }}
                               >
-                                <div className="flex flex-wrap items-center justify-center gap-1 p-1.5">
+                                <div className="flex flex-col items-center justify-center p-2 gap-0.5">
                                   {categoryScores.length > 0 ? (
-                                    categoryScores.map(item => {
-                                      // Custom badge colors based on test type
-                                      const getBadgeColor = () => {
-                                        if (item.key === 'VCT') return 'bg-purple-500 text-white';
-                                        if (item.key === 'SCT') return 'bg-blue-500 text-white';
-                                        if (item.key === 'ACT') return 'bg-green-500 text-white';
-                                        return 'bg-gray-500 text-white';
-                                      };
-                                      
-                                      return (
-                                        <div 
-                                          key={item.key}
-                                          className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[10px] font-bold ${getBadgeColor()} shadow-sm hover:scale-110 transition-transform cursor-pointer`}
-                                          title={`${item.label}: ${item.score}/10 - Click to edit`}
-                                          onClick={(e) => {
-                                            e.stopPropagation();
-                                            const category = categories.find(c => c.key === item.key);
-                                            if (category && setQuickScoreModal) {
-                                              setQuickScoreModal({
-                                                employee: emp,
-                                                week: week,
-                                                category: category,
-                                                currentScore: item.score
-                                              });
-                                            }
-                                          }}
-                                        >
-                                          <span className="opacity-90">{item.label}</span>
-                                          <span className="text-[11px]">{item.score}</span>
-                                        </div>
-                                      );
-                                    })
+                                    <div className="glass-card p-1.5 rounded-lg w-full">
+                                      {categoryScores.map((item, idx) => {
+                                        // Get score-based colors
+                                        const getBarColor = () => {
+                                          const score = item.score;
+                                          if (score >= 9) return 'bg-gradient-to-r from-green-400 to-green-500';
+                                          if (score >= 7) return 'bg-gradient-to-r from-green-300 to-green-400';
+                                          if (score >= 5) return 'bg-gradient-to-r from-yellow-300 to-yellow-400';
+                                          if (score >= 3) return 'bg-gradient-to-r from-orange-400 to-orange-500';
+                                          return 'bg-gradient-to-r from-red-400 to-red-500';
+                                        };
+                                        
+                                        // Get test type color for label
+                                        const getLabelColor = () => {
+                                          if (item.key === 'VCT') return 'text-purple-300';
+                                          if (item.key === 'SCT') return 'text-blue-300';
+                                          if (item.key === 'ACT') return 'text-green-300';
+                                          return 'text-gray-300';
+                                        };
+                                        
+                                        return (
+                                          <div 
+                                            key={item.key}
+                                            className={`group cursor-pointer hover:scale-[1.02] transition-all ${idx > 0 ? 'mt-1' : ''}`}
+                                            onClick={(e) => {
+                                              e.stopPropagation();
+                                              const category = categories.find(c => c.key === item.key);
+                                              if (category && setQuickScoreModal) {
+                                                setQuickScoreModal({
+                                                  employee: emp,
+                                                  week: week,
+                                                  category: category,
+                                                  currentScore: item.score
+                                                });
+                                              }
+                                            }}
+                                          >
+                                            <div className="flex items-center justify-between mb-0.5">
+                                              <span className={`text-[9px] font-bold ${getLabelColor()} tracking-wide`}>
+                                                {item.label}
+                                              </span>
+                                              <span className="text-[10px] text-white font-bold">
+                                                {item.score}
+                                              </span>
+                                            </div>
+                                            <div className="w-full bg-white/5 rounded-full h-1 overflow-hidden">
+                                              <div 
+                                                className={`h-full ${getBarColor()} transition-all duration-500 rounded-full shadow-sm`}
+                                                style={{ width: `${item.score * 10}%` }}
+                                              />
+                                            </div>
+                                          </div>
+                                        );
+                                      })}
+                                    </div>
                                   ) : (
                                     <div className="text-white/20 text-[10px]">-</div>
                                   )}
