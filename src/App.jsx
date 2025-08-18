@@ -4,8 +4,14 @@ import {
   Download, Trash2, Pencil, Settings, PlusCircle, X,
   ChevronLeft, ChevronRight, Calendar, Plus, Users, 
   TrendingUp, Clock, FileText, Briefcase, Upload,
-  Bot, Save, Edit2, Star, Home, BarChart3, Sun, Moon, Menu, ArrowLeft, Network, Minus, Maximize2, Minimize2
+  Bot, Save, Edit2, Star, Home, BarChart3, Sun, Moon, Menu, ArrowLeft, Network, Minus, Maximize2, Minimize2,
+  Zap, Lightbulb, RefreshCw, MessageSquare, Sparkles, Package
 } from "lucide-react";
+
+// Import the new Creative Performance component
+import CreativePerformance from "./components/CreativePerformance";
+import Products from "./components/Products";
+
 
 /* -----------------------------------------------------------
    HR Weekly Performance Evaluation System
@@ -51,6 +57,18 @@ function Sidebar({ isCollapsed, onToggle, currentView, onViewChange, isDarkMode,
       label: 'Performance',
       icon: BarChart3,
       active: currentView === 'performance'
+    },
+    {
+      id: 'creative',
+      label: 'Creative',
+      icon: Sparkles,
+      active: currentView === 'creative'
+    },
+    {
+      id: 'products',
+      label: 'Products',
+      icon: Package,
+      active: currentView === 'products'
     }
   ];
 
@@ -193,6 +211,27 @@ function getWeeksInRange(startDate, endDate) {
     current.setDate(current.getDate() + 7);
   }
   return weeks;
+}
+
+function getDaysInRange(startDate, endDate) {
+  const days = [];
+  const current = new Date(startDate);
+  const end = new Date(endDate);
+  
+  while (current <= end) {
+    const dateStr = current.toISOString().slice(0, 10);
+    days.push({
+      key: dateStr,
+      date: dateStr,
+      day: current.getDate(),
+      month: current.getMonth() + 1,
+      year: current.getFullYear(),
+      dayName: current.toLocaleDateString('en', { weekday: 'short' }),
+      monthName: current.toLocaleDateString('en', { month: 'short' })
+    });
+    current.setDate(current.getDate() + 1);
+  }
+  return days;
 }
 
 function startOfMonth(date = new Date()) {
@@ -3548,8 +3587,47 @@ function QuickAddEmployeeModal({ managerId, employees, onSave, onClose }) {
 /* -----------------------------------------------------------
    Main App Component
 ----------------------------------------------------------- */
+// Test categories for Creative Product Scoring
+const TEST_CATEGORIES = [
+  { 
+    id: "test-1",
+    key: "VCT", 
+    label: "Video Creative Test", 
+    short: "VCT", 
+    accent: "border-l-purple-500", 
+    tag: "bg-purple-500", 
+    iconName: "Zap",
+    description: "Video creative performance testing"
+  },
+  { 
+    id: "test-2",
+    key: "SCT", 
+    label: "Static Creative Test", 
+    short: "SCT", 
+    accent: "border-l-blue-500", 
+    tag: "bg-blue-500", 
+    iconName: "Lightbulb",
+    description: "Static creative performance testing"
+  },
+  { 
+    id: "test-3",
+    key: "ACT", 
+    label: "Ad Copy Test", 
+    short: "ACT", 
+    accent: "border-l-green-500", 
+    tag: "bg-green-500", 
+    iconName: "MessageSquare",
+    description: "Ad copy effectiveness testing"
+  }
+];
+
 export default function App() {
   const [employees, setEmployees] = useState([]);
+  const [products, setProducts] = useState(() => {
+    // Load products from localStorage
+    const saved = localStorage.getItem('hr_products');
+    return saved ? JSON.parse(saved) : [];
+  });
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
   const [startDate, setStartDate] = useState(() => startOfMonth(new Date()).toISOString().slice(0, 10));
@@ -3585,6 +3663,7 @@ export default function App() {
   
   const scrollRef = useRef(null);
   const weeks = useMemo(() => getWeeksInRange(startDate, endDate), [startDate, endDate]);
+  const days = useMemo(() => getDaysInRange(startDate, endDate), [startDate, endDate]);
 
   useEffect(() => {
     setEmployees(lsRead(LS_EMPLOYEES, []));
@@ -3802,6 +3881,37 @@ export default function App() {
     setEndDate(endOfMonth(next).toISOString().slice(0, 10));
   };
 
+  // Presets for daily view (Creative component)
+  const presetThisWeek = () => {
+    const today = new Date();
+    const monday = new Date(today);
+    monday.setDate(today.getDate() - (today.getDay() || 7) + 1);
+    const sunday = new Date(monday);
+    sunday.setDate(monday.getDate() + 6);
+    setStartDate(monday.toISOString().slice(0, 10));
+    setEndDate(sunday.toISOString().slice(0, 10));
+  };
+
+  const presetPrevWeek = () => {
+    const today = new Date();
+    const monday = new Date(today);
+    monday.setDate(today.getDate() - (today.getDay() || 7) + 1 - 7);
+    const sunday = new Date(monday);
+    sunday.setDate(monday.getDate() + 6);
+    setStartDate(monday.toISOString().slice(0, 10));
+    setEndDate(sunday.toISOString().slice(0, 10));
+  };
+
+  const presetNextWeek = () => {
+    const today = new Date();
+    const monday = new Date(today);
+    monday.setDate(today.getDate() - (today.getDay() || 7) + 1 + 7);
+    const sunday = new Date(monday);
+    sunday.setDate(monday.getDate() + 6);
+    setStartDate(monday.toISOString().slice(0, 10));
+    setEndDate(sunday.toISOString().slice(0, 10));
+  };
+
   // Dashboard Content Component
   const DashboardContent = () => (
     <div className="flex h-full flex-col p-6 overflow-auto">
@@ -3967,6 +4077,48 @@ export default function App() {
       {currentView === 'dashboard' && <DashboardContent />}
       
       {currentView === 'employees' && <EmployeesContent />}
+      
+      {currentView === 'creative' && (
+        <CreativePerformance 
+          employees={products}  // Pass products instead of employees
+          categories={TEST_CATEGORIES}  // Use test categories for creative
+          weeks={days}  // Pass days instead of weeks for daily view
+          startDate={startDate}
+          setStartDate={setStartDate}
+          endDate={endDate}
+          setEndDate={setEndDate}
+          cellSize={cellSize}
+          setCellSize={setCellSize}
+          filterMinTier={filterMinTier}
+          setFilterMinTier={setFilterMinTier}
+          expanded={expanded}
+          toggleExpand={toggleExpand}
+          newEmployeeName={newEmployeeName}
+          setNewEmployeeName={setNewEmployeeName}
+          bulkOpen={bulkOpen}
+          setBulkOpen={setBulkOpen}
+          bulkText={bulkText}
+          setBulkText={setBulkText}
+          handleAddEmployee={handleAddEmployee}
+          handleBulkAdd={handleBulkAdd}
+          handleDeleteEmployee={handleDeleteEmployee}
+          setWeeklyEvalModal={setWeeklyEvalModal}
+          setQuickScoreModal={setQuickScoreModal}
+          setEmployeeSettingsModal={setEmployeeSettingsModal}
+          setCategoryModal={setCategoryModal}
+          getWeeklyScore={getWeeklyScore}
+          getEmployeeAverage={getEmployeeAverage}
+          getCategoryScore={getCategoryScore}
+          exportData={exportData}
+          loading={loading}
+          DatePicker={DatePicker}
+          presetThisMonth={presetThisWeek}  // Use week presets for daily view
+          presetPrevMonth={presetPrevWeek}
+          presetNextMonth={presetNextWeek}
+        />
+      )}
+      
+      {currentView === 'products' && <Products />}
       
       {currentView === 'performance' && (
         <div className="flex h-full flex-col p-6">
