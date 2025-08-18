@@ -88,7 +88,7 @@ function DateRangePicker({ label, startDate, endDate, onRangeChange }) {
   }
 
   function handleDateClick(day) {
-    const clickedDate = new Date(viewY, viewM, day);
+    const clickedDate = new Date(Date.UTC(viewY, viewM, day));
     
     if (!isSelectingEnd) {
       // First click - set start date
@@ -265,16 +265,26 @@ function DateRangePicker({ label, startDate, endDate, onRangeChange }) {
         <div className="flex gap-2 flex-wrap">
           <button
             onClick={() => {
-              const start = new Date();
-              start.setDate(start.getDate() - start.getDay()); // This week start
-              const end = new Date();
-              end.setDate(end.getDate() + (6 - end.getDay())); // This week end
+              const today = new Date();
+              const dayOfWeek = today.getDay();
+              // Calculate Monday (if Sunday, go back 6 days, otherwise go back dayOfWeek-1 days)
+              const monday = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
+              const sunday = monday + 6;
               
-              setSelectionStart(start);
-              setSelectionEnd(end);
+              const start = new Date(today);
+              start.setDate(today.getDate() + monday);
+              const end = new Date(today);
+              end.setDate(today.getDate() + sunday);
+              
+              // Use UTC to avoid timezone issues
+              const startUTC = new Date(Date.UTC(start.getFullYear(), start.getMonth(), start.getDate()));
+              const endUTC = new Date(Date.UTC(end.getFullYear(), end.getMonth(), end.getDate()));
+              
+              setSelectionStart(startUTC);
+              setSelectionEnd(endUTC);
               onRangeChange(
-                start.toISOString().slice(0, 10),
-                end.toISOString().slice(0, 10)
+                startUTC.toISOString().slice(0, 10),
+                endUTC.toISOString().slice(0, 10)
               );
               setOpen(false);
             }}
@@ -305,15 +315,20 @@ function DateRangePicker({ label, startDate, endDate, onRangeChange }) {
           </button>
           <button
             onClick={() => {
-              const end = new Date();
-              const start = new Date();
-              start.setDate(start.getDate() - 30);
+              const today = new Date();
+              const end = new Date(today);
+              const start = new Date(today);
+              start.setDate(today.getDate() - 29); // -29 to include today as the 30th day
               
-              setSelectionStart(start);
-              setSelectionEnd(end);
+              // Use UTC to avoid timezone issues
+              const startUTC = new Date(Date.UTC(start.getFullYear(), start.getMonth(), start.getDate()));
+              const endUTC = new Date(Date.UTC(end.getFullYear(), end.getMonth(), end.getDate()));
+              
+              setSelectionStart(startUTC);
+              setSelectionEnd(endUTC);
               onRangeChange(
-                start.toISOString().slice(0, 10),
-                end.toISOString().slice(0, 10)
+                startUTC.toISOString().slice(0, 10),
+                endUTC.toISOString().slice(0, 10)
               );
               setOpen(false);
             }}
