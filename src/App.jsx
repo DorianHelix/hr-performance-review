@@ -3631,14 +3631,12 @@ export default function App() {
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
   const [startDate, setStartDate] = useState(() => {
-    // Default to today for Creative view (7 days)
-    return new Date().toISOString().slice(0, 10);
+    // Default to start of current month
+    return startOfMonth(new Date()).toISOString().slice(0, 10);
   });
   const [endDate, setEndDate] = useState(() => {
-    // Default to 7 days from today for Creative view
-    const end = new Date();
-    end.setDate(end.getDate() + 6);
-    return end.toISOString().slice(0, 10);
+    // Default to end of current month
+    return endOfMonth(new Date()).toISOString().slice(0, 10);
   });
   const [cellSize, setCellSize] = useState(100);
   const [filterMinTier, setFilterMinTier] = useState(5);
@@ -3889,36 +3887,6 @@ export default function App() {
     setEndDate(endOfMonth(next).toISOString().slice(0, 10));
   };
 
-  // Presets for daily view (Creative component)
-  const presetThisWeek = () => {
-    const today = new Date();
-    const endDay = new Date(today);
-    endDay.setDate(today.getDate() + 6);
-    setStartDate(today.toISOString().slice(0, 10));
-    setEndDate(endDay.toISOString().slice(0, 10));
-  };
-
-  const presetPrevWeek = () => {
-    // Move back 7 days from current start date
-    const currentStart = new Date(startDate);
-    const newStart = new Date(currentStart);
-    newStart.setDate(currentStart.getDate() - 7);
-    const newEnd = new Date(newStart);
-    newEnd.setDate(newStart.getDate() + 6);
-    setStartDate(newStart.toISOString().slice(0, 10));
-    setEndDate(newEnd.toISOString().slice(0, 10));
-  };
-
-  const presetNextWeek = () => {
-    // Move forward 7 days from current start date
-    const currentStart = new Date(startDate);
-    const newStart = new Date(currentStart);
-    newStart.setDate(currentStart.getDate() + 7);
-    const newEnd = new Date(newStart);
-    newEnd.setDate(newStart.getDate() + 6);
-    setStartDate(newStart.toISOString().slice(0, 10));
-    setEndDate(newEnd.toISOString().slice(0, 10));
-  };
 
   // Dashboard Content Component
   const DashboardContent = () => (
@@ -4120,9 +4088,9 @@ export default function App() {
           exportData={exportData}
           loading={loading}
           DatePicker={DatePicker}
-          presetThisMonth={presetThisWeek}  // Use week presets for daily view
-          presetPrevMonth={presetPrevWeek}
-          presetNextMonth={presetNextWeek}
+          presetThisMonth={presetThisMonth}
+          presetPrevMonth={presetPrevMonth}
+          presetNextMonth={presetNextMonth}
         />
       )}
       

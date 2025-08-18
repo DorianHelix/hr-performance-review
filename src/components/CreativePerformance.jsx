@@ -121,13 +121,13 @@ function CreativePerformance({
             {presetPrevMonth && (
               <div className="flex gap-2">
                 <button onClick={presetPrevMonth} className="glass-button px-4 py-2 text-sm">
-                  ◀ 7 Days
+                  ◀ Month
                 </button>
                 <button onClick={presetThisMonth} className="glass-button px-4 py-2 text-sm">
-                  Today +7
+                  This Month
                 </button>
                 <button onClick={presetNextMonth} className="glass-button px-4 py-2 text-sm">
-                  7 Days ▶
+                  Month ▶
                 </button>
               </div>
             )}
