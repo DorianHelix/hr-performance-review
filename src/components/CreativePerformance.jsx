@@ -195,7 +195,7 @@ function CreativePerformance({
 
       {/* Test Metrics Cards - Only show in analytics mode */}
       {creativeMode === 'analytics' && showCreativeMetrics && (
-        <div className={`grid grid-cols-1 ${categories.length <= 3 ? 'md:grid-cols-4' : `md:grid-cols-${Math.min(categories.length + 1, 6)}`} gap-4 mx-6 mb-4`}>
+        <div className="flex gap-4 mx-6 mb-4 overflow-x-auto">
           {/* Dynamic category cards */}
           {categories.map(cat => {
             const catData = metrics.categoryData[cat.key] || { count: 0, avg: '0.0', percent: 0 };
@@ -203,7 +203,7 @@ function CreativePerformance({
             const avgNum = parseFloat(catData.avg);
             
             return (
-              <div key={cat.key} className="glass-card p-4 rounded-2xl bg-gradient-to-br from-purple-500/10 to-pink-500/10 relative overflow-hidden">
+              <div key={cat.key} className="glass-card p-4 rounded-2xl bg-gradient-to-br from-purple-500/10 to-pink-500/10 relative overflow-hidden flex-shrink-0" style={{minWidth: '200px'}}>
                 <div className={`absolute inset-0 opacity-20 ${
                   avgNum >= 9 ? 'bg-gradient-to-br from-green-500 to-green-600' :
                   avgNum >= 7 ? 'bg-gradient-to-br from-green-400 to-green-500' :
@@ -235,7 +235,7 @@ function CreativePerformance({
             );
           })}
 
-          <div className="glass-card p-4 rounded-2xl bg-gradient-to-br from-pink-500/10 to-orange-500/10 relative overflow-hidden">
+          <div className="glass-card p-4 rounded-2xl bg-gradient-to-br from-pink-500/10 to-orange-500/10 relative overflow-hidden flex-shrink-0" style={{minWidth: '200px'}}>
             <div className={`absolute inset-0 opacity-20 ${
               metrics.overallAvg >= 9 ? 'bg-gradient-to-br from-green-500 to-green-600' :
               metrics.overallAvg >= 7 ? 'bg-gradient-to-br from-green-400 to-green-500' :
