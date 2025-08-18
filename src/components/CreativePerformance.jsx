@@ -101,6 +101,51 @@ function CreativePerformance({
            emp.category?.toLowerCase().includes(search);
   });
   
+  // Calculate metrics from actual table data
+  const calculateMetrics = () => {
+    let vctCount = 0, vctTotal = 0;
+    let sctCount = 0, sctTotal = 0;
+    let actCount = 0, actTotal = 0;
+    let overallCount = 0, overallTotal = 0;
+    
+    filteredEmployees.forEach(emp => {
+      weeks.forEach(week => {
+        categories.forEach(cat => {
+          const score = getCategoryScore ? getCategoryScore(emp.id, week.key, cat.key) : null;
+          if (score !== null) {
+            if (cat.key === 'VCT') {
+              vctCount++;
+              vctTotal += score;
+            } else if (cat.key === 'SCT') {
+              sctCount++;
+              sctTotal += score;
+            } else if (cat.key === 'ACT') {
+              actCount++;
+              actTotal += score;
+            }
+            overallCount++;
+            overallTotal += score;
+          }
+        });
+      });
+    });
+    
+    return {
+      vctCount,
+      vctAvg: vctCount > 0 ? (vctTotal / vctCount).toFixed(1) : '0.0',
+      vctPercent: vctCount > 0 ? Math.round((vctTotal / vctCount) * 10) : 0,
+      sctCount,
+      sctAvg: sctCount > 0 ? (sctTotal / sctCount).toFixed(1) : '0.0',
+      sctPercent: sctCount > 0 ? Math.round((sctTotal / sctCount) * 10) : 0,
+      actCount,
+      actAvg: actCount > 0 ? (actTotal / actCount).toFixed(1) : '0.0',
+      actPercent: actCount > 0 ? Math.round((actTotal / actCount) * 10) : 0,
+      overallAvg: overallCount > 0 ? (overallTotal / overallCount).toFixed(1) : '0.0'
+    };
+  };
+  
+  const metrics = calculateMetrics();
+  
   return (
     <div className="flex flex-col h-full w-full overflow-hidden" style={{ maxWidth: '100vw' }}>
       <header className="glass-card-large p-6 m-6 mb-4">
@@ -143,8 +188,8 @@ function CreativePerformance({
               <Zap className="text-purple-400" size={20} />
               <h3 className="font-semibold text-white">Video Tests</h3>
             </div>
-            <div className="text-3xl font-bold text-white">24</div>
-            <div className="text-sm text-white/60">Completed this week</div>
+            <div className="text-3xl font-bold text-white">{metrics.vctCount}</div>
+            <div className="text-sm text-white/60">Avg Score: {metrics.vctAvg}</div>
           </div>
 
           <div className="glass-card p-4 rounded-2xl bg-gradient-to-br from-blue-500/10 to-purple-500/10">
@@ -152,8 +197,8 @@ function CreativePerformance({
               <Lightbulb className="text-blue-400" size={20} />
               <h3 className="font-semibold text-white">Static Tests</h3>
             </div>
-            <div className="text-3xl font-bold text-white">18</div>
-            <div className="text-sm text-white/60">Completed this week</div>
+            <div className="text-3xl font-bold text-white">{metrics.sctCount}</div>
+            <div className="text-sm text-white/60">Avg Score: {metrics.sctAvg}</div>
           </div>
 
           <div className="glass-card p-4 rounded-2xl bg-gradient-to-br from-green-500/10 to-blue-500/10">
@@ -161,16 +206,16 @@ function CreativePerformance({
               <MessageSquare className="text-green-400" size={20} />
               <h3 className="font-semibold text-white">Copy Tests</h3>
             </div>
-            <div className="text-3xl font-bold text-white">31</div>
-            <div className="text-sm text-white/60">Completed this week</div>
+            <div className="text-3xl font-bold text-white">{metrics.actCount}</div>
+            <div className="text-sm text-white/60">Avg Score: {metrics.actAvg}</div>
           </div>
 
           <div className="glass-card p-4 rounded-2xl bg-gradient-to-br from-pink-500/10 to-orange-500/10">
             <div className="flex items-center gap-3 mb-3">
               <Award className="text-orange-400" size={20} />
-              <h3 className="font-semibold text-white">Avg. Score</h3>
+              <h3 className="font-semibold text-white">Overall Score</h3>
             </div>
-            <div className="text-3xl font-bold text-white">8.7</div>
+            <div className="text-3xl font-bold text-white">{metrics.overallAvg}</div>
             <div className="text-sm text-white/60">All tests combined</div>
           </div>
         </div>
@@ -538,28 +583,28 @@ function CreativePerformance({
                 <div className="text-sm text-white/80">
                   <div className="flex justify-between mb-2">
                     <span>Video Test Success Rate</span>
-                    <span className="font-bold text-purple-400">87%</span>
+                    <span className="font-bold text-purple-400">{metrics.vctPercent}%</span>
                   </div>
                   <div className="w-full bg-white/10 rounded-full h-2">
-                    <div className="bg-gradient-to-r from-purple-400 to-pink-400 h-2 rounded-full" style={{width: '87%'}}></div>
+                    <div className="bg-gradient-to-r from-purple-400 to-pink-400 h-2 rounded-full" style={{width: `${metrics.vctPercent}%`}}></div>
                   </div>
                 </div>
                 <div className="text-sm text-white/80">
                   <div className="flex justify-between mb-2">
                     <span>Static Creative Performance</span>
-                    <span className="font-bold text-blue-400">76%</span>
+                    <span className="font-bold text-blue-400">{metrics.sctPercent}%</span>
                   </div>
                   <div className="w-full bg-white/10 rounded-full h-2">
-                    <div className="bg-gradient-to-r from-blue-400 to-purple-400 h-2 rounded-full" style={{width: '76%'}}></div>
+                    <div className="bg-gradient-to-r from-blue-400 to-purple-400 h-2 rounded-full" style={{width: `${metrics.sctPercent}%`}}></div>
                   </div>
                 </div>
                 <div className="text-sm text-white/80">
                   <div className="flex justify-between mb-2">
                     <span>Copy Test Effectiveness</span>
-                    <span className="font-bold text-green-400">95%</span>
+                    <span className="font-bold text-green-400">{metrics.actPercent}%</span>
                   </div>
                   <div className="w-full bg-white/10 rounded-full h-2">
-                    <div className="bg-gradient-to-r from-green-400 to-blue-400 h-2 rounded-full" style={{width: '95%'}}></div>
+                    <div className="bg-gradient-to-r from-green-400 to-blue-400 h-2 rounded-full" style={{width: `${metrics.actPercent}%`}}></div>
                   </div>
                 </div>
               </div>
