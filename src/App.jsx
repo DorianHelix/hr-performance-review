@@ -626,7 +626,7 @@ function QuickScoreModal({ employee, week, category, currentScore, currentReport
                 onDelete();
                 onClose();
               }}
-              className="w-full py-3 glass-button bg-red-900/50 border border-red-600/30 text-red-300 rounded-lg hover:bg-red-800/50 transition-colors"
+              className="w-full py-3 rounded-lg bg-red-900/80 hover:bg-red-800 border border-red-700/50 text-white transition-colors"
             >
               Delete Score
             </button>
