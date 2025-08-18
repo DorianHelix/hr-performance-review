@@ -78,7 +78,7 @@ function CreativePerformance({
   getCategoryScore,
   exportData,
   loading = false,
-  DatePicker,
+  DateRangePicker,
   presetThisMonth,
   presetPrevMonth,
   presetNextMonth
@@ -107,15 +107,18 @@ function CreativePerformance({
           </div>
 
           <div className="flex flex-wrap gap-3 items-center">
-            {DatePicker && (
-              <>
-                <div className="glass-card p-1 rounded-2xl">
-                  <DatePicker label="Start" value={startDate} onChange={setStartDate} />
-                </div>
-                <div className="glass-card p-1 rounded-2xl">
-                  <DatePicker label="End" value={endDate} onChange={setEndDate} />
-                </div>
-              </>
+            {DateRangePicker && (
+              <div className="glass-card p-1 rounded-2xl">
+                <DateRangePicker 
+                  label="Date Range" 
+                  startDate={startDate} 
+                  endDate={endDate} 
+                  onRangeChange={(start, end) => {
+                    setStartDate(start);
+                    setEndDate(end);
+                  }}
+                />
+              </div>
             )}
 
             {presetPrevMonth && (

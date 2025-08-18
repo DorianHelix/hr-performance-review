@@ -12,6 +12,7 @@ import {
 import CreativePerformance from "./components/CreativePerformance";
 import Products from "./components/Products";
 import DatePicker from "./components/DatePicker";
+import DateRangePicker from "./components/DateRangePicker";
 
 
 /* -----------------------------------------------------------
@@ -4051,7 +4052,7 @@ export default function App() {
           getCategoryScore={getCategoryScore}
           exportData={exportData}
           loading={loading}
-          DatePicker={DatePicker}
+          DateRangePicker={DateRangePicker}
           presetThisMonth={presetThisMonth}
           presetPrevMonth={presetPrevMonth}
           presetNextMonth={presetNextMonth}
@@ -4078,10 +4079,15 @@ export default function App() {
 
               <div className="flex flex-wrap gap-3 items-center">
                 <div className="glass-card p-1 rounded-2xl">
-                  <DatePicker label="Start" value={startDate} onChange={setStartDate} />
-                </div>
-                <div className="glass-card p-1 rounded-2xl">
-                  <DatePicker label="End" value={endDate} onChange={setEndDate} />
+                  <DateRangePicker 
+                    label="Date Range" 
+                    startDate={startDate} 
+                    endDate={endDate} 
+                    onRangeChange={(start, end) => {
+                      setStartDate(start);
+                      setEndDate(end);
+                    }}
+                  />
                 </div>
 
                 <div className="flex gap-2">
