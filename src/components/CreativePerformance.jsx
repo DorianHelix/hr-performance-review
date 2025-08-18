@@ -5,7 +5,7 @@ import {
   Download, Plus, ChevronRight, Settings,
   Trash2, X, Clock, FileText, Briefcase,
   RefreshCw, MessageSquare, Users, Menu, Eye, EyeOff,
-  PanelRightClose, PanelRightOpen
+  PanelRightClose, PanelRightOpen, BarChart3, BarChartHorizontal
 } from 'lucide-react';
 
 // Helper functions (copied from main App)
@@ -102,12 +102,21 @@ function CreativePerformance({
     // Default to true on desktop, false on mobile
     return window.innerWidth >= 1024;
   });
-  const [showKPICards, setShowKPICards] = useState(true); // Toggle for KPI cards
+  const [showKPICards, setShowKPICards] = useState(() => {
+    // Check localStorage first, default to true
+    const saved = localStorage.getItem('hr_creative_kpi_visible');
+    return saved !== null ? JSON.parse(saved) : true;
+  });
   
   // Save sidebar state to localStorage when it changes
   useEffect(() => {
     localStorage.setItem('hr_creative_sidebar_visible', JSON.stringify(showSidebar));
   }, [showSidebar]);
+  
+  // Save KPI cards state to localStorage when it changes
+  useEffect(() => {
+    localStorage.setItem('hr_creative_kpi_visible', JSON.stringify(showKPICards));
+  }, [showKPICards]);
   
   // Filter products based on search
   const filteredEmployees = employees.filter(emp => {
@@ -214,10 +223,10 @@ function CreativePerformance({
             <div className="flex items-center gap-1">
               <button 
                 onClick={() => setShowKPICards(!showKPICards)}
-                className="lg:hidden glass-card p-1.5 rounded-xl hover:bg-white/10"
-                title={showKPICards ? 'Hide KPI cards' : 'Show KPI cards'}
+                className="glass-card p-1.5 rounded-xl hover:bg-white/10 transition-all"
+                title={showKPICards ? 'Hide metrics cards' : 'Show metrics cards'}
               >
-                {showKPICards ? <EyeOff size={16} /> : <Eye size={16} />}
+                {showKPICards ? <BarChartHorizontal size={16} className="rotate-180" /> : <BarChartHorizontal size={16} />}
               </button>
               
               <button 
