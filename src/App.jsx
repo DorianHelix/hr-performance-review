@@ -443,8 +443,10 @@ function lsWrite(key, value) {
 /* -----------------------------------------------------------
    Quick Score Modal Component
 ----------------------------------------------------------- */
-function QuickScoreModal({ employee, week, category, currentScore, onSave, onDelete, onClose }) {
+function QuickScoreModal({ employee, week, category, currentScore, currentReports, onSave, onDelete, onClose }) {
   const [score, setScore] = useState(currentScore || 5);
+  const [performanceReport, setPerformanceReport] = useState(currentReports?.performanceReport || '');
+  const [mediaBuyerReview, setMediaBuyerReview] = useState(currentReports?.mediaBuyerReview || '');
   
   useEffect(() => {
     const handleKeyPress = (e) => {
@@ -454,14 +456,14 @@ function QuickScoreModal({ employee, week, category, currentScore, onSave, onDel
         if (e.key >= '1' && e.key <= '9') {
           const newScore = parseInt(e.key);
           setScore(newScore);
-          onSave(newScore);
+          onSave(newScore, { performanceReport, mediaBuyerReview });
           onClose();
           return;
         }
         // 0 for score 10
         if (e.key === '0') {
           setScore(10);
-          onSave(10);
+          onSave(10, { performanceReport, mediaBuyerReview });
           onClose();
           return;
         }
@@ -486,7 +488,7 @@ function QuickScoreModal({ employee, week, category, currentScore, onSave, onDel
   
   return (
     <div className="fixed inset-0 z-50 grid place-items-center bg-black/50 backdrop-blur-sm" onClick={onClose}>
-      <div className="glass-card-large rounded-2xl shadow-2xl p-6 min-w-[400px] border border-white/20" onClick={e => e.stopPropagation()}>
+      <div className="glass-card-large rounded-2xl shadow-2xl p-6 min-w-[600px] max-w-[800px] max-h-[90vh] overflow-y-auto border border-white/20" onClick={e => e.stopPropagation()}>
         <div className="flex items-center justify-between mb-4">
           <div>
             <h3 className="font-semibold text-white">{employee.name}</h3>
@@ -526,6 +528,69 @@ function QuickScoreModal({ employee, week, category, currentScore, onSave, onDel
             </div>
           </div>
           
+          {/* Performance Report */}
+          <div>
+            <div className="flex items-center justify-between mb-2">
+              <label className="text-sm font-medium text-white/80">
+                Performance Report
+              </label>
+              <div className="flex gap-2">
+                {performanceReport && (
+                  <button
+                    onClick={() => setPerformanceReport('')}
+                    className="glass-button px-3 py-1 text-xs hover:scale-105 transition-transform"
+                  >
+                    Clear
+                  </button>
+                )}
+                <label className="glass-button px-3 py-1 text-xs cursor-pointer hover:scale-105 transition-transform flex items-center gap-2">
+                  <Upload size={14} />
+                  Upload CSV
+                  <input
+                    type="file"
+                    accept=".csv"
+                    className="hidden"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) {
+                        const reader = new FileReader();
+                        reader.onload = (event) => {
+                          const csvContent = event.target?.result;
+                          if (typeof csvContent === 'string') {
+                            setPerformanceReport(csvContent);
+                          }
+                        };
+                        reader.readAsText(file);
+                      }
+                      e.target.value = ''; // Reset input
+                    }}
+                  />
+                </label>
+              </div>
+            </div>
+            <textarea
+              value={performanceReport}
+              onChange={(e) => setPerformanceReport(e.target.value)}
+              placeholder="Enter performance metrics or upload CSV file..."
+              className="w-full glass-input px-4 py-3 resize-none text-xs font-mono"
+              rows={6}
+            />
+          </div>
+
+          {/* Media Buyer Review */}
+          <div>
+            <label className="block text-sm font-medium text-white/80 mb-2">
+              Media Buyer Review
+            </label>
+            <textarea
+              value={mediaBuyerReview}
+              onChange={(e) => setMediaBuyerReview(e.target.value)}
+              placeholder="Enter media buyer feedback and review..."
+              className="w-full glass-input px-4 py-3 resize-none text-sm"
+              rows={4}
+            />
+          </div>
+
           {/* Delete Button */}
           {currentScore && (
             <button
@@ -547,7 +612,7 @@ function QuickScoreModal({ employee, week, category, currentScore, onSave, onDel
                 <button
                   key={n}
                   onClick={() => {
-                    onSave(n);
+                    onSave(n, { performanceReport, mediaBuyerReview });
                     onClose();
                   }}
                   className={`h-10 rounded-lg ${styles.bg} ${styles.text} font-bold hover:scale-110 transition-transform ${score === n ? 'ring-2 ring-offset-2 ring-white/50 ring-offset-black/50' : ''}`}
@@ -3819,7 +3884,15 @@ export default function App() {
     return scores?.[categoryKey] || null;
   };
 
-  const saveCategoryScore = (employeeId, weekKey, categoryKey, score) => {
+  const getCategoryReports = (employeeId, weekKey, categoryKey) => {
+    const evaluations = lsRead(LS_EVALUATIONS, {});
+    const evalKey = `${employeeId}|${weekKey}`;
+    const data = evaluations[evalKey];
+    const reportsKey = `${categoryKey}_reports`;
+    return data?.[reportsKey] || null;
+  };
+
+  const saveCategoryScore = (employeeId, weekKey, categoryKey, score, reports) => {
     const evaluations = lsRead(LS_EVALUATIONS, {});
     const evalKey = `${employeeId}|${weekKey}`;
     const existing = evaluations[evalKey] || {};
@@ -3828,6 +3901,12 @@ export default function App() {
       ...existing,
       [categoryKey]: score
     };
+    
+    // Save reports if provided
+    if (reports) {
+      const reportsKey = `${categoryKey}_reports`;
+      evaluations[evalKey][reportsKey] = reports;
+    }
     
     lsWrite(LS_EVALUATIONS, evaluations);
     // Force re-render
@@ -3841,6 +3920,9 @@ export default function App() {
     
     if (existing) {
       delete existing[categoryKey];
+      // Also delete associated reports
+      const reportsKey = `${categoryKey}_reports`;
+      delete existing[reportsKey];
       
       // If no scores left, delete the entire week entry
       if (Object.keys(existing).length === 0) {
@@ -4496,12 +4578,18 @@ export default function App() {
           week={quickScoreModal.week}
           category={quickScoreModal.category}
           currentScore={quickScoreModal.currentScore}
-          onSave={(score) => {
+          currentReports={getCategoryReports(
+            quickScoreModal.employee.id,
+            quickScoreModal.week.key,
+            quickScoreModal.category.key
+          )}
+          onSave={(score, reports) => {
             saveCategoryScore(
               quickScoreModal.employee.id,
               quickScoreModal.week.key,
               quickScoreModal.category.key,
-              score
+              score,
+              reports
             );
           }}
           onDelete={() => {
