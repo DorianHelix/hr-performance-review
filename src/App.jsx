@@ -495,7 +495,7 @@ function QuickScoreModal({ employee, week, category, currentScore, currentReport
           <div>
             <h3 className="font-semibold text-white">{employee.name}</h3>
             <p className="text-sm text-white/60">
-              {category.label} • Week {week.week}
+              Week {week.week}
             </p>
           </div>
           <button onClick={onClose} className="glass-button p-2 rounded-lg hover:scale-110">
@@ -520,11 +520,10 @@ function QuickScoreModal({ employee, week, category, currentScore, currentReport
             />
           </div>
           
-          {/* Weighted Average Display */}
+          {/* Score Display */}
           <div className="p-3 glass-card rounded-lg">
             <div className="text-sm text-white/70">
-              <span>Category Weight: {category.weight}%</span>
-              <div className="mt-1 font-medium text-white">
+              <div className="font-medium text-white">
                 Current Score: <span className="text-lg">{score}/10</span>
               </div>
             </div>
@@ -592,19 +591,6 @@ function QuickScoreModal({ employee, week, category, currentScore, currentReport
               rows={4}
             />
           </div>
-
-          {/* Delete Button */}
-          {currentScore && (
-            <button
-              onClick={() => {
-                onDelete();
-                onClose();
-              }}
-              className="w-full py-2 glass-button border border-red-400/30 text-red-400 rounded-lg hover:bg-red-500/20"
-            >
-              Delete Score
-            </button>
-          )}
           
           {/* Number Grid */}
           <div className="grid grid-cols-10 gap-1">
@@ -632,6 +618,19 @@ function QuickScoreModal({ employee, week, category, currentScore, currentReport
             <p>• Press <kbd className="px-1 py-0.5 glass-card rounded text-white/80">Backspace</kbd> to remove score</p>
             <p>• Press <kbd className="px-1 py-0.5 glass-card rounded text-white/80">Esc</kbd> to close</p>
           </div>
+
+          {/* Delete Button - at the bottom */}
+          {currentScore && (
+            <button
+              onClick={() => {
+                onDelete();
+                onClose();
+              }}
+              className="w-full py-3 glass-button bg-red-900/50 border border-red-600/30 text-red-300 rounded-lg hover:bg-red-800/50 transition-colors"
+            >
+              Delete Score
+            </button>
+          )}
         </div>
       </div>
     </div>
