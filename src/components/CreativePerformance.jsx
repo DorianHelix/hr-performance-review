@@ -246,20 +246,39 @@ function CreativePerformance({
                         <span className="text-sm text-white/60">Average</span>
                       </div>
                     </th>
-                    {weeks.map(week => (
-                      <th 
-                        key={week.key}
-                        className="sticky top-0 z-5 glass-card text-sm font-semibold text-white rounded-2xl"
-                        style={{ minWidth: cellSize, width: cellSize }}
-                      >
-                        <div className="text-center py-3">
-                          <div>{week.monthName} {week.day}</div>
-                          <div className="text-xs text-white/60">
-                            {week.dayName}
+                    {weeks.map(week => {
+                      // Calculate daily average across all products and categories
+                      const dailyScores = [];
+                      employees.forEach(emp => {
+                        categories.forEach(cat => {
+                          const score = getCategoryScore ? getCategoryScore(emp.id, week.key, cat.key) : null;
+                          if (score !== null) dailyScores.push(score);
+                        });
+                      });
+                      const dailyAvg = dailyScores.length > 0 
+                        ? (dailyScores.reduce((sum, s) => sum + s, 0) / dailyScores.length).toFixed(1)
+                        : null;
+                      
+                      return (
+                        <th 
+                          key={week.key}
+                          className="sticky top-0 z-5 glass-card text-sm font-semibold text-white rounded-2xl"
+                          style={{ minWidth: cellSize, width: cellSize }}
+                        >
+                          <div className="text-center py-3">
+                            <div>{week.monthName} {week.day}</div>
+                            <div className="text-xs text-white/60">
+                              {week.dayName}
+                            </div>
+                            {dailyAvg && (
+                              <div className="text-xs text-white/40 mt-1">
+                                Avg: {dailyAvg}
+                              </div>
+                            )}
                           </div>
-                        </div>
-                      </th>
-                    ))}
+                        </th>
+                      );
+                    })}
                   </tr>
                 </thead>
                 <tbody>
@@ -312,8 +331,11 @@ function CreativePerformance({
                               </div>
                               <div className="flex items-center gap-2">
                                 {avgScore && (
-                                  <div className={`px-2 py-1 rounded-lg ${avgStyles.bg} ${avgStyles.text} text-sm font-bold`}>
-                                    {avgScore}
+                                  <div className="flex items-center gap-2">
+                                    <span className="text-xs text-white/50">Avg:</span>
+                                    <div className={`px-2 py-1 rounded-lg ${avgStyles.bg} ${avgStyles.text} text-sm font-bold`}>
+                                      {avgScore}
+                                    </div>
                                   </div>
                                 )}
                                 {handleDeleteEmployee && (
@@ -390,14 +412,32 @@ function CreativePerformance({
                         {isExpanded && categories.map(cat => {
                           const Icon = getIcon(cat.iconName);
                           
+                          // Calculate category average for this product
+                          const categoryScores = [];
+                          weeks.forEach(week => {
+                            const score = getCategoryScore ? getCategoryScore(emp.id, week.key, cat.key) : null;
+                            if (score !== null) categoryScores.push(score);
+                          });
+                          const categoryAvg = categoryScores.length > 0
+                            ? (categoryScores.reduce((sum, s) => sum + s, 0) / categoryScores.length).toFixed(1)
+                            : null;
+                          
                           return (
                             <tr key={cat.key} className="bg-white/5">
                               <td className={`sticky left-0 z-10 glass-card border-r border-white/10 border-b border-white/10 p-2 pl-12 border-l-4 ${cat.accent}`} style={{ minWidth: '20rem', maxWidth: '20rem' }}>
-                                <div className="flex items-center gap-2">
-                                  <div className={`p-1 rounded ${cat.tag}`}>
-                                    <Icon size={12} className="text-white" />
+                                <div className="flex items-center justify-between">
+                                  <div className="flex items-center gap-2">
+                                    <div className={`p-1 rounded ${cat.tag}`}>
+                                      <Icon size={12} className="text-white" />
+                                    </div>
+                                    <span className="text-sm font-medium text-white/80">{cat.label}</span>
                                   </div>
-                                  <span className="text-sm font-medium text-white/80">{cat.label}</span>
+                                  {categoryAvg && (
+                                    <div className="flex items-center gap-1">
+                                      <span className="text-xs text-white/40">Avg:</span>
+                                      <span className="text-xs font-bold text-white/60">{categoryAvg}</span>
+                                    </div>
+                                  )}
                                 </div>
                               </td>
                               
