@@ -284,9 +284,12 @@ function DateRangePicker({ label, startDate, endDate, onRangeChange }) {
           </button>
           <button
             onClick={() => {
-              const start = new Date();
-              start.setDate(1);
-              const end = new Date(start.getFullYear(), start.getMonth() + 1, 0);
+              const today = new Date();
+              const year = today.getFullYear();
+              const month = today.getMonth();
+              
+              const start = new Date(Date.UTC(year, month, 1));
+              const end = new Date(Date.UTC(year, month + 1, 0));
               
               setSelectionStart(start);
               setSelectionEnd(end);

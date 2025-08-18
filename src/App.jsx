@@ -3848,20 +3848,41 @@ export default function App() {
   };
 
   const presetPrevMonth = () => {
-    const prev = addMonths(new Date(), -1);
-    setStartDate(startOfMonth(prev).toISOString().slice(0, 10));
-    setEndDate(endOfMonth(prev).toISOString().slice(0, 10));
+    // Get current displayed month from the start date
+    const current = new Date(startDate);
+    const year = current.getFullYear();
+    const month = current.getMonth() - 1;
+    
+    const firstDay = new Date(Date.UTC(year, month, 1));
+    const lastDay = new Date(Date.UTC(year, month + 1, 0));
+    
+    setStartDate(firstDay.toISOString().slice(0, 10));
+    setEndDate(lastDay.toISOString().slice(0, 10));
   };
 
   const presetThisMonth = () => {
-    setStartDate(startOfMonth(new Date()).toISOString().slice(0, 10));
-    setEndDate(endOfMonth(new Date()).toISOString().slice(0, 10));
+    const today = new Date();
+    const year = today.getFullYear();
+    const month = today.getMonth();
+    
+    const firstDay = new Date(Date.UTC(year, month, 1));
+    const lastDay = new Date(Date.UTC(year, month + 1, 0));
+    
+    setStartDate(firstDay.toISOString().slice(0, 10));
+    setEndDate(lastDay.toISOString().slice(0, 10));
   };
 
   const presetNextMonth = () => {
-    const next = addMonths(new Date(), 1);
-    setStartDate(startOfMonth(next).toISOString().slice(0, 10));
-    setEndDate(endOfMonth(next).toISOString().slice(0, 10));
+    // Get current displayed month from the start date
+    const current = new Date(startDate);
+    const year = current.getFullYear();
+    const month = current.getMonth() + 1;
+    
+    const firstDay = new Date(Date.UTC(year, month, 1));
+    const lastDay = new Date(Date.UTC(year, month + 1, 0));
+    
+    setStartDate(firstDay.toISOString().slice(0, 10));
+    setEndDate(lastDay.toISOString().slice(0, 10));
   };
 
 
