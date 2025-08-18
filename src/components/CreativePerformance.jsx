@@ -329,26 +329,56 @@ function CreativePerformance({
                           </td>
                           
                           {weeks.map(week => {
-                            const score = getWeeklyScore ? getWeeklyScore(emp.id, week.key) : null;
-                            const styles = score ? tierStyles(score) : {};
-                            const visible = score ? scoreToTier(score) <= filterMinTier : true;
+                            // Get all category scores for this product and week
+                            const categoryScores = categories.map(cat => ({
+                              key: cat.key,
+                              label: cat.key, // Use the key directly (VCT, SCT, ACT)
+                              score: getCategoryScore ? getCategoryScore(emp.id, week.key, cat.key) : null,
+                              color: cat.tag
+                            })).filter(item => item.score !== null);
                             
                             return (
                               <td 
                                 key={week.key}
-                                className={`border-b border-white/10 hover:bg-white/5 cursor-pointer ${visible ? '' : 'opacity-30'}`}
+                                className="border-b border-white/10 hover:bg-white/5"
                                 style={{ minWidth: cellSize, width: cellSize }}
-                                onClick={() => setWeeklyEvalModal && setWeeklyEvalModal({ employee: emp, week })}
                               >
-                                <div className="flex items-center justify-center py-2">
-                                  {score ? (
-                                    <div className={`h-10 w-10 rounded-lg ${styles.bg} ${styles.text} text-sm font-bold grid place-items-center shadow-sm ${creativeMode === 'creative' && score >= 9 ? 'animate-pulse' : ''}`}>
-                                      {score.toFixed(1)}
-                                    </div>
+                                <div className="flex flex-wrap items-center justify-center gap-1 p-1.5">
+                                  {categoryScores.length > 0 ? (
+                                    categoryScores.map(item => {
+                                      // Custom badge colors based on test type
+                                      const getBadgeColor = () => {
+                                        if (item.key === 'VCT') return 'bg-purple-500 text-white';
+                                        if (item.key === 'SCT') return 'bg-blue-500 text-white';
+                                        if (item.key === 'ACT') return 'bg-green-500 text-white';
+                                        return 'bg-gray-500 text-white';
+                                      };
+                                      
+                                      return (
+                                        <div 
+                                          key={item.key}
+                                          className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[10px] font-bold ${getBadgeColor()} shadow-sm hover:scale-110 transition-transform cursor-pointer`}
+                                          title={`${item.label}: ${item.score}/10 - Click to edit`}
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            const category = categories.find(c => c.key === item.key);
+                                            if (category && setQuickScoreModal) {
+                                              setQuickScoreModal({
+                                                employee: emp,
+                                                week: week,
+                                                category: category,
+                                                currentScore: item.score
+                                              });
+                                            }
+                                          }}
+                                        >
+                                          <span className="opacity-90">{item.label}</span>
+                                          <span className="text-[11px]">{item.score}</span>
+                                        </div>
+                                      );
+                                    })
                                   ) : (
-                                    <div className="h-10 w-10 rounded-lg border-2 border-dashed border-white/30 text-white/40 grid place-items-center hover:border-white/50">
-                                      <Plus size={16} />
-                                    </div>
+                                    <div className="text-white/20 text-[10px]">-</div>
                                   )}
                                 </div>
                               </td>
