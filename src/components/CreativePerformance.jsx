@@ -87,7 +87,7 @@ function CreativePerformance({
   const scrollRef = useRef(null);
   
   // Local state for Creative-specific features
-  const [creativeMode, setCreativeMode] = useState('standard');
+  const [creativeMode, setCreativeMode] = useState('analytics'); // Changed default to 'analytics'
   const [showCreativeMetrics, setShowCreativeMetrics] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [showTestTypesModal, setShowTestTypesModal] = useState(false);
@@ -117,26 +117,26 @@ function CreativePerformance({
             </p>
           </div>
 
-          {/* Creative Mode Toggle - Keep in header */}
+          {/* View Mode Toggle - Analytics vs Configuration */}
           <div className="glass-card p-2 rounded-2xl flex items-center gap-2">
             <button
-              onClick={() => setCreativeMode('standard')}
-              className={`px-3 py-1 rounded-lg text-sm ${creativeMode === 'standard' ? 'bg-purple-500 text-white' : 'text-white/60'}`}
+              onClick={() => setCreativeMode('analytics')}
+              className={`px-3 py-1 rounded-lg text-sm ${creativeMode === 'analytics' ? 'bg-pink-500 text-white' : 'text-white/60'}`}
             >
-              Standard
+              Analytics
             </button>
             <button
-              onClick={() => setCreativeMode('creative')}
-              className={`px-3 py-1 rounded-lg text-sm ${creativeMode === 'creative' ? 'bg-pink-500 text-white' : 'text-white/60'}`}
+              onClick={() => setCreativeMode('configuration')}
+              className={`px-3 py-1 rounded-lg text-sm ${creativeMode === 'configuration' ? 'bg-purple-500 text-white' : 'text-white/60'}`}
             >
-              Creative
+              Configuration
             </button>
           </div>
         </div>
       </header>
 
-      {/* Test Metrics Cards - Only show in creative mode */}
-      {creativeMode === 'creative' && showCreativeMetrics && (
+      {/* Test Metrics Cards - Only show in analytics mode */}
+      {creativeMode === 'analytics' && showCreativeMetrics && (
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mx-6 mb-4">
           <div className="glass-card p-4 rounded-2xl bg-gradient-to-br from-purple-500/10 to-pink-500/10">
             <div className="flex items-center gap-3 mb-3">
@@ -527,8 +527,8 @@ function CreativePerformance({
 
         {/* Right sidebar - Fixed position */}
         <div className="space-y-6 overflow-y-auto h-full lg:h-full lg:max-h-none max-h-96">
-          {/* Test Insights Panel */}
-          {creativeMode === 'creative' && (
+          {/* Test Insights Panel - Only in Analytics mode */}
+          {creativeMode === 'analytics' && (
             <div className="glass-card-large p-6 bg-gradient-to-br from-purple-500/5 to-pink-500/5">
               <h3 className="font-semibold text-white mb-4 flex items-center gap-2">
                 <Sparkles className="text-purple-400" size={20} />
@@ -567,42 +567,45 @@ function CreativePerformance({
           )}
 
 
-          {/* Test Types */}
-          <div className="glass-card-large p-6">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="font-semibold text-white">Test Types</h3>
-              <button
-                onClick={() => setShowTestTypesModal(true)}
-                className="glass-button p-2 hover:scale-110"
-              >
-                <Settings size={16} />
-              </button>
-            </div>
-            
-            <div className="space-y-3">
-              {categories.map(cat => {
-                const Icon = getIcon(cat.iconName);
-                return (
-                  <div key={cat.id} className="glass-card p-4 rounded-2xl hover:scale-105 transition-all duration-300">
-                    <div className="flex items-start gap-3">
-                      <div className={`p-2 rounded-xl ${cat.tag} shadow-lg`}>
-                        <Icon size={16} className="text-white" />
-                      </div>
-                      <div className="flex-1">
-                        <div className="font-semibold text-white">{cat.label}</div>
-                        <div className="text-xs text-white/60 mt-1">{cat.description}</div>
+          {/* Test Types - Only in Configuration mode */}
+          {creativeMode === 'configuration' && (
+            <div className="glass-card-large p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="font-semibold text-white">Test Types</h3>
+                <button
+                  onClick={() => setShowTestTypesModal(true)}
+                  className="glass-button p-2 hover:scale-110"
+                >
+                  <Settings size={16} />
+                </button>
+              </div>
+              
+              <div className="space-y-3">
+                {categories.map(cat => {
+                  const Icon = getIcon(cat.iconName);
+                  return (
+                    <div key={cat.id} className="glass-card p-4 rounded-2xl hover:scale-105 transition-all duration-300">
+                      <div className="flex items-start gap-3">
+                        <div className={`p-2 rounded-xl ${cat.tag} shadow-lg`}>
+                          <Icon size={16} className="text-white" />
+                        </div>
+                        <div className="flex-1">
+                          <div className="font-semibold text-white">{cat.label}</div>
+                          <div className="text-xs text-white/60 mt-1">{cat.description}</div>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                );
-              })}
+                  );
+                })}
+              </div>
             </div>
-          </div>
+          )}
 
-          {/* Performance Scale */}
-          <div className="glass-card-large p-6">
-            <h3 className="font-semibold text-white mb-4">Performance Scale</h3>
-            <div className="space-y-3">
+          {/* Performance Scale - Only in Configuration mode */}
+          {creativeMode === 'configuration' && (
+            <div className="glass-card-large p-6">
+              <h3 className="font-semibold text-white mb-4">Performance Scale</h3>
+              <div className="space-y-3">
               <div className="glass-card p-3 rounded-2xl flex items-center gap-3">
                 <div className="h-6 w-6 rounded-full bg-gradient-to-br from-green-400 to-green-600 flex-shrink-0 shadow-lg shadow-green-500/30" />
                 <div>
@@ -640,6 +643,7 @@ function CreativePerformance({
               </div>
             </div>
           </div>
+          )}
         </div>
       </div>
       
