@@ -163,53 +163,55 @@ function CreativePerformance({
   
   return (
     <div className="flex flex-col h-full w-full overflow-hidden" style={{ maxWidth: '100vw' }}>
-      <header className="glass-card-large p-6 m-6 mb-4">
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-          <div>
-            <h1 className="text-2xl font-bold flex items-center gap-3 text-white mb-2">
-              <div className="glass-card p-2 rounded-2xl bg-gradient-to-br from-purple-400/20 to-pink-600/20 border-purple-400/30">
-                <Sparkles size={24} className="text-purple-300" />
-              </div>
-              Creative Product Scoring Matrix
-            </h1>
-            <p className="text-white/60 text-lg">
-              Enhanced product evaluation with creative metrics and insights
-            </p>
+      <header className="glass-card-large px-4 py-3 mx-3 lg:mx-6 mb-2 lg:mb-3">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="glass-card p-1.5 rounded-xl bg-gradient-to-br from-purple-400/20 to-pink-600/20 border-purple-400/30">
+              <Sparkles size={18} className="text-purple-300" />
+            </div>
+            <div>
+              <h1 className="text-lg lg:text-xl font-bold text-white">
+                Creative Product Scoring Matrix
+              </h1>
+              <p className="text-white/50 text-xs hidden lg:block">
+                Enhanced product evaluation with creative metrics
+              </p>
+            </div>
           </div>
 
           {/* View Mode Toggle - Analytics vs Configuration */}
           <div className="flex items-center gap-2">
-            <div className="glass-card p-2 rounded-2xl flex items-center gap-2">
+            <div className="glass-card p-1 rounded-xl flex items-center gap-1">
               <button
                 onClick={() => setCreativeMode('analytics')}
-                className={`px-3 py-1 rounded-lg text-sm ${creativeMode === 'analytics' ? 'bg-pink-500 text-white' : 'text-white/60'}`}
+                className={`px-2.5 py-1 rounded-lg text-xs ${creativeMode === 'analytics' ? 'bg-pink-500 text-white' : 'text-white/60'}`}
               >
                 Analytics
               </button>
               <button
                 onClick={() => setCreativeMode('configuration')}
-                className={`px-3 py-1 rounded-lg text-sm ${creativeMode === 'configuration' ? 'bg-purple-500 text-white' : 'text-white/60'}`}
+                className={`px-2.5 py-1 rounded-lg text-xs ${creativeMode === 'configuration' ? 'bg-purple-500 text-white' : 'text-white/60'}`}
               >
                 Configuration
               </button>
             </div>
             
             {/* Mobile toggles */}
-            <div className="flex items-center gap-2 lg:hidden">
+            <div className="flex items-center gap-1 lg:hidden">
               <button 
                 onClick={() => setShowKPICards(!showKPICards)}
-                className="glass-card p-2 rounded-2xl hover:bg-white/10"
+                className="glass-card p-1.5 rounded-xl hover:bg-white/10"
                 title={showKPICards ? 'Hide KPI cards' : 'Show KPI cards'}
               >
-                {showKPICards ? <EyeOff size={18} /> : <Eye size={18} />}
+                {showKPICards ? <EyeOff size={16} /> : <Eye size={16} />}
               </button>
               
               <button 
                 onClick={() => setShowSidebar(!showSidebar)}
-                className="glass-card p-2 rounded-2xl hover:bg-white/10"
+                className="glass-card p-1.5 rounded-xl hover:bg-white/10"
                 title={showSidebar ? 'Hide sidebar' : 'Show sidebar'}
               >
-                <Menu size={18} />
+                <Menu size={16} />
               </button>
             </div>
           </div>
