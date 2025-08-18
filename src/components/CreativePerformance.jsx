@@ -274,20 +274,6 @@ function CreativePerformance({
               </div>
 
               <div className="flex flex-wrap gap-3 items-center">
-                {setFilterMinTier && (
-                  <select 
-                    value={filterMinTier} 
-                    onChange={e => setFilterMinTier(Number(e.target.value))}
-                    className="glass-input px-3 py-2 text-sm"
-                  >
-                    <option value={5}>Show all</option>
-                    <option value={1}>Exceptional only</option>
-                    <option value={2}>Exceeds+</option>
-                    <option value={3}>Meets+</option>
-                    <option value={4}>Needs Improvement+</option>
-                  </select>
-                )}
-
                 {setCellSize && (
                   <div className="flex items-center gap-2">
                     <label className="text-xs text-white/70">Cell size</label>
