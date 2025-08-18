@@ -404,10 +404,10 @@ function CreativePerformance({
               <table className="w-max" style={{ borderCollapse: "separate", borderSpacing: "8px" }}>
                 <thead>
                   <tr>
-                    <th className="sticky top-0 left-0 z-20 glass-card p-4 text-left rounded-2xl" style={{ minWidth: '20rem', maxWidth: '20rem' }}>
+                    <th className="sticky top-0 left-0 z-20 glass-card p-2 text-left rounded-xl" style={{ minWidth: '20rem', maxWidth: '20rem' }}>
                       <div className="flex items-center justify-between">
-                        <span className="font-semibold text-white">Product</span>
-                        <span className="text-sm text-white/60">Average</span>
+                        <span className="font-semibold text-white text-sm">Product</span>
+                        <span className="text-xs text-white/60">Average</span>
                       </div>
                     </th>
                     {weeks.map(week => {
@@ -426,16 +426,16 @@ function CreativePerformance({
                       return (
                         <th 
                           key={week.key}
-                          className="sticky top-0 z-5 glass-card text-sm font-semibold text-white rounded-2xl"
+                          className="sticky top-0 z-5 glass-card text-xs font-semibold text-white rounded-lg"
                           style={{ minWidth: cellSize, width: cellSize }}
                         >
-                          <div className="text-center py-3">
-                            <div>{week.monthName} {week.day}</div>
-                            <div className="text-xs text-white/60">
+                          <div className="text-center py-1.5 px-1">
+                            <div className="text-sm">{week.monthName} {week.day}</div>
+                            <div className="text-[10px] text-white/50">
                               {week.dayName}
                             </div>
                             {dailyAvg && (
-                              <div className="text-xs text-white/40 mt-1">
+                              <div className="text-[9px] text-white/30">
                                 Avg: {dailyAvg}
                               </div>
                             )}
@@ -455,7 +455,7 @@ function CreativePerformance({
                       <React.Fragment key={emp.id}>
                         {/* Main employee row */}
                         <tr className="group hover:bg-white/5">
-                          <td className="sticky left-0 z-10 glass-card border-r border-white/10 border-b border-white/10 p-3" style={{ minWidth: '20rem', maxWidth: '20rem' }}>
+                          <td className="sticky left-0 z-10 glass-card border-r border-white/10 border-b border-white/10 p-2" style={{ minWidth: '20rem', maxWidth: '20rem' }}>
                             <div className="flex items-center justify-between">
                               <div className="flex items-center gap-2">
                                 {toggleExpand && (
