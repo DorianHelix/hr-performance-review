@@ -4,7 +4,7 @@ import {
   Lightbulb, Zap, Award, Target,
   Download, Plus, ChevronRight, Settings,
   Trash2, X, Clock, FileText, Briefcase,
-  RefreshCw, MessageSquare, Users
+  RefreshCw, MessageSquare, Users, Menu, Eye, EyeOff
 } from 'lucide-react';
 
 // Helper functions (copied from main App)
@@ -92,6 +92,8 @@ function CreativePerformance({
   const [showCreativeMetrics, setShowCreativeMetrics] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [showTestTypesModal, setShowTestTypesModal] = useState(false);
+  const [showSidebar, setShowSidebar] = useState(false); // Hidden by default on mobile
+  const [showKPICards, setShowKPICards] = useState(true); // Toggle for KPI cards
   
   // Filter products based on search
   const filteredEmployees = employees.filter(emp => {
@@ -176,26 +178,47 @@ function CreativePerformance({
           </div>
 
           {/* View Mode Toggle - Analytics vs Configuration */}
-          <div className="glass-card p-2 rounded-2xl flex items-center gap-2">
-            <button
-              onClick={() => setCreativeMode('analytics')}
-              className={`px-3 py-1 rounded-lg text-sm ${creativeMode === 'analytics' ? 'bg-pink-500 text-white' : 'text-white/60'}`}
-            >
-              Analytics
-            </button>
-            <button
-              onClick={() => setCreativeMode('configuration')}
-              className={`px-3 py-1 rounded-lg text-sm ${creativeMode === 'configuration' ? 'bg-purple-500 text-white' : 'text-white/60'}`}
-            >
-              Configuration
-            </button>
+          <div className="flex items-center gap-2">
+            <div className="glass-card p-2 rounded-2xl flex items-center gap-2">
+              <button
+                onClick={() => setCreativeMode('analytics')}
+                className={`px-3 py-1 rounded-lg text-sm ${creativeMode === 'analytics' ? 'bg-pink-500 text-white' : 'text-white/60'}`}
+              >
+                Analytics
+              </button>
+              <button
+                onClick={() => setCreativeMode('configuration')}
+                className={`px-3 py-1 rounded-lg text-sm ${creativeMode === 'configuration' ? 'bg-purple-500 text-white' : 'text-white/60'}`}
+              >
+                Configuration
+              </button>
+            </div>
+            
+            {/* Mobile toggles */}
+            <div className="flex items-center gap-2 lg:hidden">
+              <button 
+                onClick={() => setShowKPICards(!showKPICards)}
+                className="glass-card p-2 rounded-2xl hover:bg-white/10"
+                title={showKPICards ? 'Hide KPI cards' : 'Show KPI cards'}
+              >
+                {showKPICards ? <EyeOff size={18} /> : <Eye size={18} />}
+              </button>
+              
+              <button 
+                onClick={() => setShowSidebar(!showSidebar)}
+                className="glass-card p-2 rounded-2xl hover:bg-white/10"
+                title={showSidebar ? 'Hide sidebar' : 'Show sidebar'}
+              >
+                <Menu size={18} />
+              </button>
+            </div>
           </div>
         </div>
       </header>
 
-      {/* Test Metrics Cards - Only show in analytics mode */}
-      {creativeMode === 'analytics' && showCreativeMetrics && (
-        <div className="flex gap-4 mx-6 mb-4 overflow-x-auto">
+      {/* Test Metrics Cards - Only show in analytics mode and when enabled */}
+      {creativeMode === 'analytics' && showCreativeMetrics && showKPICards && (
+        <div className="flex gap-2 lg:gap-4 mx-3 lg:mx-6 mb-3 lg:mb-4 overflow-x-auto">
           {/* Dynamic category cards */}
           {categories.map(cat => {
             const catData = metrics.categoryData[cat.key] || { count: 0, avg: '0.0', percent: 0 };
@@ -203,7 +226,7 @@ function CreativePerformance({
             const avgNum = parseFloat(catData.avg);
             
             return (
-              <div key={cat.key} className="glass-card p-4 rounded-2xl bg-gradient-to-br from-purple-500/10 to-pink-500/10 relative overflow-hidden flex-shrink-0" style={{minWidth: '200px'}}>
+              <div key={cat.key} className="glass-card p-2 lg:p-3 rounded-xl lg:rounded-2xl bg-gradient-to-br from-purple-500/10 to-pink-500/10 relative overflow-hidden flex-shrink-0" style={{minWidth: '140px'}}>
                 <div className={`absolute inset-0 opacity-20 ${
                   avgNum >= 9 ? 'bg-gradient-to-br from-green-500 to-green-600' :
                   avgNum >= 7 ? 'bg-gradient-to-br from-green-400 to-green-500' :
@@ -212,15 +235,15 @@ function CreativePerformance({
                   avgNum > 0 ? 'bg-gradient-to-br from-red-500 to-red-600' : ''
                 }`} />
                 <div className="relative z-10">
-                  <div className="flex items-center gap-3 mb-3">
-                    <Icon className={`text-purple-400`} size={20} />
-                    <h3 className="font-semibold text-white">{cat.short || cat.key}</h3>
+                  <div className="flex items-center gap-2 mb-2">
+                    <Icon className={`text-purple-400`} size={16} />
+                    <h3 className="font-semibold text-white text-sm">{cat.short || cat.key}</h3>
                   </div>
-                  <div className="flex items-baseline gap-2">
-                    <span className="text-4xl font-bold text-white">{catData.avg}</span>
-                    <span className="text-sm text-white/50">/ 10</span>
+                  <div className="flex items-baseline gap-1">
+                    <span className="text-2xl lg:text-3xl font-bold text-white">{catData.avg}</span>
+                    <span className="text-xs text-white/50">/ 10</span>
                   </div>
-                  <div className={`mt-2 h-1 rounded-full bg-white/10 overflow-hidden`}>
+                  <div className={`mt-1 h-1 rounded-full bg-white/10 overflow-hidden`}>
                     <div className={`h-full transition-all duration-500 ${
                       avgNum >= 9 ? 'bg-green-500' :
                       avgNum >= 7 ? 'bg-green-400' :
@@ -229,13 +252,13 @@ function CreativePerformance({
                       avgNum > 0 ? 'bg-red-500' : 'bg-gray-500'
                     }`} style={{width: `${catData.percent}%`}} />
                   </div>
-                  <div className="text-sm text-white/60 mt-2">{catData.count} tests completed</div>
+                  <div className="text-xs text-white/60 mt-1">{catData.count} tests completed</div>
                 </div>
               </div>
             );
           })}
 
-          <div className="glass-card p-4 rounded-2xl bg-gradient-to-br from-pink-500/10 to-orange-500/10 relative overflow-hidden flex-shrink-0" style={{minWidth: '200px'}}>
+          <div className="glass-card p-2 lg:p-3 rounded-xl lg:rounded-2xl bg-gradient-to-br from-pink-500/10 to-orange-500/10 relative overflow-hidden flex-shrink-0" style={{minWidth: '140px'}}>
             <div className={`absolute inset-0 opacity-20 ${
               metrics.overallAvg >= 9 ? 'bg-gradient-to-br from-green-500 to-green-600' :
               metrics.overallAvg >= 7 ? 'bg-gradient-to-br from-green-400 to-green-500' :
@@ -244,15 +267,15 @@ function CreativePerformance({
               metrics.overallAvg > 0 ? 'bg-gradient-to-br from-red-500 to-red-600' : ''
             }`} />
             <div className="relative z-10">
-              <div className="flex items-center gap-3 mb-3">
-                <Award className="text-orange-400" size={20} />
-                <h3 className="font-semibold text-white">Overall Score</h3>
+              <div className="flex items-center gap-2 mb-2">
+                <Award className="text-orange-400" size={16} />
+                <h3 className="font-semibold text-white text-sm">Overall Score</h3>
               </div>
-              <div className="flex items-baseline gap-2">
-                <span className="text-4xl font-bold text-white">{metrics.overallAvg}</span>
-                <span className="text-sm text-white/50">/ 10</span>
+              <div className="flex items-baseline gap-1">
+                <span className="text-2xl lg:text-3xl font-bold text-white">{metrics.overallAvg}</span>
+                <span className="text-xs text-white/50">/ 10</span>
               </div>
-              <div className={`mt-2 h-1 rounded-full bg-white/10 overflow-hidden`}>
+              <div className={`mt-1 h-1 rounded-full bg-white/10 overflow-hidden`}>
                 <div className={`h-full transition-all duration-500 ${
                   metrics.overallAvg >= 9 ? 'bg-green-500' :
                   metrics.overallAvg >= 7 ? 'bg-green-400' :
@@ -261,18 +284,18 @@ function CreativePerformance({
                   metrics.overallAvg > 0 ? 'bg-red-500' : 'bg-gray-500'
                 }`} style={{width: `${metrics.overallAvg * 10}%`}} />
               </div>
-              <div className="text-sm text-white/60 mt-2">All tests combined</div>
+              <div className="text-xs text-white/60 mt-1">All tests combined</div>
             </div>
           </div>
         </div>
       )}
 
-      <div className="grid lg:grid-cols-[1fr,24rem] grid-cols-1 gap-6 flex-1 min-h-0 px-6 pb-6">
+      <div className="grid lg:grid-cols-[1fr,18rem] grid-cols-1 gap-3 lg:gap-6 flex-1 min-h-0 px-3 lg:px-6 pb-3 lg:pb-6">
         {/* Main table - Fixed width container with horizontal scroll */}
         <div className="min-w-0 overflow-hidden flex flex-col gap-4">
           {/* Table Controls Bar */}
-          <div className="glass-card-large p-4">
-            <div className="flex flex-wrap gap-3 items-center justify-between">
+          <div className="glass-card-large p-3 lg:p-4">
+            <div className="flex flex-wrap gap-2 lg:gap-3 items-center justify-between">
               <div className="flex flex-wrap gap-3 items-center">
                 {DateRangePicker && (
                   <DateRangePicker 
@@ -602,11 +625,11 @@ function CreativePerformance({
           </div>
         </div>
 
-        {/* Right sidebar - Fixed position */}
-        <div className="space-y-6 overflow-y-auto h-full lg:h-full lg:max-h-none max-h-96">
+        {/* Right sidebar - Collapsible on mobile */}
+        <div className={`space-y-3 lg:space-y-4 overflow-y-auto h-full lg:h-full lg:max-h-none max-h-96 ${showSidebar ? 'block' : 'hidden lg:block'}`}>
           {/* Test Insights Panel - Only in Analytics mode */}
           {creativeMode === 'analytics' && (
-            <div className="glass-card-large p-6 bg-gradient-to-br from-purple-500/5 to-pink-500/5">
+            <div className="glass-card-large p-4 lg:p-5 bg-gradient-to-br from-purple-500/5 to-pink-500/5">
               <h3 className="font-semibold text-white mb-4 flex items-center gap-2">
                 <Sparkles className="text-purple-400" size={20} />
                 Test Performance Insights
@@ -636,8 +659,8 @@ function CreativePerformance({
 
           {/* Test Types - Only in Configuration mode */}
           {creativeMode === 'configuration' && (
-            <div className="glass-card-large p-6">
-              <div className="flex items-center justify-between mb-4">
+            <div className="glass-card-large p-4 lg:p-5">
+              <div className="flex items-center justify-between mb-3">
                 <h3 className="font-semibold text-white">Test Types</h3>
                 <button
                   onClick={() => setShowTestTypesModal(true)}
@@ -647,11 +670,11 @@ function CreativePerformance({
                 </button>
               </div>
               
-              <div className="space-y-3">
+              <div className="space-y-2">
                 {categories.map(cat => {
                   const Icon = getIcon(cat.iconName);
                   return (
-                    <div key={cat.id} className="glass-card p-4 rounded-2xl hover:scale-105 transition-all duration-300">
+                    <div key={cat.id} className="glass-card p-3 rounded-xl hover:scale-105 transition-all duration-300">
                       <div className="flex items-start gap-3">
                         <div className={`p-2 rounded-xl ${cat.tag} shadow-lg`}>
                           <Icon size={16} className="text-white" />
@@ -670,9 +693,9 @@ function CreativePerformance({
 
           {/* Performance Scale - Only in Configuration mode */}
           {creativeMode === 'configuration' && (
-            <div className="glass-card-large p-6">
-              <h3 className="font-semibold text-white mb-4">Performance Scale</h3>
-              <div className="space-y-3">
+            <div className="glass-card-large p-4 lg:p-5">
+              <h3 className="font-semibold text-white mb-3">Performance Scale</h3>
+              <div className="space-y-2">
               <div className="glass-card p-3 rounded-2xl flex items-center gap-3">
                 <div className="h-6 w-6 rounded-full bg-gradient-to-br from-green-400 to-green-600 flex-shrink-0 shadow-lg shadow-green-500/30" />
                 <div>
