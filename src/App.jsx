@@ -3535,8 +3535,8 @@ function QuickAddEmployeeModal({ managerId, employees, onSave, onClose }) {
 /* -----------------------------------------------------------
    Main App Component
 ----------------------------------------------------------- */
-// Test categories for Creative Product Scoring
-const TEST_CATEGORIES = [
+// Default test categories for Creative Product Scoring
+const DEFAULT_TEST_CATEGORIES = [
   { 
     id: "test-1",
     key: "VCT", 
@@ -3577,6 +3577,18 @@ export default function App() {
     return saved ? JSON.parse(saved) : [];
   });
   const [categories, setCategories] = useState([]);
+  
+  // Test categories state for Creative component
+  const [testCategories, setTestCategories] = useState(() => {
+    const saved = localStorage.getItem('hr_test_categories');
+    return saved ? JSON.parse(saved) : DEFAULT_TEST_CATEGORIES;
+  });
+  
+  // Save test categories to localStorage when they change
+  useEffect(() => {
+    localStorage.setItem('hr_test_categories', JSON.stringify(testCategories));
+  }, [testCategories]);
+  
   const [loading, setLoading] = useState(true);
   const [startDate, setStartDate] = useState(() => {
     // Default to start of current month
@@ -4022,7 +4034,8 @@ export default function App() {
       {currentView === 'creative' && (
         <CreativePerformance 
           employees={products}  // Pass products instead of employees
-          categories={TEST_CATEGORIES}  // Use test categories for creative
+          categories={testCategories}  // Use test categories for creative
+          setCategories={setTestCategories}  // Allow updating test categories
           weeks={days}  // Pass days instead of weeks for daily view
           startDate={startDate}
           setStartDate={setStartDate}

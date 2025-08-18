@@ -49,6 +49,7 @@ const getIcon = (iconName) => {
 function CreativePerformance({ 
   employees = [],  // Now contains products data instead of employees 
   categories = [],
+  setCategories,  // Function to update categories
   weeks = [],  // Now contains days data instead of weeks
   startDate,
   setStartDate,
@@ -103,26 +104,22 @@ function CreativePerformance({
   
   // Calculate metrics from actual table data
   const calculateMetrics = () => {
-    let vctCount = 0, vctTotal = 0;
-    let sctCount = 0, sctTotal = 0;
-    let actCount = 0, actTotal = 0;
+    const categoryMetrics = {};
     let overallCount = 0, overallTotal = 0;
     
+    // Initialize metrics for each category
+    categories.forEach(cat => {
+      categoryMetrics[cat.key] = { count: 0, total: 0 };
+    });
+    
+    // Calculate scores
     filteredEmployees.forEach(emp => {
       weeks.forEach(week => {
         categories.forEach(cat => {
           const score = getCategoryScore ? getCategoryScore(emp.id, week.key, cat.key) : null;
           if (score !== null) {
-            if (cat.key === 'VCT') {
-              vctCount++;
-              vctTotal += score;
-            } else if (cat.key === 'SCT') {
-              sctCount++;
-              sctTotal += score;
-            } else if (cat.key === 'ACT') {
-              actCount++;
-              actTotal += score;
-            }
+            categoryMetrics[cat.key].count++;
+            categoryMetrics[cat.key].total += score;
             overallCount++;
             overallTotal += score;
           }
@@ -130,18 +127,34 @@ function CreativePerformance({
       });
     });
     
-    return {
-      vctCount,
-      vctAvg: vctCount > 0 ? (vctTotal / vctCount).toFixed(1) : '0.0',
-      vctPercent: vctCount > 0 ? Math.round((vctTotal / vctCount) * 10) : 0,
-      sctCount,
-      sctAvg: sctCount > 0 ? (sctTotal / sctCount).toFixed(1) : '0.0',
-      sctPercent: sctCount > 0 ? Math.round((sctTotal / sctCount) * 10) : 0,
-      actCount,
-      actAvg: actCount > 0 ? (actTotal / actCount).toFixed(1) : '0.0',
-      actPercent: actCount > 0 ? Math.round((actTotal / actCount) * 10) : 0,
-      overallAvg: overallCount > 0 ? (overallTotal / overallCount).toFixed(1) : '0.0'
+    // Build result object with dynamic categories
+    const result = {
+      overallAvg: overallCount > 0 ? (overallTotal / overallCount).toFixed(1) : '0.0',
+      categoryData: {}
     };
+    
+    // Add metrics for each category
+    categories.forEach(cat => {
+      const metrics = categoryMetrics[cat.key];
+      result.categoryData[cat.key] = {
+        count: metrics.count,
+        avg: metrics.count > 0 ? (metrics.total / metrics.count).toFixed(1) : '0.0',
+        percent: metrics.count > 0 ? Math.round((metrics.total / metrics.count) * 10) : 0
+      };
+    });
+    
+    // Keep backward compatibility for VCT, SCT, ACT
+    result.vctCount = result.categoryData.VCT?.count || 0;
+    result.vctAvg = result.categoryData.VCT?.avg || '0.0';
+    result.vctPercent = result.categoryData.VCT?.percent || 0;
+    result.sctCount = result.categoryData.SCT?.count || 0;
+    result.sctAvg = result.categoryData.SCT?.avg || '0.0';
+    result.sctPercent = result.categoryData.SCT?.percent || 0;
+    result.actCount = result.categoryData.ACT?.count || 0;
+    result.actAvg = result.categoryData.ACT?.avg || '0.0';
+    result.actPercent = result.categoryData.ACT?.percent || 0;
+    
+    return result;
   };
   
   const metrics = calculateMetrics();
@@ -182,96 +195,45 @@ function CreativePerformance({
 
       {/* Test Metrics Cards - Only show in analytics mode */}
       {creativeMode === 'analytics' && showCreativeMetrics && (
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mx-6 mb-4">
-          <div className="glass-card p-4 rounded-2xl bg-gradient-to-br from-purple-500/10 to-pink-500/10 relative overflow-hidden">
-            <div className={`absolute inset-0 opacity-20 ${
-              metrics.vctAvg >= 9 ? 'bg-gradient-to-br from-green-500 to-green-600' :
-              metrics.vctAvg >= 7 ? 'bg-gradient-to-br from-green-400 to-green-500' :
-              metrics.vctAvg >= 5 ? 'bg-gradient-to-br from-yellow-400 to-yellow-500' :
-              metrics.vctAvg >= 3 ? 'bg-gradient-to-br from-orange-500 to-orange-600' :
-              metrics.vctAvg > 0 ? 'bg-gradient-to-br from-red-500 to-red-600' : ''
-            }`} />
-            <div className="relative z-10">
-              <div className="flex items-center gap-3 mb-3">
-                <Zap className="text-purple-400" size={20} />
-                <h3 className="font-semibold text-white">Video Tests</h3>
+        <div className={`grid grid-cols-1 ${categories.length <= 3 ? 'md:grid-cols-4' : `md:grid-cols-${Math.min(categories.length + 1, 6)}`} gap-4 mx-6 mb-4`}>
+          {/* Dynamic category cards */}
+          {categories.map(cat => {
+            const catData = metrics.categoryData[cat.key] || { count: 0, avg: '0.0', percent: 0 };
+            const Icon = getIcon(cat.iconName);
+            const avgNum = parseFloat(catData.avg);
+            
+            return (
+              <div key={cat.key} className="glass-card p-4 rounded-2xl bg-gradient-to-br from-purple-500/10 to-pink-500/10 relative overflow-hidden">
+                <div className={`absolute inset-0 opacity-20 ${
+                  avgNum >= 9 ? 'bg-gradient-to-br from-green-500 to-green-600' :
+                  avgNum >= 7 ? 'bg-gradient-to-br from-green-400 to-green-500' :
+                  avgNum >= 5 ? 'bg-gradient-to-br from-yellow-400 to-yellow-500' :
+                  avgNum >= 3 ? 'bg-gradient-to-br from-orange-500 to-orange-600' :
+                  avgNum > 0 ? 'bg-gradient-to-br from-red-500 to-red-600' : ''
+                }`} />
+                <div className="relative z-10">
+                  <div className="flex items-center gap-3 mb-3">
+                    <Icon className={`text-purple-400`} size={20} />
+                    <h3 className="font-semibold text-white">{cat.short || cat.key}</h3>
+                  </div>
+                  <div className="flex items-baseline gap-2">
+                    <span className="text-4xl font-bold text-white">{catData.avg}</span>
+                    <span className="text-sm text-white/50">/ 10</span>
+                  </div>
+                  <div className={`mt-2 h-1 rounded-full bg-white/10 overflow-hidden`}>
+                    <div className={`h-full transition-all duration-500 ${
+                      avgNum >= 9 ? 'bg-green-500' :
+                      avgNum >= 7 ? 'bg-green-400' :
+                      avgNum >= 5 ? 'bg-yellow-400' :
+                      avgNum >= 3 ? 'bg-orange-500' :
+                      avgNum > 0 ? 'bg-red-500' : 'bg-gray-500'
+                    }`} style={{width: `${catData.percent}%`}} />
+                  </div>
+                  <div className="text-sm text-white/60 mt-2">{catData.count} tests completed</div>
+                </div>
               </div>
-              <div className="flex items-baseline gap-2">
-                <span className="text-4xl font-bold text-white">{metrics.vctAvg}</span>
-                <span className="text-sm text-white/50">/ 10</span>
-              </div>
-              <div className={`mt-2 h-1 rounded-full bg-white/10 overflow-hidden`}>
-                <div className={`h-full transition-all duration-500 ${
-                  metrics.vctAvg >= 9 ? 'bg-green-500' :
-                  metrics.vctAvg >= 7 ? 'bg-green-400' :
-                  metrics.vctAvg >= 5 ? 'bg-yellow-400' :
-                  metrics.vctAvg >= 3 ? 'bg-orange-500' :
-                  metrics.vctAvg > 0 ? 'bg-red-500' : 'bg-gray-500'
-                }`} style={{width: `${metrics.vctAvg * 10}%`}} />
-              </div>
-              <div className="text-sm text-white/60 mt-2">{metrics.vctCount} tests completed</div>
-            </div>
-          </div>
-
-          <div className="glass-card p-4 rounded-2xl bg-gradient-to-br from-blue-500/10 to-purple-500/10 relative overflow-hidden">
-            <div className={`absolute inset-0 opacity-20 ${
-              metrics.sctAvg >= 9 ? 'bg-gradient-to-br from-green-500 to-green-600' :
-              metrics.sctAvg >= 7 ? 'bg-gradient-to-br from-green-400 to-green-500' :
-              metrics.sctAvg >= 5 ? 'bg-gradient-to-br from-yellow-400 to-yellow-500' :
-              metrics.sctAvg >= 3 ? 'bg-gradient-to-br from-orange-500 to-orange-600' :
-              metrics.sctAvg > 0 ? 'bg-gradient-to-br from-red-500 to-red-600' : ''
-            }`} />
-            <div className="relative z-10">
-              <div className="flex items-center gap-3 mb-3">
-                <Lightbulb className="text-blue-400" size={20} />
-                <h3 className="font-semibold text-white">Static Tests</h3>
-              </div>
-              <div className="flex items-baseline gap-2">
-                <span className="text-4xl font-bold text-white">{metrics.sctAvg}</span>
-                <span className="text-sm text-white/50">/ 10</span>
-              </div>
-              <div className={`mt-2 h-1 rounded-full bg-white/10 overflow-hidden`}>
-                <div className={`h-full transition-all duration-500 ${
-                  metrics.sctAvg >= 9 ? 'bg-green-500' :
-                  metrics.sctAvg >= 7 ? 'bg-green-400' :
-                  metrics.sctAvg >= 5 ? 'bg-yellow-400' :
-                  metrics.sctAvg >= 3 ? 'bg-orange-500' :
-                  metrics.sctAvg > 0 ? 'bg-red-500' : 'bg-gray-500'
-                }`} style={{width: `${metrics.sctAvg * 10}%`}} />
-              </div>
-              <div className="text-sm text-white/60 mt-2">{metrics.sctCount} tests completed</div>
-            </div>
-          </div>
-
-          <div className="glass-card p-4 rounded-2xl bg-gradient-to-br from-green-500/10 to-blue-500/10 relative overflow-hidden">
-            <div className={`absolute inset-0 opacity-20 ${
-              metrics.actAvg >= 9 ? 'bg-gradient-to-br from-green-500 to-green-600' :
-              metrics.actAvg >= 7 ? 'bg-gradient-to-br from-green-400 to-green-500' :
-              metrics.actAvg >= 5 ? 'bg-gradient-to-br from-yellow-400 to-yellow-500' :
-              metrics.actAvg >= 3 ? 'bg-gradient-to-br from-orange-500 to-orange-600' :
-              metrics.actAvg > 0 ? 'bg-gradient-to-br from-red-500 to-red-600' : ''
-            }`} />
-            <div className="relative z-10">
-              <div className="flex items-center gap-3 mb-3">
-                <MessageSquare className="text-green-400" size={20} />
-                <h3 className="font-semibold text-white">Copy Tests</h3>
-              </div>
-              <div className="flex items-baseline gap-2">
-                <span className="text-4xl font-bold text-white">{metrics.actAvg}</span>
-                <span className="text-sm text-white/50">/ 10</span>
-              </div>
-              <div className={`mt-2 h-1 rounded-full bg-white/10 overflow-hidden`}>
-                <div className={`h-full transition-all duration-500 ${
-                  metrics.actAvg >= 9 ? 'bg-green-500' :
-                  metrics.actAvg >= 7 ? 'bg-green-400' :
-                  metrics.actAvg >= 5 ? 'bg-yellow-400' :
-                  metrics.actAvg >= 3 ? 'bg-orange-500' :
-                  metrics.actAvg > 0 ? 'bg-red-500' : 'bg-gray-500'
-                }`} style={{width: `${metrics.actAvg * 10}%`}} />
-              </div>
-              <div className="text-sm text-white/60 mt-2">{metrics.actCount} tests completed</div>
-            </div>
-          </div>
+            );
+          })}
 
           <div className="glass-card p-4 rounded-2xl bg-gradient-to-br from-pink-500/10 to-orange-500/10 relative overflow-hidden">
             <div className={`absolute inset-0 opacity-20 ${
@@ -650,33 +612,23 @@ function CreativePerformance({
                 Test Performance Insights
               </h3>
               <div className="space-y-3">
-                <div className="text-sm text-white/80">
-                  <div className="flex justify-between mb-2">
-                    <span>Video Test Success Rate</span>
-                    <span className="font-bold text-purple-400">{metrics.vctPercent}%</span>
-                  </div>
-                  <div className="w-full bg-white/10 rounded-full h-2">
-                    <div className="bg-gradient-to-r from-purple-400 to-pink-400 h-2 rounded-full" style={{width: `${metrics.vctPercent}%`}}></div>
-                  </div>
-                </div>
-                <div className="text-sm text-white/80">
-                  <div className="flex justify-between mb-2">
-                    <span>Static Creative Performance</span>
-                    <span className="font-bold text-blue-400">{metrics.sctPercent}%</span>
-                  </div>
-                  <div className="w-full bg-white/10 rounded-full h-2">
-                    <div className="bg-gradient-to-r from-blue-400 to-purple-400 h-2 rounded-full" style={{width: `${metrics.sctPercent}%`}}></div>
-                  </div>
-                </div>
-                <div className="text-sm text-white/80">
-                  <div className="flex justify-between mb-2">
-                    <span>Copy Test Effectiveness</span>
-                    <span className="font-bold text-green-400">{metrics.actPercent}%</span>
-                  </div>
-                  <div className="w-full bg-white/10 rounded-full h-2">
-                    <div className="bg-gradient-to-r from-green-400 to-blue-400 h-2 rounded-full" style={{width: `${metrics.actPercent}%`}}></div>
-                  </div>
-                </div>
+                {categories.map(cat => {
+                  const catData = metrics.categoryData[cat.key] || { percent: 0 };
+                  const colorClass = cat.tag.replace('bg-', 'from-').replace('500', '400');
+                  const textColor = cat.tag.replace('bg-', 'text-').replace('500', '400');
+                  
+                  return (
+                    <div key={cat.key} className="text-sm text-white/80">
+                      <div className="flex justify-between mb-2">
+                        <span>{cat.label}</span>
+                        <span className={`font-bold ${textColor}`}>{catData.percent}%</span>
+                      </div>
+                      <div className="w-full bg-white/10 rounded-full h-2">
+                        <div className={`bg-gradient-to-r ${colorClass} to-pink-400 h-2 rounded-full`} style={{width: `${catData.percent}%`}}></div>
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             </div>
           )}
@@ -766,6 +718,7 @@ function CreativePerformance({
       {showTestTypesModal && (
         <TestTypesModal 
           categories={categories}
+          setCategories={setCategories}
           onClose={() => setShowTestTypesModal(false)}
         />
       )}
@@ -774,7 +727,7 @@ function CreativePerformance({
 }
 
 // Test Types Configuration Modal Component
-function TestTypesModal({ categories, onClose }) {
+function TestTypesModal({ categories, setCategories, onClose }) {
   const [localCategories, setLocalCategories] = useState([...categories]);
   
   const handleUpdate = (index, field, value) => {
@@ -784,8 +737,10 @@ function TestTypesModal({ categories, onClose }) {
   };
   
   const handleSave = () => {
-    // In a real app, this would save to parent state or backend
-    console.log('Saving test types:', localCategories);
+    // Save to parent state
+    if (setCategories) {
+      setCategories(localCategories);
+    }
     onClose();
   };
   
