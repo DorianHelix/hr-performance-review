@@ -5,13 +5,14 @@ import {
   ChevronLeft, ChevronRight, Calendar, Plus, Users, 
   TrendingUp, Clock, FileText, Briefcase, Upload,
   Bot, Save, Edit2, Star, Home, BarChart3, Sun, Moon, Menu, ArrowLeft, Network, Minus, Maximize2, Minimize2,
-  Zap, Lightbulb, RefreshCw, MessageSquare, Sparkles, Package
+  Zap, Lightbulb, RefreshCw, MessageSquare, Sparkles, Package, GitBranch
 } from "lucide-react";
 
 // Import components
 import CreativePerformance from "./components/CreativePerformance";
 import Products from "./components/Products";
 import ProductVariantsDemo from "./components/ProductVariantsDemo";
+import FlowBuilder from "./components/FlowBuilder";
 import DatePicker from "./components/DatePicker";
 import DateRangePicker from "./components/DateRangePicker";
 import { ToastProvider } from "./components/Toast";
@@ -74,6 +75,12 @@ function Sidebar({ isCollapsed, onToggle, currentView, onViewChange, isDarkMode,
       label: 'Products',
       icon: Package,
       active: currentView === 'products'
+    },
+    {
+      id: 'flowbuilder',
+      label: 'Flow Builder',
+      icon: GitBranch,
+      active: currentView === 'flowbuilder'
     }
   ];
 
@@ -4246,6 +4253,8 @@ export default function App() {
       )}
       
       {currentView === 'products' && <Products />}
+      
+      {currentView === 'flowbuilder' && <FlowBuilder />}
       
       {currentView === 'performance' && (
         <div className="flex h-full flex-col p-6">
