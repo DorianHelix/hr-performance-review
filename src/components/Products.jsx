@@ -417,10 +417,9 @@ function Products() {
   }).length;
 
   return (
-    <div className="flex h-full overflow-hidden">
+    <div className="flex h-full overflow-hidden relative">
       {/* Main Content - Flexible width */}
-      <div className={`flex-1 min-w-0 p-4 md:p-6 overflow-hidden transition-all duration-500`}>
-        <div className="w-full h-full flex flex-col">
+      <div className={`flex-1 min-w-0 p-4 md:p-6 flex flex-col overflow-hidden transition-all duration-500`}>
           {/* Collapsible Header */}
           <header className="glass-card-large mb-4 overflow-hidden transition-all duration-500" 
             style={{ maxHeight: isHeaderExpanded ? '300px' : '70px' }}>
@@ -534,20 +533,20 @@ function Products() {
           </div>
 
           {/* Products Table - Flexible width with scroll */}
-          <div className="glass-card-large flex flex-col overflow-hidden flex-1 p-2">
-            <div className="flex-1 overflow-auto custom-scrollbar" style={{ maxHeight: 'calc(100vh - 320px)' }}>
-              <table className="w-full" style={{ minWidth: '1000px' }}>
+          <div className="glass-card-large flex flex-col overflow-hidden flex-1 p-2" style={{ minHeight: 0 }}>
+            <div className="overflow-x-auto overflow-y-auto custom-scrollbar h-full" style={{ maxHeight: 'calc(100vh - 320px)' }}>
+              <table className="w-full" style={{ minWidth: 'max-content' }}>
                 <thead className="sticky top-0 z-10 bg-black/80 backdrop-blur-md">
                   <tr className="border-b border-white/10">
-                    <th className="text-left p-3 text-white/70 font-medium w-10"></th>
-                    <th className="text-left p-3 text-white/70 font-medium" style={{ minWidth: '250px' }}>Product / Variant</th>
-                    <th className="text-left p-3 text-white/70 font-medium w-32">SKU</th>
-                    <th className="text-left p-3 text-white/70 font-medium w-32">Category</th>
-                    <th className="text-right p-3 text-white/70 font-medium w-24">Price</th>
-                    <th className="text-right p-3 text-white/70 font-medium w-24">Cost</th>
-                    <th className="text-right p-3 text-white/70 font-medium w-20">Stock</th>
-                    <th className="text-left p-3 text-white/70 font-medium w-24">Status</th>
-                    <th className="text-center p-3 text-white/70 font-medium w-24">Actions</th>
+                    <th className="text-left p-3 text-white/70 font-medium" style={{ width: '40px', minWidth: '40px' }}></th>
+                    <th className="text-left p-3 text-white/70 font-medium" style={{ width: '35%', minWidth: '250px' }}>Product / Variant</th>
+                    <th className="text-left p-3 text-white/70 font-medium" style={{ width: '120px', minWidth: '120px' }}>SKU</th>
+                    <th className="text-left p-3 text-white/70 font-medium" style={{ width: '120px', minWidth: '120px' }}>Category</th>
+                    <th className="text-right p-3 text-white/70 font-medium" style={{ width: '90px', minWidth: '90px' }}>Price</th>
+                    <th className="text-right p-3 text-white/70 font-medium" style={{ width: '90px', minWidth: '90px' }}>Cost</th>
+                    <th className="text-right p-3 text-white/70 font-medium" style={{ width: '80px', minWidth: '80px' }}>Stock</th>
+                    <th className="text-left p-3 text-white/70 font-medium" style={{ width: '90px', minWidth: '90px' }}>Status</th>
+                    <th className="text-center p-3 text-white/70 font-medium" style={{ width: '90px', minWidth: '90px' }}>Actions</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -746,7 +745,6 @@ function Products() {
               </table>
             </div>
           </div>
-        </div>
       </div>
 
       {/* Right Sidebar - Collapsible */}
