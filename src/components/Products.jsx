@@ -39,6 +39,17 @@ function Products() {
     // Check if we have imported products
     return !!localStorage.getItem('hr_products_imported');
   });
+  
+  // Confirmation modal state
+  const [confirmDialog, setConfirmDialog] = useState({
+    isOpen: false,
+    title: '',
+    message: '',
+    onConfirm: null,
+    confirmText: 'Confirm',
+    cancelText: 'Cancel',
+    type: 'danger' // danger, warning, info
+  });
 
   // Load products from database
   useEffect(() => {
@@ -87,6 +98,19 @@ function Products() {
       ...prev,
       [productId]: !prev[productId]
     }));
+  };
+
+  // Show confirmation dialog
+  const showConfirm = (title, message, onConfirm, type = 'danger', confirmText = 'Confirm', cancelText = 'Cancel') => {
+    setConfirmDialog({
+      isOpen: true,
+      title,
+      message,
+      onConfirm,
+      confirmText,
+      cancelText,
+      type
+    });
   };
 
   // Import Stock Levels CSV
@@ -354,26 +378,36 @@ function Products() {
 
   // Delete product
   const handleDeleteProduct = async (id) => {
-    if (!confirm("Are you sure you want to delete this product?")) return;
-    
-    try {
-      // Delete from database
-      await API.products.delete(id);
-      console.log('✅ Product deleted from database');
-    } catch (error) {
-      console.error('Error deleting from database:', error);
-    }
-    
-    // Update local state
-    const updated = products.filter(prod => prod.id !== id);
-    setProducts(updated);
-    
-    // Save to appropriate storage
-    if (showImportedProducts) {
-      localStorage.setItem('hr_products_imported', JSON.stringify(updated));
-    } else {
-      localStorage.setItem('hr_products', JSON.stringify(updated));
-    }
+    const product = products.find(p => p.id === id);
+    showConfirm(
+      'Delete Product',
+      `Are you sure you want to delete "${product?.name || 'this product'}"? This action cannot be undone.`,
+      async () => {
+        try {
+          // Delete from database
+          await API.products.delete(id);
+          console.log('✅ Product deleted from database');
+        } catch (error) {
+          console.error('Error deleting from database:', error);
+        }
+        
+        // Update local state
+        const updated = products.filter(prod => prod.id !== id);
+        setProducts(updated);
+        
+        // Save to appropriate storage
+        if (showImportedProducts) {
+          localStorage.setItem('hr_products_imported', JSON.stringify(updated));
+        } else {
+          localStorage.setItem('hr_products', JSON.stringify(updated));
+        }
+        
+        showSuccess('Product deleted successfully');
+      },
+      'danger',
+      'Delete',
+      'Cancel'
+    );
   };
 
   // Filter products
@@ -660,7 +694,7 @@ function Products() {
                               {prod.hasVariants ? (
                                 <span className="text-white/50">Various</span>
                               ) : (
-                                `$${(prod.price || 0).toLocaleString()}`
+                                `${(prod.price || 0).toLocaleString()} Ft`
                               )}
                             </div>
                           </td>
@@ -669,7 +703,7 @@ function Products() {
                               {prod.hasVariants ? (
                                 <span className="text-white/30">Various</span>
                               ) : (
-                                `$${(prod.cost || 0).toLocaleString()}`
+                                `${(prod.cost || 0).toLocaleString()} Ft`
                               )}
                             </div>
                           </td>
@@ -750,12 +784,12 @@ function Products() {
                             </td>
                             <td className="p-3 text-right w-24">
                               <div className="text-white/80 text-xs">
-                                ${(variant.price || 0).toLocaleString()}
+                                {(variant.price || 0).toLocaleString()} Ft
                               </div>
                             </td>
                             <td className="p-3 text-right w-24">
                               <div className="text-white/60 text-xs">
-                                ${(variant.cost || 0).toLocaleString()}
+                                {(variant.cost || 0).toLocaleString()} Ft
                               </div>
                             </td>
                             <td className="p-3 text-right w-20">
@@ -849,13 +883,20 @@ function Products() {
             {localStorage.getItem('hr_products_imported') && (
               <button
                 onClick={() => {
-                  if (confirm('Are you sure you want to clear all imported data? This will switch back to manual products.')) {
-                    localStorage.removeItem('hr_products_imported');
-                    setShowImportedProducts(false);
-                    showInfo('Imported data cleared. Showing manual products.');
-                    // Reload to refresh the products
-                    window.location.reload();
-                  }
+                  showConfirm(
+                    'Clear Imported Data',
+                    'Are you sure you want to clear all imported data? This will switch back to manual products.',
+                    () => {
+                      localStorage.removeItem('hr_products_imported');
+                      setShowImportedProducts(false);
+                      showInfo('Imported data cleared. Showing manual products.');
+                      // Reload to refresh the products
+                      window.location.reload();
+                    },
+                    'warning',
+                    'Clear Data',
+                    'Cancel'
+                  );
                 }}
                 className="w-full py-3 font-medium transition-all flex items-center justify-center gap-2 rounded-2xl border bg-yellow-900/50 hover:bg-yellow-800/50 border-yellow-700/30 text-yellow-400"
               >
@@ -913,14 +954,22 @@ function Products() {
             {products.length > 0 && (
               <button
                 onClick={() => {
-                  if (window.confirm('Are you sure you want to delete ALL products? This action cannot be undone.')) {
-                    setProducts([]);
-                    if (showImportedProducts) {
-                      localStorage.removeItem('hr_products_imported');
-                    } else {
-                      localStorage.removeItem('hr_products');
-                    }
-                  }
+                  showConfirm(
+                    'Delete All Products',
+                    'Are you sure you want to delete ALL products? This action cannot be undone.',
+                    () => {
+                      setProducts([]);
+                      if (showImportedProducts) {
+                        localStorage.removeItem('hr_products_imported');
+                      } else {
+                        localStorage.removeItem('hr_products');
+                      }
+                      showSuccess('All products deleted successfully');
+                    },
+                    'danger',
+                    'Delete All',
+                    'Cancel'
+                  );
                 }}
                 className="w-full py-3 font-medium transition-all flex items-center justify-center gap-2 rounded-2xl border bg-red-900/80 hover:bg-red-800 border-red-700/50 text-white hover:scale-105"
               >
@@ -948,9 +997,9 @@ function Products() {
                 <div className="flex justify-between items-center">
                   <span className="text-sm text-white/50">Avg. Price</span>
                   <span className="text-sm font-medium text-white">
-                    ${products.length > 0 
-                      ? Math.round(products.reduce((sum, p) => sum + (p.price || 0), 0) / products.length)
-                      : 0}
+                    {products.length > 0 
+                      ? Math.round(products.reduce((sum, p) => sum + (p.price || 0), 0) / products.length).toLocaleString()
+                      : 0} Ft
                   </span>
                 </div>
                 <div className="flex justify-between items-center">
@@ -1091,6 +1140,58 @@ function Products() {
       )}
 
       {/* Shopify Import Modal - Combined Products & Inventory */}
+      {/* Confirmation Modal */}
+      {confirmDialog.isOpen && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[60] p-4">
+          <div className="glass-card-large w-full max-w-md animate-in fade-in zoom-in duration-200">
+            <div className={`p-6 border-b border-white/20 ${
+              confirmDialog.type === 'danger' ? 'bg-gradient-to-r from-red-500/10 to-pink-500/10' :
+              confirmDialog.type === 'warning' ? 'bg-gradient-to-r from-yellow-500/10 to-orange-500/10' :
+              'bg-gradient-to-r from-blue-500/10 to-cyan-500/10'
+            }`}>
+              <h2 className="text-xl font-bold text-white flex items-center gap-3">
+                {confirmDialog.type === 'danger' && <AlertTriangle size={24} className="text-red-400" />}
+                {confirmDialog.type === 'warning' && <AlertTriangle size={24} className="text-yellow-400" />}
+                {confirmDialog.type === 'info' && <AlertTriangle size={24} className="text-blue-400" />}
+                {confirmDialog.title}
+              </h2>
+            </div>
+            
+            <div className="p-6">
+              <p className="text-white/80 text-sm leading-relaxed">
+                {confirmDialog.message}
+              </p>
+            </div>
+            
+            <div className="p-6 border-t border-white/20 flex justify-end gap-3">
+              <button
+                onClick={() => setConfirmDialog({ ...confirmDialog, isOpen: false })}
+                className="px-6 py-2 glass-button rounded-xl hover:scale-105 transition-transform"
+              >
+                {confirmDialog.cancelText}
+              </button>
+              <button
+                onClick={() => {
+                  if (confirmDialog.onConfirm) {
+                    confirmDialog.onConfirm();
+                  }
+                  setConfirmDialog({ ...confirmDialog, isOpen: false });
+                }}
+                className={`px-6 py-2 rounded-xl font-medium hover:scale-105 transition-transform ${
+                  confirmDialog.type === 'danger' 
+                    ? 'bg-gradient-to-r from-red-500 to-pink-500 text-white'
+                    : confirmDialog.type === 'warning'
+                    ? 'bg-gradient-to-r from-yellow-500 to-orange-500 text-white'
+                    : 'bg-gradient-to-r from-blue-500 to-cyan-500 text-white'
+                }`}
+              >
+                {confirmDialog.confirmText}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {showShopifyImportModal && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
           <div className="glass-card-large w-full max-w-3xl max-h-[90vh] overflow-y-auto">
@@ -1329,10 +1430,10 @@ function ProductModal({ product, onSave, onClose }) {
 
           <div className="grid grid-cols-3 gap-4">
             <div>
-              <label className="block text-sm font-medium text-white/70 mb-2">Price ($)</label>
+              <label className="block text-sm font-medium text-white/70 mb-2">Price (Ft)</label>
               <input
                 type="number"
-                step="0.01"
+                step="1"
                 value={formData.price}
                 onChange={(e) => setFormData({...formData, price: parseFloat(e.target.value) || 0})}
                 className="w-full glass-input px-4 py-2"
