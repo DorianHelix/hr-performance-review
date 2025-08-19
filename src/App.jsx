@@ -3592,8 +3592,8 @@ export default function App() {
   
   const [loading, setLoading] = useState(true);
   const [startDate, setStartDate] = useState(() => {
-    // Default to start of current month
-    return startOfMonth(new Date()).toISOString().slice(0, 10);
+    // Default to current date (today)
+    return new Date().toISOString().slice(0, 10);
   });
   const [endDate, setEndDate] = useState(() => {
     // Default to end of current month

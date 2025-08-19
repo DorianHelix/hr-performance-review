@@ -8,30 +8,9 @@ function ScoreChartModal({ data, categories, getCategoryScore, onClose, DateRang
   
   const { employee, startDate: initialStart, endDate: initialEnd } = data;
   
-  // Auto-expand to full month if range is less than 30 days
-  const expandToFullMonth = (start, end) => {
-    const startDate = new Date(start);
-    const endDate = new Date(end);
-    const daysDiff = (endDate - startDate) / (1000 * 60 * 60 * 24);
-    
-    if (daysDiff < 30) {
-      // Expand to full month around the selected range
-      const midDate = new Date(startDate.getTime() + (endDate.getTime() - startDate.getTime()) / 2);
-      const firstDay = new Date(midDate.getFullYear(), midDate.getMonth(), 1);
-      const lastDay = new Date(midDate.getFullYear(), midDate.getMonth() + 1, 0);
-      
-      return {
-        start: firstDay.toISOString().split('T')[0],
-        end: lastDay.toISOString().split('T')[0]
-      };
-    }
-    
-    return { start, end };
-  };
-  
-  const expandedRange = expandToFullMonth(initialStart, initialEnd);
-  const [startDate, setStartDate] = useState(expandedRange.start);
-  const [endDate, setEndDate] = useState(expandedRange.end);
+  // Use the dates passed from parent component directly
+  const [startDate, setStartDate] = useState(initialStart);
+  const [endDate, setEndDate] = useState(initialEnd);
   const [chartData, setChartData] = useState([]);
   const [hoveredPoint, setHoveredPoint] = useState(null);
   const chartContainerRef = useRef(null);
@@ -44,7 +23,7 @@ function ScoreChartModal({ data, categories, getCategoryScore, onClose, DateRang
       try {
         // Fetch scores from database
         const response = await API.scores.getScores({
-          employee_id: employee.id,
+          entity_id: employee.id,
           start_date: startDate.replace(/-/g, ''),
           end_date: endDate.replace(/-/g, '')
         });
