@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { X } from 'lucide-react';
-import * as API from '../../api';
+import API from '../../api';
 
 // Score Chart Modal Component
 function ScoreChartModal({ data, categories, getCategoryScore, onClose, DateRangePicker }) {
@@ -21,12 +21,31 @@ function ScoreChartModal({ data, categories, getCategoryScore, onClose, DateRang
     
     const fetchScores = async () => {
       try {
+        console.log('🔍 Full product object:', employee);
+        console.log('🔍 Fetching scores for:', {
+          employee_id: employee.id,
+          employee_name: employee.name,
+          full_id_length: employee.id?.length,
+          start_date: startDate.replace(/-/g, ''),
+          end_date: endDate.replace(/-/g, ''),
+          categories: categories.map(c => c.key)
+        });
+        
         // Fetch scores from database
         const response = await API.scores.getScores({
           entity_id: employee.id,
           start_date: startDate.replace(/-/g, ''),
           end_date: endDate.replace(/-/g, '')
         });
+        
+        console.log('📊 API Response:', response);
+        console.log('📊 Response length:', response?.length);
+        
+        // Check if entity exists in database
+        if (response.length === 0) {
+          console.warn('⚠️ No scores found for product:', employee.id);
+          console.log('💡 Available entities with scores:', ['test-prod-1', 'prod-mehzuxylqfjc911oame', 'prod-1755572204924']);
+        }
         
         // Get all days in the date range
         const start = new Date(startDate);
@@ -336,7 +355,13 @@ function ScoreChartModal({ data, categories, getCategoryScore, onClose, DateRang
               </div>
             ) : (
               <div className="text-center py-12 text-white/50">
-                No scoring data available for the selected date range
+                <div className="text-lg mb-2">No scoring data available</div>
+                <div className="text-sm text-white/40">
+                  No performance scores found for "{employee?.name || 'this product'}" in the selected date range
+                </div>
+                <div className="text-xs text-white/30 mt-2">
+                  Product ID: {employee?.id}
+                </div>
               </div>
             )}
           </div>
