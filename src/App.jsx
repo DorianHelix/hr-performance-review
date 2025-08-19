@@ -13,6 +13,7 @@ import CreativePerformance from "./components/CreativePerformance";
 import Products from "./components/Products";
 import DatePicker from "./components/DatePicker";
 import DateRangePicker from "./components/DateRangePicker";
+import API from "./api";
 
 
 /* -----------------------------------------------------------
@@ -3631,12 +3632,46 @@ export default function App() {
   const days = useMemo(() => getDaysInRange(startDate, endDate), [startDate, endDate]);
 
   useEffect(() => {
-    setEmployees(lsRead(LS_EMPLOYEES, []));
-    setCategories(lsRead(LS_CATEGORIES, DEFAULT_CATEGORIES));
-    setLoading(false);
+    // Load from database
+    const loadData = async () => {
+      try {
+        // Load employees from database
+        const employeesData = await API.employees.getAll();
+        if (employeesData && employeesData.length > 0) {
+          setEmployees(employeesData);
+          // Also update localStorage for backup
+          lsWrite(LS_EMPLOYEES, employeesData);
+        } else {
+          // Fallback to localStorage if database is empty
+          setEmployees(lsRead(LS_EMPLOYEES, []));
+        }
+        
+        // Load categories from database
+        const categoriesData = await API.categories.getAll();
+        if (categoriesData && categoriesData.length > 0) {
+          setCategories(categoriesData);
+          lsWrite(LS_CATEGORIES, categoriesData);
+        } else {
+          // Fallback to localStorage or defaults
+          setCategories(lsRead(LS_CATEGORIES, DEFAULT_CATEGORIES));
+        }
+      } catch (error) {
+        console.error('Error loading from database, using localStorage:', error);
+        // Fallback to localStorage if database is not available
+        setEmployees(lsRead(LS_EMPLOYEES, []));
+        setCategories(lsRead(LS_CATEGORIES, DEFAULT_CATEGORIES));
+      }
+      setLoading(false);
+    };
+    
+    loadData();
+    
+    // Refresh data every 5 seconds to sync with other browsers
+    const interval = setInterval(loadData, 5000);
+    return () => clearInterval(interval);
   }, []);
 
-  const handleAddEmployee = () => {
+  const handleAddEmployee = async () => {
     const name = newEmployeeName.trim();
     if (!name) return;
     
@@ -3658,6 +3693,15 @@ export default function App() {
       managerId: null
     };
     
+    try {
+      // Save to database
+      await API.employees.create(newEmployee);
+      console.log('✅ Employee added to database');
+    } catch (error) {
+      console.error('Error saving to database:', error);
+    }
+    
+    // Update local state
     const updated = [...employees, newEmployee];
     setEmployees(updated);
     lsWrite(LS_EMPLOYEES, updated);
@@ -3698,9 +3742,18 @@ export default function App() {
     lsWrite(LS_EMPLOYEES, updated);
   };
 
-  const handleDeleteEmployee = (id) => {
+  const handleDeleteEmployee = async (id) => {
     if (!confirm("Delete employee and all evaluations?")) return;
     
+    try {
+      // Delete from database (this also deletes all scores)
+      await API.employees.delete(id);
+      console.log('✅ Employee deleted from database');
+    } catch (error) {
+      console.error('Error deleting from database:', error);
+    }
+    
+    // Update local state
     const updated = employees.filter(emp => emp.id !== id);
     setEmployees(updated);
     lsWrite(LS_EMPLOYEES, updated);
@@ -3786,7 +3839,24 @@ export default function App() {
     return data?.[reportsKey] || null;
   };
 
-  const saveCategoryScore = (employeeId, weekKey, categoryKey, score, reports) => {
+  const saveCategoryScore = async (employeeId, weekKey, categoryKey, score, reports) => {
+    try {
+      // Save to database
+      await API.scores.saveScore({
+        employee_id: employeeId,
+        date: weekKey,
+        category: categoryKey,
+        score: score,
+        performance_report: reports?.performanceReport || '',
+        media_buyer_review: reports?.mediaBuyerReview || ''
+      });
+      
+      console.log('✅ Score saved to database');
+    } catch (error) {
+      console.error('Error saving to database:', error);
+    }
+    
+    // Also save to localStorage for backward compatibility
     const evaluations = lsRead(LS_EVALUATIONS, {});
     const evalKey = `${employeeId}|${weekKey}`;
     const existing = evaluations[evalKey] || {};
@@ -3807,7 +3877,16 @@ export default function App() {
     setEmployees([...employees]);
   };
   
-  const deleteCategoryScore = (employeeId, weekKey, categoryKey) => {
+  const deleteCategoryScore = async (employeeId, weekKey, categoryKey) => {
+    try {
+      // Delete from database
+      await API.scores.deleteScore(employeeId, weekKey, categoryKey);
+      console.log('✅ Score deleted from database');
+    } catch (error) {
+      console.error('Error deleting from database:', error);
+    }
+    
+    // Also delete from localStorage for backward compatibility
     const evaluations = lsRead(LS_EVALUATIONS, {});
     const evalKey = `${employeeId}|${weekKey}`;
     const existing = evaluations[evalKey];

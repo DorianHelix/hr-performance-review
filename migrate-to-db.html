@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Migrate to Database</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        .container {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        }
+        h1 {
+            color: #333;
+            margin-bottom: 30px;
+        }
+        .status {
+            padding: 15px;
+            border-radius: 10px;
+            margin: 10px 0;
+            font-weight: 500;
+        }
+        .success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+        button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 8px;
+            font-size: 16px;
+            cursor: pointer;
+            margin: 10px;
+            transition: transform 0.2s;
+        }
+        button:hover {
+            transform: scale(1.05);
+        }
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        pre {
+            background: #f4f4f4;
+            padding: 15px;
+            border-radius: 8px;
+            overflow-x: auto;
+        }
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+        .stat-card {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            text-align: center;
+        }
+        .stat-number {
+            font-size: 32px;
+            font-weight: bold;
+            color: #667eea;
+        }
+        .stat-label {
+            color: #666;
+            margin-top: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🚀 Migrate Data to Database</h1>
+        
+        <div id="status"></div>
+        
+        <div class="stats" id="stats" style="display: none;">
+            <div class="stat-card">
+                <div class="stat-number" id="empCount">0</div>
+                <div class="stat-label">Products/Employees</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="scoreCount">0</div>
+                <div class="stat-label">Scores</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="catCount">0</div>
+                <div class="stat-label">Categories</div>
+            </div>
+        </div>
+        
+        <div>
+            <button onclick="checkData()">📊 Check LocalStorage Data</button>
+            <button onclick="startBackend()">🖥️ Start Backend Instructions</button>
+            <button onclick="migrateData()" id="migrateBtn">🔄 Migrate to Database</button>
+        </div>
+        
+        <div id="result"></div>
+    </div>
+
+    <script>
+        function log(message, type = 'info') {
+            const status = document.getElementById('status');
+            const div = document.createElement('div');
+            div.className = `status ${type}`;
+            div.innerHTML = message;
+            status.appendChild(div);
+        }
+
+        function checkData() {
+            document.getElementById('status').innerHTML = '';
+            
+            const employees = JSON.parse(localStorage.getItem('hr_employees') || '[]');
+            const scores = JSON.parse(localStorage.getItem('hr_scores') || '{}');
+            const categories = JSON.parse(localStorage.getItem('hr_categories') || '[]');
+            
+            let scoreCount = 0;
+            Object.values(scores).forEach(empScores => {
+                Object.values(empScores).forEach(dayScores => {
+                    scoreCount += Object.keys(dayScores).length;
+                });
+            });
+            
+            document.getElementById('empCount').textContent = employees.length;
+            document.getElementById('scoreCount').textContent = scoreCount;
+            document.getElementById('catCount').textContent = categories.length;
+            document.getElementById('stats').style.display = 'grid';
+            
+            log(`Found ${employees.length} products/employees in localStorage`, 'info');
+            log(`Found ${scoreCount} scores in localStorage`, 'info');
+            log(`Found ${categories.length} categories in localStorage`, 'info');
+            
+            if (employees.length === 0) {
+                log('⚠️ No employees/products found. You may need to add some data first.', 'error');
+            }
+        }
+
+        function startBackend() {
+            document.getElementById('status').innerHTML = '';
+            
+            const instructions = `
+<h3>📦 Backend Setup Instructions:</h3>
+<ol>
+    <li>Open a new terminal window</li>
+    <li>Navigate to the backend folder:<br>
+        <code>cd /Users/doriandaniel/Documents/Projects/Performance\ Review\ Matrix/hr-performance-review/backend</code>
+    </li>
+    <li>Install dependencies:<br>
+        <code>npm install</code>
+    </li>
+    <li>Start the backend server:<br>
+        <code>npm start</code>
+    </li>
+    <li>You should see: "🚀 Server running on http://localhost:3001"</li>
+    <li>Then click "Migrate to Database" button</li>
+</ol>
+            `;
+            
+            document.getElementById('result').innerHTML = instructions;
+        }
+
+        async function migrateData() {
+            document.getElementById('status').innerHTML = '';
+            document.getElementById('migrateBtn').disabled = true;
+            
+            try {
+                // Check if backend is running
+                log('Checking backend connection...', 'info');
+                const healthResponse = await fetch('http://localhost:3001/api/health');
+                
+                if (!healthResponse.ok) {
+                    throw new Error('Backend is not running. Please start the backend first.');
+                }
+                
+                log('✅ Backend is running', 'success');
+                
+                // Get data from localStorage
+                const employees = JSON.parse(localStorage.getItem('hr_employees') || '[]');
+                const scores = JSON.parse(localStorage.getItem('hr_scores') || '{}');
+                const categories = JSON.parse(localStorage.getItem('hr_categories') || '[]');
+                
+                log('Migrating data to database...', 'info');
+                
+                // Send to backend
+                const response = await fetch('http://localhost:3001/api/migrate', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ employees, scores, categories }),
+                });
+                
+                if (!response.ok) {
+                    throw new Error('Migration failed');
+                }
+                
+                const result = await response.json();
+                
+                log(`✅ Successfully migrated:`, 'success');
+                log(`• ${result.migrated.employees} employees/products`, 'success');
+                log(`• ${result.migrated.scores} scores`, 'success');
+                log(`• ${result.migrated.categories} categories`, 'success');
+                
+                document.getElementById('result').innerHTML = `
+                    <h3>🎉 Migration Complete!</h3>
+                    <p>Your data is now stored in the SQLite database.</p>
+                    <p>The frontend will automatically use the database instead of localStorage.</p>
+                `;
+                
+            } catch (error) {
+                log(`❌ Error: ${error.message}`, 'error');
+                log('Make sure the backend server is running on port 3001', 'error');
+            } finally {
+                document.getElementById('migrateBtn').disabled = false;
+            }
+        }
+
+        // Check data on load
+        window.onload = () => {
+            checkData();
+        };
+    </script>
+</body>
+</html>

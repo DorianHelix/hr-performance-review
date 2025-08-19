@@ -4,6 +4,7 @@ import {
   Search, Filter, Tag, DollarSign, Box, BarChart,
   TrendingUp, ShoppingCart, Archive, AlertTriangle
 } from 'lucide-react';
+import API from '../api';
 
 // Helper functions
 function uid() { 
@@ -12,11 +13,8 @@ function uid() {
 
 // Products Component - Based on Employees but adapted for product management
 function Products() {
-  const [products, setProducts] = useState(() => {
-    // Load from localStorage or use default
-    const saved = localStorage.getItem('hr_products');
-    return saved ? JSON.parse(saved) : [];
-  });
+  const [products, setProducts] = useState([]);
+  const [loading, setLoading] = useState(true);
   
   const [showAddModal, setShowAddModal] = useState(false);
   const [showBulkImportModal, setShowBulkImportModal] = useState(false);
@@ -25,39 +23,97 @@ function Products() {
   const [filterCategory, setFilterCategory] = useState('');
   const [sortBy, setSortBy] = useState('name'); // name, price, stock, created
 
-  // Save to localStorage whenever products change
+  // Load products from database
   useEffect(() => {
-    localStorage.setItem('hr_products', JSON.stringify(products));
-  }, [products]);
+    const loadProducts = async () => {
+      try {
+        const data = await API.products.getAll();
+        setProducts(data);
+        // Also save to localStorage for backup
+        localStorage.setItem('hr_products', JSON.stringify(data));
+      } catch (error) {
+        console.error('Error loading products from database:', error);
+        // Fallback to localStorage
+        const saved = localStorage.getItem('hr_products');
+        if (saved) setProducts(JSON.parse(saved));
+      }
+      setLoading(false);
+    };
+    
+    loadProducts();
+    
+    // Refresh every 5 seconds to sync with other browsers
+    const interval = setInterval(loadProducts, 5000);
+    return () => clearInterval(interval);
+  }, []);
 
   // Add new product
-  const handleAddProduct = (productData) => {
+  const handleAddProduct = async (productData) => {
     const newProduct = {
       id: `prod-${uid()}`,
-      ...productData,
+      name: productData.name,
+      category: productData.category || '',
+      sku: productData.sku || '',
+      division: productData.division || '',
+      squad: productData.squad || '',
+      team: productData.team || '',
+      role: productData.role || '',
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString()
     };
     
-    setProducts([...products, newProduct]);
+    try {
+      // Save to database
+      await API.products.create(newProduct);
+      console.log('✅ Product added to database');
+      
+      // Update local state
+      setProducts([...products, newProduct]);
+      localStorage.setItem('hr_products', JSON.stringify([...products, newProduct]));
+    } catch (error) {
+      console.error('Error saving to database:', error);
+      // Still update local state even if database fails
+      setProducts([...products, newProduct]);
+    }
+    
     setShowAddModal(false);
   };
 
   // Update product
-  const handleUpdateProduct = (id, updates) => {
+  const handleUpdateProduct = async (id, updates) => {
+    try {
+      // Update in database
+      await API.products.update(id, updates);
+      console.log('✅ Product updated in database');
+    } catch (error) {
+      console.error('Error updating in database:', error);
+    }
+    
+    // Update local state
     const updated = products.map(prod => 
       prod.id === id ? { ...prod, ...updates, updatedAt: new Date().toISOString() } : prod
     );
     setProducts(updated);
+    localStorage.setItem('hr_products', JSON.stringify(updated));
     setEditingProduct(null);
   };
 
   // Delete product
-  const handleDeleteProduct = (id) => {
+  const handleDeleteProduct = async (id) => {
     if (!confirm("Are you sure you want to delete this product?")) return;
     
+    try {
+      // Delete from database
+      await API.products.delete(id);
+      console.log('✅ Product deleted from database');
+    } catch (error) {
+      console.error('Error deleting from database:', error);
+    }
+    
+    // Update local state
     const updated = products.filter(prod => prod.id !== id);
     setProducts(updated);
+    localStorage.setItem('hr_products', JSON.stringify(updated));
   };
 
   // Filter products

@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html>
+<head><title>Check Storage</title></head>
+<body>
+<script>
+// Check localStorage
+const scores = localStorage.getItem('hr_scores');
+const employees = localStorage.getItem('hr_employees');
+const categories = localStorage.getItem('hr_categories');
+
+console.log('=== SCORES DATA ===');
+if (scores) {
+  const parsed = JSON.parse(scores);
+  console.log('Scores structure:', parsed);
+  
+  // Show first employee's data
+  const firstEmpId = Object.keys(parsed)[0];
+  if (firstEmpId) {
+    console.log('First employee ID:', firstEmpId);
+    console.log('First employee scores:', parsed[firstEmpId]);
+    
+    // Show first day's data
+    const firstDay = Object.keys(parsed[firstEmpId])[0];
+    if (firstDay) {
+      console.log('First day:', firstDay);
+      console.log('First day scores:', parsed[firstEmpId][firstDay]);
+    }
+  }
+}
+
+console.log('=== EMPLOYEES DATA ===');
+if (employees) {
+  const parsed = JSON.parse(employees);
+  console.log('Employees:', parsed.map(e => ({id: e.id, name: e.name})));
+}
+
+console.log('=== CATEGORIES DATA ===');
+if (categories) {
+  const parsed = JSON.parse(categories);
+  console.log('Categories:', parsed);
+}
+
+document.write('<pre>' + JSON.stringify({
+  scores: scores ? JSON.parse(scores) : null,
+  employees: employees ? JSON.parse(employees) : null,
+  categories: categories ? JSON.parse(categories) : null
+}, null, 2) + '</pre>');
+</script>
+</body>
+</html>

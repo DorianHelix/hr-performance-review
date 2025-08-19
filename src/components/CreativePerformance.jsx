@@ -5,8 +5,10 @@ import {
   Download, Plus, ChevronRight, Settings,
   Trash2, X, Clock, FileText, Briefcase,
   RefreshCw, MessageSquare, Users, Menu, Eye, EyeOff,
-  PanelRightClose, PanelRightOpen, BarChart3, BarChartHorizontal
+  PanelRightClose, PanelRightOpen, BarChart3, BarChartHorizontal,
+  LineChart
 } from 'lucide-react';
+import API from '../api';
 
 // Helper functions (copied from main App)
 function scoreToTier(score) {
@@ -92,6 +94,7 @@ function CreativePerformance({
   const [creativeMode, setCreativeMode] = useState('analytics'); // Changed default to 'analytics'
   const [showCreativeMetrics, setShowCreativeMetrics] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
+  const [chartModal, setChartModal] = useState(null);
   const [showTestTypesModal, setShowTestTypesModal] = useState(false);
   const [showSidebar, setShowSidebar] = useState(() => {
     // Check localStorage first, then default based on screen size
@@ -503,12 +506,21 @@ function CreativePerformance({
                                   </div>
                                 )}
                                 {handleDeleteEmployee && (
-                                  <button
-                                    onClick={() => handleDeleteEmployee(emp.id)}
-                                    className="p-1 rounded hover:bg-red-500/20 text-red-400 opacity-0 group-hover:opacity-100"
-                                  >
-                                    <Trash2 size={14} />
-                                  </button>
+                                  <>
+                                    <button
+                                      onClick={() => setChartModal({ employee: emp, startDate, endDate })}
+                                      className="p-1 rounded hover:bg-blue-500/20 text-blue-400 opacity-0 group-hover:opacity-100"
+                                      title="View score trends"
+                                    >
+                                      <LineChart size={14} />
+                                    </button>
+                                    <button
+                                      onClick={() => handleDeleteEmployee(emp.id)}
+                                      className="p-1 rounded hover:bg-red-500/20 text-red-400 opacity-0 group-hover:opacity-100"
+                                    >
+                                      <Trash2 size={14} />
+                                    </button>
+                                  </>
                                 )}
                               </div>
                             </div>
@@ -795,6 +807,16 @@ function CreativePerformance({
           onClose={() => setShowTestTypesModal(false)}
         />
       )}
+      
+      {/* Score Chart Modal */}
+      {chartModal && (
+        <ScoreChartModal 
+          data={chartModal}
+          getCategoryScore={getCategoryScore}
+          onClose={() => setChartModal(null)}
+          DateRangePicker={DateRangePicker}
+        />
+      )}
     </div>
   );
 }
@@ -991,6 +1013,364 @@ function TestTypesModal({ categories, setCategories, onClose }) {
           >
             Save Changes
           </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Score Chart Modal Component
+function ScoreChartModal({ data, getCategoryScore, onClose, DateRangePicker }) {
+  if (!data) return null;
+  
+  const { employee, startDate: initialStart, endDate: initialEnd } = data;
+  const [startDate, setStartDate] = useState(initialStart);
+  const [endDate, setEndDate] = useState(initialEnd);
+  const [chartData, setChartData] = useState([]);
+  
+  // Get scoring data for the date range from database
+  useEffect(() => {
+    if (!data) return;
+    
+    const fetchScores = async () => {
+      try {
+        // Fetch scores from database
+        const response = await API.scores.getScores({
+          employee_id: employee.id,
+          start_date: startDate.replace(/-/g, ''),
+          end_date: endDate.replace(/-/g, '')
+        });
+        
+        // Get all days in the date range
+        const start = new Date(startDate);
+        const end = new Date(endDate);
+        const days = [];
+        
+        for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+          days.push(new Date(d).toISOString().slice(0, 10));
+        }
+        
+        // Map database scores to chart data
+        const scores = days.map(day => {
+          const dayKey = day.replace(/-/g, '');
+          
+          // Find scores for this day
+          const dayScores = response.filter(s => s.date === dayKey);
+          
+          const vctScore = dayScores.find(s => s.category === 'VCT')?.score || null;
+          const actScore = dayScores.find(s => s.category === 'ACT')?.score || null;
+          const rctScore = dayScores.find(s => s.category === 'RCT')?.score || null;
+          
+          return {
+            date: day,
+            VCT: vctScore,
+            ACT: actScore,
+            RCT: rctScore
+          };
+        });
+        
+        setChartData(scores);
+      } catch (error) {
+        console.error('Error fetching scores:', error);
+        // Fallback to getCategoryScore if API fails
+        const days = [];
+        const start = new Date(startDate);
+        const end = new Date(endDate);
+        
+        for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+          days.push(new Date(d).toISOString().slice(0, 10));
+        }
+        
+        const scores = days.map(day => {
+          const dayKey = day.replace(/-/g, '');
+          return {
+            date: day,
+            VCT: getCategoryScore?.(employee.id, dayKey, 'VCT'),
+            ACT: getCategoryScore?.(employee.id, dayKey, 'ACT'),
+            RCT: getCategoryScore?.(employee.id, dayKey, 'RCT')
+          };
+        });
+        
+        setChartData(scores);
+      }
+    };
+    
+    fetchScores();
+  }, [startDate, endDate, employee, data, getCategoryScore]);
+  
+  // Simple line chart rendering
+  const maxScore = 10;
+  const chartHeight = 300;
+  const chartWidth = 600;
+  const padding = 40;
+  
+  // Filter out days with no scores
+  const dataWithScores = chartData.filter(d => d.VCT || d.ACT || d.RCT);
+  
+  return (
+    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={onClose}>
+      <div className="glass-card-large w-full max-w-5xl max-h-[90vh] overflow-hidden flex flex-col" onClick={e => e.stopPropagation()}>
+        <div className="p-6 border-b border-white/20">
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-xl font-bold text-white flex items-center gap-2">
+                <LineChart size={24} className="text-blue-400" />
+                Score Trends - {employee.name}
+              </h2>
+              <p className="text-sm text-white/60 mt-1">Track performance over time</p>
+            </div>
+            <button onClick={onClose} className="glass-button p-2 rounded-lg hover:scale-110">
+              <X size={18} className="text-white/80" />
+            </button>
+          </div>
+        </div>
+        
+        <div className="p-6 space-y-6 overflow-y-auto">
+          {/* Date Range Selector */}
+          <div className="flex items-center gap-4">
+            {DateRangePicker && (
+              <DateRangePicker
+                label="Select Date Range"
+                startDate={startDate}
+                endDate={endDate}
+                onRangeChange={(start, end) => {
+                  setStartDate(start);
+                  setEndDate(end);
+                }}
+              />
+            )}
+          </div>
+          
+          {/* Chart */}
+          <div className="glass-card p-6 rounded-xl bg-gradient-to-br from-blue-500/5 to-purple-500/5">
+            {dataWithScores.length > 0 ? (
+              <div className="space-y-4">
+                {/* Legend */}
+                <div className="flex items-center gap-6 justify-center mb-6">
+                  <div className="flex items-center gap-2 glass-card px-3 py-1.5 rounded-lg">
+                    <div className="w-3 h-3 rounded-full bg-gradient-to-r from-blue-400 to-blue-600 shadow-lg shadow-blue-500/50"></div>
+                    <span className="text-sm text-white font-medium">VCT</span>
+                  </div>
+                  <div className="flex items-center gap-2 glass-card px-3 py-1.5 rounded-lg">
+                    <div className="w-3 h-3 rounded-full bg-gradient-to-r from-green-400 to-green-600 shadow-lg shadow-green-500/50"></div>
+                    <span className="text-sm text-white font-medium">ACT</span>
+                  </div>
+                  <div className="flex items-center gap-2 glass-card px-3 py-1.5 rounded-lg">
+                    <div className="w-3 h-3 rounded-full bg-gradient-to-r from-purple-400 to-purple-600 shadow-lg shadow-purple-500/50"></div>
+                    <span className="text-sm text-white font-medium">RCT</span>
+                  </div>
+                </div>
+                
+                {/* Enhanced SVG Chart with gradients and animations */}
+                <svg width="100%" height={chartHeight} viewBox={`0 0 ${chartWidth} ${chartHeight}`} className="w-full overflow-visible">
+                  {/* Define gradients */}
+                  <defs>
+                    <linearGradient id="vctGradient" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="#3b82f6" stopOpacity="0.8"/>
+                      <stop offset="100%" stopColor="#3b82f6" stopOpacity="0.1"/>
+                    </linearGradient>
+                    <linearGradient id="actGradient" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="#10b981" stopOpacity="0.8"/>
+                      <stop offset="100%" stopColor="#10b981" stopOpacity="0.1"/>
+                    </linearGradient>
+                    <linearGradient id="rctGradient" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="#a855f7" stopOpacity="0.8"/>
+                      <stop offset="100%" stopColor="#a855f7" stopOpacity="0.1"/>
+                    </linearGradient>
+                    <filter id="glow">
+                      <feGaussianBlur stdDeviation="4" result="coloredBlur"/>
+                      <feMerge>
+                        <feMergeNode in="coloredBlur"/>
+                        <feMergeNode in="SourceGraphic"/>
+                      </feMerge>
+                    </filter>
+                  </defs>
+                  {/* Grid lines with better styling */}
+                  {[0, 2, 4, 6, 8, 10].map(score => {
+                    const y = padding + ((10 - score) / 10) * (chartHeight - 2 * padding);
+                    return (
+                      <g key={score}>
+                        <line
+                          x1={padding}
+                          y1={y}
+                          x2={chartWidth - padding}
+                          y2={y}
+                          stroke={score === 0 || score === 10 ? "rgba(255,255,255,0.2)" : "rgba(255,255,255,0.05)"}
+                          strokeDasharray={score === 5 ? "5,5" : "2,2"}
+                        />
+                        <text
+                          x={padding - 10}
+                          y={y + 5}
+                          fill="rgba(255,255,255,0.7)"
+                          fontSize="11"
+                          fontWeight={score === 0 || score === 10 ? "bold" : "normal"}
+                          textAnchor="end"
+                        >
+                          {score}
+                        </text>
+                      </g>
+                    );
+                  })}
+                  
+                  {/* Area charts and lines for each category */}
+                  {['VCT', 'ACT', 'RCT'].map((category, idx) => {
+                    const color = idx === 0 ? '#3b82f6' : idx === 1 ? '#10b981' : '#a855f7';
+                    const gradientId = idx === 0 ? 'vctGradient' : idx === 1 ? 'actGradient' : 'rctGradient';
+                    
+                    const validPoints = dataWithScores
+                      .map((d, i) => {
+                        if (!d[category]) return null;
+                        const x = padding + (i / (dataWithScores.length - 1 || 1)) * (chartWidth - 2 * padding);
+                        const y = padding + ((10 - d[category]) / 10) * (chartHeight - 2 * padding);
+                        return { x, y, value: d[category], date: d.date };
+                      })
+                      .filter(Boolean);
+                    
+                    if (validPoints.length === 0) return null;
+                    
+                    const pathPoints = validPoints.map(p => `${p.x},${p.y}`).join(' ');
+                    const areaPath = `M ${validPoints[0].x},${chartHeight - padding} L ${pathPoints} L ${validPoints[validPoints.length - 1].x},${chartHeight - padding} Z`;
+                    
+                    return (
+                      <g key={category}>
+                        {/* Area fill */}
+                        <path
+                          d={areaPath}
+                          fill={`url(#${gradientId})`}
+                          opacity="0.3"
+                          className="animate-fade-in"
+                        />
+                        
+                        {/* Line */}
+                        <polyline
+                          points={pathPoints}
+                          fill="none"
+                          stroke={color}
+                          strokeWidth="3"
+                          strokeLinejoin="round"
+                          strokeLinecap="round"
+                          filter="url(#glow)"
+                          className="animate-draw-line"
+                        />
+                        
+                        {/* Data points with hover effect */}
+                        {validPoints.map((point, i) => (
+                          <g key={`${category}-${i}`}>
+                            {/* Outer glow circle */}
+                            <circle
+                              cx={point.x}
+                              cy={point.y}
+                              r="8"
+                              fill={color}
+                              opacity="0.2"
+                              className="animate-pulse"
+                            />
+                            {/* Main point */}
+                            <circle
+                              cx={point.x}
+                              cy={point.y}
+                              r="5"
+                              fill="white"
+                              stroke={color}
+                              strokeWidth="2"
+                              className="hover:r-7 transition-all cursor-pointer"
+                            >
+                              <title>{`${new Date(point.date).toLocaleDateString()}: ${point.value}/10`}</title>
+                            </circle>
+                            {/* Value label on hover */}
+                            <text
+                              x={point.x}
+                              y={point.y - 15}
+                              fill={color}
+                              fontSize="12"
+                              fontWeight="bold"
+                              textAnchor="middle"
+                              className="opacity-0 hover:opacity-100 transition-opacity pointer-events-none"
+                            >
+                              {point.value}
+                            </text>
+                          </g>
+                        ))}
+                      </g>
+                    );
+                  })}
+                  
+                  {/* X-axis dates */}
+                  {dataWithScores.map((d, i) => {
+                    if (i % Math.ceil(dataWithScores.length / 6) !== 0) return null;
+                    const x = padding + (i / (dataWithScores.length - 1 || 1)) * (chartWidth - 2 * padding);
+                    return (
+                      <text
+                        key={i}
+                        x={x}
+                        y={chartHeight - padding + 20}
+                        fill="rgba(255,255,255,0.5)"
+                        fontSize="10"
+                        textAnchor="middle"
+                      >
+                        {new Date(d.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                      </text>
+                    );
+                  })}
+                </svg>
+                
+                {/* Data Table */}
+                <div className="mt-6">
+                  <h3 className="text-sm font-medium text-white/80 mb-3">Score Details</h3>
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-sm">
+                      <thead>
+                        <tr className="border-b border-white/10">
+                          <th className="text-left p-2 text-white/60">Date</th>
+                          <th className="text-center p-2 text-white/60">VCT</th>
+                          <th className="text-center p-2 text-white/60">ACT</th>
+                          <th className="text-center p-2 text-white/60">RCT</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {dataWithScores.map((d, i) => (
+                          <tr key={i} className="border-b border-white/5 hover:bg-white/5">
+                            <td className="p-2 text-white/80">
+                              {new Date(d.date).toLocaleDateString('en-US', { 
+                                weekday: 'short',
+                                month: 'short', 
+                                day: 'numeric' 
+                              })}
+                            </td>
+                            <td className="text-center p-2">
+                              {d.VCT ? (
+                                <span className="px-2 py-1 rounded bg-blue-500/20 text-blue-300 font-bold">
+                                  {d.VCT}
+                                </span>
+                              ) : '-'}
+                            </td>
+                            <td className="text-center p-2">
+                              {d.ACT ? (
+                                <span className="px-2 py-1 rounded bg-green-500/20 text-green-300 font-bold">
+                                  {d.ACT}
+                                </span>
+                              ) : '-'}
+                            </td>
+                            <td className="text-center p-2">
+                              {d.RCT ? (
+                                <span className="px-2 py-1 rounded bg-purple-500/20 text-purple-300 font-bold">
+                                  {d.RCT}
+                                </span>
+                              ) : '-'}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div className="text-center py-12 text-white/50">
+                No scoring data available for the selected date range
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </div>

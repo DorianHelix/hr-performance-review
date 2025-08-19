@@ -1,0 +1,654 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin - Performance Review Database</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        .header {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 15px;
+            padding: 30px;
+            margin-bottom: 30px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+        }
+        
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+        }
+        
+        .tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 30px;
+        }
+        
+        .tab {
+            background: rgba(255, 255, 255, 0.9);
+            border: none;
+            padding: 15px 30px;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: all 0.3s;
+        }
+        
+        .tab.active {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            transform: scale(1.05);
+        }
+        
+        .panel {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+            display: none;
+        }
+        
+        .panel.active { display: block; }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+            color: #333;
+        }
+        
+        input, select, textarea {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid #e1e1e1;
+            border-radius: 8px;
+            font-size: 14px;
+        }
+        
+        input:focus, select:focus, textarea:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        
+        button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: transform 0.2s;
+        }
+        
+        button:hover { transform: scale(1.05); }
+        
+        .btn-secondary {
+            background: #6c757d;
+            margin-left: 10px;
+        }
+        
+        .btn-danger {
+            background: #dc3545;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        
+        th, td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #e1e1e1;
+        }
+        
+        th {
+            background: #f8f9fa;
+            font-weight: 600;
+        }
+        
+        tr:hover { background: #f8f9fa; }
+        
+        .alert {
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        
+        .alert-success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        
+        .alert-error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        
+        .score-input {
+            width: 80px;
+            text-align: center;
+        }
+        
+        .inline-form {
+            display: flex;
+            gap: 10px;
+            align-items: end;
+        }
+        
+        .inline-form .form-group {
+            flex: 1;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🎯 Performance Review Admin</h1>
+            <p>Manage products and scores directly in the database</p>
+        </div>
+
+        <div class="tabs">
+            <button class="tab active" onclick="showTab('products')">📦 Products</button>
+            <button class="tab" onclick="showTab('scores')">📊 Scores</button>
+            <button class="tab" onclick="showTab('bulk')">⚡ Bulk Add Scores</button>
+            <button class="tab" onclick="showTab('view')">👁️ View Data</button>
+        </div>
+
+        <!-- Products Panel -->
+        <div id="products-panel" class="panel active">
+            <h2>Manage Products</h2>
+            <div id="product-alert"></div>
+            
+            <form id="product-form">
+                <div class="inline-form">
+                    <div class="form-group">
+                        <label>Product Name *</label>
+                        <input type="text" id="product-name" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Category</label>
+                        <input type="text" id="product-category" placeholder="e.g., Electronics">
+                    </div>
+                    <div class="form-group">
+                        <label>SKU</label>
+                        <input type="text" id="product-sku" placeholder="e.g., PROD-001">
+                    </div>
+                    <div class="form-group">
+                        <label>&nbsp;</label>
+                        <button type="submit">Add Product</button>
+                    </div>
+                </div>
+            </form>
+            
+            <div id="products-list"></div>
+        </div>
+
+        <!-- Scores Panel -->
+        <div id="scores-panel" class="panel">
+            <h2>Add Individual Score</h2>
+            <div id="score-alert"></div>
+            
+            <form id="score-form">
+                <div class="inline-form">
+                    <div class="form-group">
+                        <label>Product</label>
+                        <select id="score-product" required></select>
+                    </div>
+                    <div class="form-group">
+                        <label>Date</label>
+                        <input type="date" id="score-date" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Category</label>
+                        <select id="score-category" required>
+                            <option value="VCT">VCT</option>
+                            <option value="ACT">ACT</option>
+                            <option value="RCT">RCT</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Score (1-10)</label>
+                        <input type="number" id="score-value" min="1" max="10" class="score-input" required>
+                    </div>
+                    <div class="form-group">
+                        <label>&nbsp;</label>
+                        <button type="submit">Add Score</button>
+                    </div>
+                </div>
+            </form>
+        </div>
+
+        <!-- Bulk Add Panel -->
+        <div id="bulk-panel" class="panel">
+            <h2>Bulk Add Scores</h2>
+            <div id="bulk-alert"></div>
+            
+            <form id="bulk-form">
+                <div class="form-group">
+                    <label>Select Product</label>
+                    <select id="bulk-product" required></select>
+                </div>
+                
+                <div class="inline-form">
+                    <div class="form-group">
+                        <label>Start Date</label>
+                        <input type="date" id="bulk-start" required>
+                    </div>
+                    <div class="form-group">
+                        <label>End Date</label>
+                        <input type="date" id="bulk-end" required>
+                    </div>
+                </div>
+                
+                <div class="inline-form">
+                    <div class="form-group">
+                        <label>VCT Score Range</label>
+                        <div style="display: flex; gap: 10px;">
+                            <input type="number" id="vct-min" min="1" max="10" placeholder="Min" class="score-input">
+                            <input type="number" id="vct-max" min="1" max="10" placeholder="Max" class="score-input">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>ACT Score Range</label>
+                        <div style="display: flex; gap: 10px;">
+                            <input type="number" id="act-min" min="1" max="10" placeholder="Min" class="score-input">
+                            <input type="number" id="act-max" min="1" max="10" placeholder="Max" class="score-input">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>RCT Score Range</label>
+                        <div style="display: flex; gap: 10px;">
+                            <input type="number" id="rct-min" min="1" max="10" placeholder="Min" class="score-input">
+                            <input type="number" id="rct-max" min="1" max="10" placeholder="Max" class="score-input">
+                        </div>
+                    </div>
+                </div>
+                
+                <button type="submit">Generate Random Scores</button>
+                <button type="button" onclick="generateRealisticScores()" class="btn-secondary">Generate Realistic Pattern</button>
+            </form>
+        </div>
+
+        <!-- View Data Panel -->
+        <div id="view-panel" class="panel">
+            <h2>View Database</h2>
+            <div id="view-alert"></div>
+            
+            <button onclick="loadAllData()">🔄 Refresh Data</button>
+            <button onclick="exportData()" class="btn-secondary">📥 Export JSON</button>
+            
+            <h3 style="margin-top: 30px;">Recent Scores</h3>
+            <div id="scores-table"></div>
+            
+            <h3 style="margin-top: 30px;">Products</h3>
+            <div id="products-table"></div>
+        </div>
+    </div>
+
+    <script>
+        const API_URL = 'http://localhost:3001/api';
+        
+        // Tab switching
+        function showTab(tab) {
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+            
+            event.target.classList.add('active');
+            document.getElementById(`${tab}-panel`).classList.add('active');
+            
+            if (tab === 'view') loadAllData();
+            if (tab === 'products') loadProducts();
+            if (tab === 'scores' || tab === 'bulk') loadProductsForSelect();
+        }
+        
+        // Alert helper
+        function showAlert(elementId, message, type = 'success') {
+            const alert = document.getElementById(elementId);
+            alert.className = `alert alert-${type}`;
+            alert.textContent = message;
+            setTimeout(() => alert.textContent = '', 3000);
+        }
+        
+        // Load products
+        async function loadProducts() {
+            try {
+                const response = await fetch(`${API_URL}/products`);
+                const products = await response.json();
+                
+                const list = document.getElementById('products-list');
+                if (products.length === 0) {
+                    list.innerHTML = '<p>No products yet. Add your first product above!</p>';
+                    return;
+                }
+                
+                let html = '<table><thead><tr><th>Name</th><th>Category</th><th>SKU</th><th>Actions</th></tr></thead><tbody>';
+                products.forEach(p => {
+                    html += `
+                        <tr>
+                            <td>${p.name}</td>
+                            <td>${p.category || '-'}</td>
+                            <td>${p.sku || '-'}</td>
+                            <td>
+                                <button onclick="deleteProduct('${p.id}')" class="btn-danger">Delete</button>
+                            </td>
+                        </tr>
+                    `;
+                });
+                html += '</tbody></table>';
+                list.innerHTML = html;
+            } catch (error) {
+                console.error('Error loading products:', error);
+            }
+        }
+        
+        // Load products for select
+        async function loadProductsForSelect() {
+            try {
+                const response = await fetch(`${API_URL}/products`);
+                const products = await response.json();
+                
+                const selects = ['score-product', 'bulk-product'];
+                selects.forEach(id => {
+                    const select = document.getElementById(id);
+                    if (select) {
+                        select.innerHTML = '<option value="">Select Product</option>';
+                        products.forEach(p => {
+                            select.innerHTML += `<option value="${p.id}">${p.name}</option>`;
+                        });
+                    }
+                });
+            } catch (error) {
+                console.error('Error loading products:', error);
+            }
+        }
+        
+        // Add product
+        document.getElementById('product-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const name = document.getElementById('product-name').value;
+            const category = document.getElementById('product-category').value;
+            const sku = document.getElementById('product-sku').value;
+            const id = 'prod-' + Date.now();
+            
+            try {
+                await fetch(`${API_URL}/products`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ id, name, category, sku })
+                });
+                
+                showAlert('product-alert', `Product "${name}" added successfully!`);
+                e.target.reset();
+                loadProducts();
+            } catch (error) {
+                showAlert('product-alert', 'Error adding product', 'error');
+            }
+        });
+        
+        // Delete product
+        async function deleteProduct(id) {
+            if (!confirm('Delete this product and all its scores?')) return;
+            
+            try {
+                await fetch(`${API_URL}/products/${id}`, { method: 'DELETE' });
+                loadProducts();
+            } catch (error) {
+                alert('Error deleting product');
+            }
+        }
+        
+        // Add score
+        document.getElementById('score-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const employee_id = document.getElementById('score-product').value;
+            const date = document.getElementById('score-date').value.replace(/-/g, '');
+            const category = document.getElementById('score-category').value;
+            const score = document.getElementById('score-value').value;
+            
+            try {
+                await fetch(`${API_URL}/scores`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        employee_id,
+                        date,
+                        category,
+                        score: parseInt(score),
+                        performance_report: `Score: ${score}/10`,
+                        media_buyer_review: score >= 7 ? 'Good performance' : 'Needs improvement'
+                    })
+                });
+                
+                showAlert('score-alert', 'Score added successfully!');
+                e.target.reset();
+            } catch (error) {
+                showAlert('score-alert', 'Error adding score', 'error');
+            }
+        });
+        
+        // Bulk add scores
+        document.getElementById('bulk-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const productId = document.getElementById('bulk-product').value;
+            const startDate = new Date(document.getElementById('bulk-start').value);
+            const endDate = new Date(document.getElementById('bulk-end').value);
+            
+            const vctMin = parseInt(document.getElementById('vct-min').value) || 5;
+            const vctMax = parseInt(document.getElementById('vct-max').value) || 9;
+            const actMin = parseInt(document.getElementById('act-min').value) || 5;
+            const actMax = parseInt(document.getElementById('act-max').value) || 9;
+            const rctMin = parseInt(document.getElementById('rct-min').value) || 5;
+            const rctMax = parseInt(document.getElementById('rct-max').value) || 9;
+            
+            let count = 0;
+            for (let d = new Date(startDate); d <= endDate; d.setDate(d.getDate() + 1)) {
+                // Skip some days randomly
+                if (Math.random() > 0.8) continue;
+                
+                const dateKey = d.toISOString().slice(0, 10).replace(/-/g, '');
+                
+                // Add scores for each category
+                for (const cat of ['VCT', 'ACT', 'RCT']) {
+                    let min, max;
+                    if (cat === 'VCT') { min = vctMin; max = vctMax; }
+                    else if (cat === 'ACT') { min = actMin; max = actMax; }
+                    else { min = rctMin; max = rctMax; }
+                    
+                    const score = Math.floor(Math.random() * (max - min + 1)) + min;
+                    
+                    await fetch(`${API_URL}/scores`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            employee_id: productId,
+                            date: dateKey,
+                            category: cat,
+                            score,
+                            performance_report: `Bulk generated score: ${score}/10`,
+                            media_buyer_review: score >= 7 ? 'Good performance' : 'Needs improvement'
+                        })
+                    });
+                    count++;
+                }
+            }
+            
+            showAlert('bulk-alert', `Added ${count} scores successfully!`);
+            e.target.reset();
+        });
+        
+        // Generate realistic pattern
+        async function generateRealisticScores() {
+            const productId = document.getElementById('bulk-product').value;
+            if (!productId) {
+                alert('Please select a product first');
+                return;
+            }
+            
+            const today = new Date();
+            let count = 0;
+            
+            // Generate for last 30 days with improving trend
+            for (let i = 29; i >= 0; i--) {
+                const d = new Date(today);
+                d.setDate(d.getDate() - i);
+                
+                // Skip weekends sometimes
+                if (d.getDay() === 0 || d.getDay() === 6) {
+                    if (Math.random() > 0.3) continue;
+                }
+                
+                const dateKey = d.toISOString().slice(0, 10).replace(/-/g, '');
+                
+                // Base score improves over time
+                const baseScore = 5 + (30 - i) / 10 + Math.sin(i / 5) * 1.5;
+                
+                for (const cat of ['VCT', 'ACT', 'RCT']) {
+                    let score = baseScore;
+                    if (cat === 'VCT') score += 0.5;
+                    if (cat === 'RCT') score -= 0.3;
+                    score = Math.min(10, Math.max(1, Math.round(score + Math.random() - 0.5)));
+                    
+                    await fetch(`${API_URL}/scores`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            employee_id: productId,
+                            date: dateKey,
+                            category: cat,
+                            score,
+                            performance_report: `Day ${30-i} performance: ${score}/10`,
+                            media_buyer_review: score >= 8 ? 'Excellent' : score >= 6 ? 'Good' : 'Needs improvement'
+                        })
+                    });
+                    count++;
+                }
+            }
+            
+            showAlert('bulk-alert', `Generated ${count} realistic scores with improving trend!`);
+        }
+        
+        // Load all data for view
+        async function loadAllData() {
+            try {
+                // Load scores
+                const scoresRes = await fetch(`${API_URL}/scores?limit=50`);
+                const scores = await scoresRes.json();
+                
+                const scoresTable = document.getElementById('scores-table');
+                if (scores.length === 0) {
+                    scoresTable.innerHTML = '<p>No scores yet.</p>';
+                } else {
+                    let html = '<table><thead><tr><th>Product</th><th>Date</th><th>Category</th><th>Score</th></tr></thead><tbody>';
+                    
+                    // Get product names
+                    const productsRes = await fetch(`${API_URL}/products`);
+                    const products = await productsRes.json();
+                    const productMap = {};
+                    products.forEach(p => productMap[p.id] = p.name);
+                    
+                    scores.slice(0, 50).forEach(s => {
+                        const dateStr = s.date.toString();
+                        const formattedDate = `${dateStr.slice(0,4)}-${dateStr.slice(4,6)}-${dateStr.slice(6,8)}`;
+                        html += `
+                            <tr>
+                                <td>${productMap[s.employee_id] || s.employee_id}</td>
+                                <td>${formattedDate}</td>
+                                <td>${s.category}</td>
+                                <td><strong>${s.score}</strong></td>
+                            </tr>
+                        `;
+                    });
+                    html += '</tbody></table>';
+                    scoresTable.innerHTML = html;
+                }
+                
+                // Load products
+                const productsRes = await fetch(`${API_URL}/products`);
+                const products = await productsRes.json();
+                
+                const productsTable = document.getElementById('products-table');
+                if (products.length === 0) {
+                    productsTable.innerHTML = '<p>No products yet.</p>';
+                } else {
+                    let html = '<table><thead><tr><th>ID</th><th>Name</th><th>Category</th><th>SKU</th></tr></thead><tbody>';
+                    products.forEach(p => {
+                        html += `
+                            <tr>
+                                <td>${p.id}</td>
+                                <td>${p.name}</td>
+                                <td>${p.category || '-'}</td>
+                                <td>${p.sku || '-'}</td>
+                            </tr>
+                        `;
+                    });
+                    html += '</tbody></table>';
+                    productsTable.innerHTML = html;
+                }
+                
+                showAlert('view-alert', 'Data loaded successfully!');
+            } catch (error) {
+                showAlert('view-alert', 'Error loading data', 'error');
+            }
+        }
+        
+        // Export data
+        async function exportData() {
+            try {
+                const [productsRes, scoresRes] = await Promise.all([
+                    fetch(`${API_URL}/products`),
+                    fetch(`${API_URL}/scores`)
+                ]);
+                
+                const data = {
+                    products: await productsRes.json(),
+                    scores: await scoresRes.json(),
+                    exportDate: new Date().toISOString()
+                };
+                
+                const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `performance-data-${new Date().toISOString().split('T')[0]}.json`;
+                a.click();
+            } catch (error) {
+                alert('Error exporting data');
+            }
+        }
+        
+        // Set today's date as default
+        document.getElementById('score-date').valueAsDate = new Date();
+        document.getElementById('bulk-start').valueAsDate = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+        document.getElementById('bulk-end').valueAsDate = new Date();
+        
+        // Load initial data
+        loadProducts();
+    </script>
+</body>
+</html>

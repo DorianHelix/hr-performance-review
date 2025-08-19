@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Check and Migrate Data</title>
+    <style>
+        body { 
+            font-family: system-ui; 
+            padding: 40px; 
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+        button {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover { background: #5a67d8; }
+        .success { color: green; font-weight: bold; }
+        .error { color: red; font-weight: bold; }
+        .info { color: blue; }
+        pre { background: #f4f4f4; padding: 10px; border-radius: 5px; overflow-x: auto; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔄 Data Check & Migration</h1>
+        
+        <div id="status"></div>
+        
+        <button onclick="checkLocalStorage()">1. Check LocalStorage</button>
+        <button onclick="populateTestData()">2. Populate Test Data</button>
+        <button onclick="migrateToDatabase()">3. Migrate to Database</button>
+        <button onclick="verifyDatabase()">4. Verify Database</button>
+        
+        <div id="result"></div>
+    </div>
+
+    <script>
+        function log(message, className = '') {
+            const div = document.createElement('div');
+            div.className = className;
+            div.innerHTML = message;
+            document.getElementById('status').appendChild(div);
+        }
+
+        function checkLocalStorage() {
+            document.getElementById('status').innerHTML = '';
+            
+            const employees = JSON.parse(localStorage.getItem('hr_employees') || '[]');
+            const scores = JSON.parse(localStorage.getItem('hr_scores') || '{}');
+            const categories = JSON.parse(localStorage.getItem('hr_categories') || '[]');
+            
+            log(`<h3>📦 LocalStorage Data:</h3>`);
+            log(`Employees/Products: ${employees.length}`, employees.length > 0 ? 'success' : 'error');
+            
+            let scoreCount = 0;
+            Object.values(scores).forEach(empScores => {
+                Object.values(empScores).forEach(dayScores => {
+                    scoreCount += Object.keys(dayScores).length;
+                });
+            });
+            
+            log(`Scores: ${scoreCount}`, scoreCount > 0 ? 'success' : 'error');
+            log(`Categories: ${categories.length}`, categories.length > 0 ? 'success' : 'error');
+            
+            if (employees.length > 0) {
+                log(`<br><b>Sample Products:</b>`);
+                employees.slice(0, 3).forEach(emp => {
+                    log(`• ${emp.name} (${emp.category || 'no category'})`, 'info');
+                });
+            }
+            
+            if (employees.length === 0) {
+                log(`<br>⚠️ No data found! Click "Populate Test Data" to add sample data.`, 'error');
+            }
+        }
+
+        function populateTestData() {
+            document.getElementById('status').innerHTML = '';
+            log(`<h3>🎯 Populating Test Data...</h3>`);
+            
+            // Create sample products
+            const products = [
+                { id: 'prod-1', name: 'Product Alpha', category: 'Electronics', sku: 'ELEC-001' },
+                { id: 'prod-2', name: 'Product Beta', category: 'Software', sku: 'SOFT-001' },
+                { id: 'prod-3', name: 'Product Gamma', category: 'Hardware', sku: 'HARD-001' },
+                { id: 'prod-4', name: 'Product Delta', category: 'Electronics', sku: 'ELEC-002' },
+                { id: 'prod-5', name: 'Product Epsilon', category: 'Software', sku: 'SOFT-002' }
+            ];
+            
+            localStorage.setItem('hr_employees', JSON.stringify(products));
+            log(`✅ Added ${products.length} products`, 'success');
+            
+            // Create sample categories
+            const categories = [
+                { key: 'VCT', label: 'Video Creative Test', icon: 'Zap', tag: 'bg-blue-500', accent: 'border-l-blue-500', color: 'Blue' },
+                { key: 'ACT', label: 'Audio Creative Test', icon: 'Star', tag: 'bg-green-500', accent: 'border-l-green-500', color: 'Green' },
+                { key: 'RCT', label: 'Render Creative Test', icon: 'Lightbulb', tag: 'bg-purple-500', accent: 'border-l-purple-500', color: 'Purple' }
+            ];
+            
+            localStorage.setItem('hr_categories', JSON.stringify(categories));
+            log(`✅ Added ${categories.length} categories`, 'success');
+            
+            // Create sample scores
+            const scores = {};
+            const today = new Date();
+            
+            products.forEach(product => {
+                scores[product.id] = {};
+                
+                // Add scores for last 30 days
+                for (let i = 0; i < 30; i++) {
+                    const date = new Date(today);
+                    date.setDate(date.getDate() - i);
+                    const dateKey = date.toISOString().slice(0, 10).replace(/-/g, '');
+                    
+                    // Skip some days randomly
+                    if (Math.random() > 0.7) continue;
+                    
+                    scores[product.id][dateKey] = {};
+                    
+                    categories.forEach(cat => {
+                        const score = Math.floor(Math.random() * 4) + 6; // 6-10 range
+                        scores[product.id][dateKey][cat.key] = {
+                            score: score,
+                            performanceReport: `Performance report for ${date.toLocaleDateString()}`,
+                            mediaBuyerReview: score >= 8 ? 'Excellent' : 'Good'
+                        };
+                    });
+                }
+            });
+            
+            localStorage.setItem('hr_scores', JSON.stringify(scores));
+            
+            let totalScores = 0;
+            Object.values(scores).forEach(empScores => {
+                Object.values(empScores).forEach(dayScores => {
+                    totalScores += Object.keys(dayScores).length;
+                });
+            });
+            
+            log(`✅ Added ${totalScores} scores`, 'success');
+            log(`<br>✨ Test data populated successfully!`, 'success');
+        }
+
+        async function migrateToDatabase() {
+            document.getElementById('status').innerHTML = '';
+            log(`<h3>🚀 Migrating to Database...</h3>`);
+            
+            try {
+                // Check backend health
+                const healthRes = await fetch('http://localhost:3001/api/health');
+                if (!healthRes.ok) throw new Error('Backend not running');
+                log(`✅ Backend is running`, 'success');
+                
+                // Get data from localStorage
+                const employees = JSON.parse(localStorage.getItem('hr_employees') || '[]');
+                const scores = JSON.parse(localStorage.getItem('hr_scores') || '{}');
+                const categories = JSON.parse(localStorage.getItem('hr_categories') || '[]');
+                
+                // Migrate
+                const response = await fetch('http://localhost:3001/api/migrate', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ employees, scores, categories })
+                });
+                
+                const result = await response.json();
+                
+                log(`<br><b>Migration Results:</b>`);
+                log(`✅ Migrated ${result.migrated.employees} employees/products`, 'success');
+                log(`✅ Migrated ${result.migrated.scores} scores`, 'success');
+                log(`✅ Migrated ${result.migrated.categories} categories`, 'success');
+                
+            } catch (error) {
+                log(`❌ Error: ${error.message}`, 'error');
+                log(`Make sure backend is running: cd backend && npm start`, 'error');
+            }
+        }
+
+        async function verifyDatabase() {
+            document.getElementById('status').innerHTML = '';
+            log(`<h3>🔍 Verifying Database...</h3>`);
+            
+            try {
+                // Check employees
+                const empRes = await fetch('http://localhost:3001/api/employees');
+                const employees = await empRes.json();
+                log(`✅ Database has ${employees.length} products`, 'success');
+                
+                // Check scores
+                const scoreRes = await fetch('http://localhost:3001/api/scores');
+                const scores = await scoreRes.json();
+                log(`✅ Database has ${scores.length} scores`, 'success');
+                
+                // Check categories
+                const catRes = await fetch('http://localhost:3001/api/categories');
+                const categories = await catRes.json();
+                log(`✅ Database has ${categories.length} categories`, 'success');
+                
+                if (employees.length > 0) {
+                    log(`<br><b>Sample data from database:</b>`);
+                    employees.slice(0, 3).forEach(emp => {
+                        log(`• ${emp.name} (${emp.category})`, 'info');
+                    });
+                }
+                
+            } catch (error) {
+                log(`❌ Error: ${error.message}`, 'error');
+                log(`Backend might not be running`, 'error');
+            }
+        }
+
+        // Auto-check on load
+        window.onload = () => {
+            checkLocalStorage();
+        };
+    </script>
+</body>
+</html>
