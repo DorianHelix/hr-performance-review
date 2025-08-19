@@ -13,7 +13,17 @@ function ScoreChartModal({ data, categories, getCategoryScore, onClose, DateRang
   const [endDate, setEndDate] = useState(initialEnd);
   const [chartData, setChartData] = useState([]);
   const [hoveredPoint, setHoveredPoint] = useState(null);
+  const [visibleCategories, setVisibleCategories] = useState({});
   const chartContainerRef = useRef(null);
+  
+  // Initialize visible categories when categories prop changes
+  useEffect(() => {
+    const initial = {};
+    categories.forEach(cat => {
+      initial[cat.key] = true;
+    });
+    setVisibleCategories(initial);
+  }, [categories]);
   
   // Get scoring data for the date range from database
   useEffect(() => {
@@ -21,31 +31,12 @@ function ScoreChartModal({ data, categories, getCategoryScore, onClose, DateRang
     
     const fetchScores = async () => {
       try {
-        console.log('🔍 Full product object:', employee);
-        console.log('🔍 Fetching scores for:', {
-          employee_id: employee.id,
-          employee_name: employee.name,
-          full_id_length: employee.id?.length,
-          start_date: startDate.replace(/-/g, ''),
-          end_date: endDate.replace(/-/g, ''),
-          categories: categories.map(c => c.key)
-        });
-        
         // Fetch scores from database
         const response = await API.scores.getScores({
           entity_id: employee.id,
           start_date: startDate.replace(/-/g, ''),
           end_date: endDate.replace(/-/g, '')
         });
-        
-        console.log('📊 API Response:', response);
-        console.log('📊 Response length:', response?.length);
-        
-        // Check if entity exists in database
-        if (response.length === 0) {
-          console.warn('⚠️ No scores found for product:', employee.id);
-          console.log('💡 Available entities with scores:', ['test-prod-1', 'prod-mehzuxylqfjc911oame', 'prod-1755572204924']);
-        }
         
         // Get all days in the date range
         const start = new Date(startDate);
@@ -169,11 +160,22 @@ function ScoreChartModal({ data, categories, getCategoryScore, onClose, DateRang
                       return colors[index % colors.length];
                     };
                     
+                    const isVisible = visibleCategories[cat.key] !== false;
+                    
                     return (
-                      <div key={cat.key} className="flex items-center gap-2 glass-card px-3 py-1.5 rounded-lg">
+                      <button
+                        key={cat.key}
+                        onClick={() => setVisibleCategories(prev => ({
+                          ...prev,
+                          [cat.key]: !prev[cat.key]
+                        }))}
+                        className={`flex items-center gap-2 glass-card px-3 py-1.5 rounded-lg transition-all ${
+                          isVisible ? 'opacity-100' : 'opacity-40'
+                        } hover:scale-105`}
+                      >
                         <div className={`w-3 h-3 rounded-full bg-gradient-to-r ${getColorClass(idx)} shadow-lg`}></div>
                         <span className="text-sm text-white font-medium">{cat.key}</span>
-                      </div>
+                      </button>
                     );
                   })}
                 </div>
@@ -207,9 +209,69 @@ function ScoreChartModal({ data, categories, getCategoryScore, onClose, DateRang
                       </feMerge>
                     </filter>
                   </defs>
-                  {/* Grid lines with better styling */}
+                  
+                  {/* Scoring zone backgrounds */}
+                  <g opacity="0.05">
+                    {/* Green zone (9-10) */}
+                    <rect
+                      x={padding}
+                      y={padding}
+                      width={chartWidth - 2 * padding}
+                      height={(2 / 10) * (chartHeight - 2 * padding)}
+                      fill="rgb(34, 197, 94)"
+                    />
+                    {/* Yellow zone (7-8) */}
+                    <rect
+                      x={padding}
+                      y={padding + (2 / 10) * (chartHeight - 2 * padding)}
+                      width={chartWidth - 2 * padding}
+                      height={(2 / 10) * (chartHeight - 2 * padding)}
+                      fill="rgb(250, 204, 21)"
+                    />
+                    {/* Orange zone (5-6) */}
+                    <rect
+                      x={padding}
+                      y={padding + (4 / 10) * (chartHeight - 2 * padding)}
+                      width={chartWidth - 2 * padding}
+                      height={(2 / 10) * (chartHeight - 2 * padding)}
+                      fill="rgb(251, 146, 60)"
+                    />
+                    {/* Red zone (0-4) */}
+                    <rect
+                      x={padding}
+                      y={padding + (6 / 10) * (chartHeight - 2 * padding)}
+                      width={chartWidth - 2 * padding}
+                      height={(4 / 10) * (chartHeight - 2 * padding)}
+                      fill="rgb(239, 68, 68)"
+                    />
+                  </g>
+                  
+                  {/* Grid lines with scoring range colors */}
                   {[0, 2, 4, 6, 8, 10].map(score => {
                     const y = padding + ((10 - score) / 10) * (chartHeight - 2 * padding);
+                    
+                    // Determine line color based on score range
+                    let lineColor = "rgba(255,255,255,0.1)";
+                    let textColor = "rgba(255,255,255,0.4)";
+                    
+                    if (score === 8) {
+                      // Threshold for green zone (9-10)
+                      lineColor = "rgba(34, 197, 94, 0.3)"; // green-500
+                      textColor = "rgba(34, 197, 94, 0.7)";
+                    } else if (score === 6) {
+                      // Threshold for yellow zone (7-8)
+                      lineColor = "rgba(250, 204, 21, 0.3)"; // yellow-400
+                      textColor = "rgba(250, 204, 21, 0.7)";
+                    } else if (score === 4) {
+                      // Threshold for orange zone (5-6)
+                      lineColor = "rgba(251, 146, 60, 0.3)"; // orange-400
+                      textColor = "rgba(251, 146, 60, 0.7)";
+                    } else if (score === 2) {
+                      // Threshold for red zone (0-4)
+                      lineColor = "rgba(239, 68, 68, 0.3)"; // red-500
+                      textColor = "rgba(239, 68, 68, 0.7)";
+                    }
+                    
                     return (
                       <g key={score}>
                         <line
@@ -217,16 +279,16 @@ function ScoreChartModal({ data, categories, getCategoryScore, onClose, DateRang
                           y1={y}
                           x2={chartWidth - padding}
                           y2={y}
-                          stroke="rgba(255,255,255,0.1)"
-                          strokeWidth="1"
-                          strokeDasharray={score === 0 || score === 10 ? "none" : "2,2"}
+                          stroke={lineColor}
+                          strokeWidth={score % 2 === 0 && score !== 0 && score !== 10 ? "2" : "1"}
+                          strokeDasharray={score === 0 || score === 10 ? "none" : "4,4"}
                         />
                         <text
                           x={padding - 10}
                           y={y + 4}
-                          fill="rgba(255,255,255,0.4)"
+                          fill={textColor}
                           fontSize="11"
-                          fontWeight={score === 0 || score === 10 ? "bold" : "normal"}
+                          fontWeight={score % 2 === 0 && score !== 0 && score !== 10 ? "bold" : "normal"}
                           textAnchor="end"
                         >
                           {score}
@@ -237,6 +299,9 @@ function ScoreChartModal({ data, categories, getCategoryScore, onClose, DateRang
                   
                   {/* Area charts and lines for each category */}
                   {categories.map((category, idx) => {
+                    // Skip if category is hidden
+                    if (!visibleCategories[category.key]) return null;
+                    
                     // Get dynamic colors for each category
                     const getColor = (index) => {
                       const colors = ['#3b82f6', '#10b981', '#a855f7', '#f97316', '#ec4899', '#eab308'];
@@ -257,8 +322,48 @@ function ScoreChartModal({ data, categories, getCategoryScore, onClose, DateRang
                     
                     if (validPoints.length === 0) return null;
                     
-                    const pathPoints = validPoints.map(p => `${p.x},${p.y}`).join(' ');
-                    const areaPath = `M ${validPoints[0].x},${chartHeight - padding} L ${pathPoints} L ${validPoints[validPoints.length - 1].x},${chartHeight - padding} Z`;
+                    // Create smooth curve path using cubic Bezier curves
+                    const createSmoothPath = (points) => {
+                      if (points.length < 2) return '';
+                      
+                      let path = `M ${points[0].x},${points[0].y}`;
+                      
+                      for (let i = 1; i < points.length; i++) {
+                        const prev = points[i - 1];
+                        const curr = points[i];
+                        const next = points[i + 1];
+                        
+                        // Calculate control points for smooth curves
+                        const tension = 0.3;
+                        let cp1x, cp1y, cp2x, cp2y;
+                        
+                        if (i === 1) {
+                          // First segment
+                          cp1x = prev.x + (curr.x - prev.x) * tension;
+                          cp1y = prev.y;
+                        } else {
+                          const prevPrev = points[i - 2];
+                          cp1x = prev.x + (curr.x - prevPrev.x) * tension;
+                          cp1y = prev.y + (curr.y - prevPrev.y) * tension;
+                        }
+                        
+                        if (i === points.length - 1) {
+                          // Last segment
+                          cp2x = curr.x - (curr.x - prev.x) * tension;
+                          cp2y = curr.y;
+                        } else {
+                          cp2x = curr.x - (next.x - prev.x) * tension;
+                          cp2y = curr.y - (next.y - prev.y) * tension;
+                        }
+                        
+                        path += ` C ${cp1x},${cp1y} ${cp2x},${cp2y} ${curr.x},${curr.y}`;
+                      }
+                      
+                      return path;
+                    };
+                    
+                    const smoothPath = createSmoothPath(validPoints);
+                    const areaPath = `${smoothPath} L ${validPoints[validPoints.length - 1].x},${chartHeight - padding} L ${validPoints[0].x},${chartHeight - padding} Z`;
                     
                     return (
                       <g key={category.key}>
@@ -270,9 +375,9 @@ function ScoreChartModal({ data, categories, getCategoryScore, onClose, DateRang
                           className="animate-fade-in"
                         />
                         
-                        {/* Line */}
-                        <polyline
-                          points={pathPoints}
+                        {/* Smooth curved line */}
+                        <path
+                          d={smoothPath}
                           fill="none"
                           stroke={color}
                           strokeWidth="3"
