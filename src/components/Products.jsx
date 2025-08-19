@@ -748,8 +748,9 @@ function Products() {
       </div>
 
       {/* Right Sidebar */}
-      <div className={`${isSidebarCollapsed ? 'w-0' : 'w-80 ml-4'} glass-card-large transition-all duration-500 overflow-y-auto custom-scrollbar h-full mr-4 my-4`}>
-        <div className={`${isSidebarCollapsed ? 'hidden' : 'block'} p-4 md:p-6 space-y-6 h-full`}>
+      <div className={`${isSidebarCollapsed ? 'w-0' : 'w-80'} transition-all duration-500 py-6 pr-6`}>
+        <div className={`${isSidebarCollapsed ? 'hidden' : 'block'} glass-card-large h-full overflow-y-auto custom-scrollbar rounded-3xl`}>
+          <div className="p-4 md:p-6 space-y-6">
         {/* Data Source Toggle */}
         <div className="glass-card-large p-4">
           <div className="flex items-center justify-between">
@@ -938,6 +939,7 @@ function Products() {
                 </p>
               </div>
             )}
+            </div>
           </div>
         </div>
       </div>
