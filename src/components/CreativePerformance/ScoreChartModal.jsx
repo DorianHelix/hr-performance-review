@@ -246,31 +246,9 @@ function ScoreChartModal({ data, categories, getCategoryScore, onClose, DateRang
                     />
                   </g>
                   
-                  {/* Grid lines with scoring range colors */}
+                  {/* Grid lines - simple gray style */}
                   {[0, 2, 4, 6, 8, 10].map(score => {
                     const y = padding + ((10 - score) / 10) * (chartHeight - 2 * padding);
-                    
-                    // Determine line color based on score range
-                    let lineColor = "rgba(255,255,255,0.1)";
-                    let textColor = "rgba(255,255,255,0.4)";
-                    
-                    if (score === 8) {
-                      // Threshold for green zone (9-10)
-                      lineColor = "rgba(34, 197, 94, 0.3)"; // green-500
-                      textColor = "rgba(34, 197, 94, 0.7)";
-                    } else if (score === 6) {
-                      // Threshold for yellow zone (7-8)
-                      lineColor = "rgba(250, 204, 21, 0.3)"; // yellow-400
-                      textColor = "rgba(250, 204, 21, 0.7)";
-                    } else if (score === 4) {
-                      // Threshold for orange zone (5-6)
-                      lineColor = "rgba(251, 146, 60, 0.3)"; // orange-400
-                      textColor = "rgba(251, 146, 60, 0.7)";
-                    } else if (score === 2) {
-                      // Threshold for red zone (0-4)
-                      lineColor = "rgba(239, 68, 68, 0.3)"; // red-500
-                      textColor = "rgba(239, 68, 68, 0.7)";
-                    }
                     
                     return (
                       <g key={score}>
@@ -279,16 +257,16 @@ function ScoreChartModal({ data, categories, getCategoryScore, onClose, DateRang
                           y1={y}
                           x2={chartWidth - padding}
                           y2={y}
-                          stroke={lineColor}
-                          strokeWidth={score % 2 === 0 && score !== 0 && score !== 10 ? "2" : "1"}
-                          strokeDasharray={score === 0 || score === 10 ? "none" : "4,4"}
+                          stroke="rgba(255,255,255,0.1)"
+                          strokeWidth="1"
+                          strokeDasharray={score === 0 || score === 10 ? "none" : "3,3"}
                         />
                         <text
                           x={padding - 10}
                           y={y + 4}
-                          fill={textColor}
+                          fill="rgba(255,255,255,0.5)"
                           fontSize="11"
-                          fontWeight={score % 2 === 0 && score !== 0 && score !== 10 ? "bold" : "normal"}
+                          fontWeight={score === 0 || score === 10 ? "bold" : "normal"}
                           textAnchor="end"
                         >
                           {score}
@@ -398,24 +376,27 @@ function ScoreChartModal({ data, categories, getCategoryScore, onClose, DateRang
                               fill="transparent"
                               className="cursor-pointer"
                               onMouseEnter={(e) => {
-                                const svgElement = e.target.closest('svg');
-                                const containerElement = chartContainerRef.current;
-                                if (svgElement && containerElement) {
-                                  const svgRect = svgElement.getBoundingClientRect();
-                                  const containerRect = containerElement.getBoundingClientRect();
-                                  const relativeX = point.x + (svgRect.left - containerRect.left);
-                                  const relativeY = point.y + (svgRect.top - containerRect.top);
-                                  
-                                  setHoveredPoint({
-                                    ...point,
-                                    category: category.key,
-                                    color: color,
-                                    chartX: point.x,
-                                    chartY: point.y,
-                                    tooltipX: relativeX,
-                                    tooltipY: relativeY
-                                  });
-                                }
+                                // Get the circle element's position
+                                const circleRect = e.target.getBoundingClientRect();
+                                
+                                // Get the modal container position
+                                const modalElement = e.target.closest('.fixed');
+                                if (!modalElement) return;
+                                const modalRect = modalElement.getBoundingClientRect();
+                                
+                                // Calculate position relative to modal
+                                const relativeX = circleRect.left + (circleRect.width / 2) - modalRect.left;
+                                const relativeY = circleRect.top + (circleRect.height / 2) - modalRect.top;
+                                
+                                setHoveredPoint({
+                                  ...point,
+                                  category: category.key,
+                                  color: color,
+                                  chartX: point.x,
+                                  chartY: point.y,
+                                  tooltipX: relativeX,
+                                  tooltipY: relativeY
+                                });
                               }}
                               onMouseLeave={() => setHoveredPoint(null)}
                             />
@@ -477,42 +458,55 @@ function ScoreChartModal({ data, categories, getCategoryScore, onClose, DateRang
           <div 
             className="absolute z-50 pointer-events-none"
             style={{
-              left: `${hoveredPoint.tooltipX + 15}px`,
-              top: `${hoveredPoint.tooltipY - 10}px`,
-              transform: 'translate(0, -100%)',
+              left: `${hoveredPoint.tooltipX}px`,
+              top: `${hoveredPoint.tooltipY - 12}px`,
+              transform: 'translate(-50%, -100%)',
               maxWidth: '200px'
             }}
           >
-            <div className="glass-card p-3 rounded-lg border border-white/20 whitespace-nowrap" style={{
-              background: 'rgba(0, 0, 0, 0.9)',
-              backdropFilter: 'blur(12px)',
-              boxShadow: '0 8px 32px rgba(0, 0, 0, 0.4)',
-              userSelect: 'none'
-            }}>
-              <div className="text-white/90 text-sm font-medium mb-1">
-                {new Date(hoveredPoint.date).toLocaleDateString('en-US', { 
-                  weekday: 'short',
-                  month: 'short', 
-                  day: 'numeric' 
-                })}
+            <div className="relative">
+              <div className="glass-card p-3 rounded-lg border border-white/20 whitespace-nowrap" style={{
+                background: 'rgba(0, 0, 0, 0.95)',
+                backdropFilter: 'blur(12px)',
+                boxShadow: '0 8px 32px rgba(0, 0, 0, 0.4)',
+                userSelect: 'none'
+              }}>
+                <div className="text-white/90 text-sm font-medium mb-1">
+                  {new Date(hoveredPoint.date).toLocaleDateString('en-US', { 
+                    weekday: 'short',
+                    month: 'short', 
+                    day: 'numeric' 
+                  })}
+                </div>
+                <div className="flex items-center gap-2">
+                  <div 
+                    className="w-3 h-3 rounded-full"
+                    style={{ backgroundColor: hoveredPoint.color }}
+                  />
+                  <span className="text-white font-bold text-sm">{hoveredPoint.category}</span>
+                  <span className="text-white/60 text-sm">:</span>
+                  <span 
+                    className="font-bold text-sm px-2 py-0.5 rounded"
+                    style={{ 
+                      color: hoveredPoint.color,
+                      backgroundColor: `${hoveredPoint.color}20`
+                    }}
+                  >
+                    {hoveredPoint.value}/10
+                  </span>
+                </div>
               </div>
-              <div className="flex items-center gap-2">
-                <div 
-                  className="w-3 h-3 rounded-full"
-                  style={{ backgroundColor: hoveredPoint.color }}
-                />
-                <span className="text-white font-bold text-sm">{hoveredPoint.category}</span>
-                <span className="text-white/60 text-sm">:</span>
-                <span 
-                  className="font-bold text-sm px-2 py-0.5 rounded"
-                  style={{ 
-                    color: hoveredPoint.color,
-                    backgroundColor: `${hoveredPoint.color}20`
-                  }}
-                >
-                  {hoveredPoint.value}/10
-                </span>
-              </div>
+              {/* Arrow pointing down to the data point */}
+              <div 
+                className="absolute left-1/2 transform -translate-x-1/2 w-0 h-0"
+                style={{
+                  bottom: '-6px',
+                  borderLeft: '6px solid transparent',
+                  borderRight: '6px solid transparent',
+                  borderTop: '6px solid rgba(0, 0, 0, 0.95)',
+                  filter: 'drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2))'
+                }}
+              />
             </div>
           </div>
         )}
