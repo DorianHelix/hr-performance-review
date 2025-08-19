@@ -749,12 +749,23 @@ function Products() {
 
       {/* Right Sidebar */}
       <div className={`${isSidebarCollapsed ? 'w-0' : 'w-80'} transition-all duration-500 py-6 pr-6`}>
-        <div className={`${isSidebarCollapsed ? 'hidden' : 'block'} glass-card-large h-full overflow-y-auto custom-scrollbar rounded-3xl`}>
-          <div className="p-4 md:p-6 space-y-6">
+        <div className={`${isSidebarCollapsed ? 'hidden' : 'block'} h-full overflow-y-auto custom-scrollbar rounded-3xl bg-black/40 backdrop-blur-xl border border-white/10`}>
+          <div className="p-6 space-y-6">
+        {/* Sidebar Header */}
+        <div className="flex items-center justify-between mb-2">
+          <h2 className="text-xl font-bold text-white">Controls</h2>
+          <Settings size={20} className="text-white/60 hover:text-white cursor-pointer transition-colors" />
+        </div>
+        
         {/* Data Source Toggle */}
-        <div className="glass-card-large p-4">
-          <div className="flex items-center justify-between">
-            <span className="text-sm font-medium text-white/70">Data Source</span>
+        <div className="p-5 rounded-2xl bg-white/5 backdrop-blur-sm border border-white/10 hover:bg-white/10 transition-all">
+          <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center">
+                <Layers size={20} className="text-white" />
+              </div>
+              <span className="text-sm font-medium text-white">Data Source</span>
+            </div>
             <button
               onClick={() => setShowImportedProducts(!showImportedProducts)}
               className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
@@ -777,11 +788,13 @@ function Products() {
         </div>
 
         {/* Shopify Import Widget */}
-        <div className="glass-card-large p-6 bg-gradient-to-br from-purple-500/10 to-pink-500/10 border-purple-400/20">
-          <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
-            <FileDown size={20} className="text-purple-400" />
-            Shopify Import
-          </h3>
+        <div className="p-6 rounded-2xl bg-gradient-to-br from-purple-500/10 to-pink-500/10 backdrop-blur-sm border border-purple-400/20 hover:from-purple-500/15 hover:to-pink-500/15 transition-all">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center">
+              <FileDown size={20} className="text-white" />
+            </div>
+            <h3 className="text-lg font-semibold text-white">Shopify Import</h3>
+          </div>
           
           <div className="space-y-3">
             <button
@@ -813,11 +826,13 @@ function Products() {
         </div>
 
         {/* Product Actions */}
-        <div className="glass-card-large p-6">
-          <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
-            <PlusCircle size={20} className="text-purple-400" />
-            Product Actions
-          </h3>
+        <div className="p-6 rounded-2xl bg-white/5 backdrop-blur-sm border border-white/10 hover:bg-white/10 transition-all">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-green-500 to-emerald-500 flex items-center justify-center">
+              <PlusCircle size={20} className="text-white" />
+            </div>
+            <h3 className="text-lg font-semibold text-white">Product Actions</h3>
+          </div>
           
           <div className="space-y-3">
             <button
@@ -874,7 +889,7 @@ function Products() {
 
           {/* Quick Stats */}
           <div className="mt-6 space-y-4">
-            <div className="p-4 rounded-xl bg-white/5 border border-white/10">
+            <div className="p-4 rounded-xl bg-white/5 border border-white/10 backdrop-blur-sm">
               <h4 className="text-sm font-medium text-white/70 mb-3">Inventory Overview</h4>
               <div className="space-y-3">
                 <div className="flex justify-between items-center">
@@ -903,7 +918,7 @@ function Products() {
             </div>
 
             {/* Category Distribution */}
-            <div className="p-4 rounded-xl bg-gradient-to-br from-purple-500/10 to-pink-500/10 border border-purple-400/20">
+            <div className="p-4 rounded-xl bg-gradient-to-br from-purple-500/10 to-pink-500/10 border border-purple-400/20 backdrop-blur-sm">
               <h4 className="text-sm font-medium text-white mb-3">Category Distribution</h4>
               <div className="space-y-2">
                 {categories.slice(0, 5).map(cat => {
@@ -929,7 +944,7 @@ function Products() {
 
             {/* Low Stock Alert */}
             {lowStockCount > 0 && (
-              <div className="p-4 rounded-xl bg-orange-500/10 border border-orange-400/20">
+              <div className="p-4 rounded-xl bg-orange-500/10 border border-orange-400/20 backdrop-blur-sm">
                 <h4 className="text-sm font-medium text-orange-400 mb-2 flex items-center gap-2">
                   <AlertTriangle size={16} />
                   Low Stock Alert
