@@ -417,9 +417,9 @@ function Products() {
   }).length;
 
   return (
-    <div className="flex h-full overflow-hidden relative">
-      {/* Main Content - Flexible width */}
-      <div className={`flex-1 min-w-0 p-4 md:p-6 flex flex-col overflow-hidden transition-all duration-500`}>
+    <div className="h-full overflow-hidden relative" style={{ maxWidth: '100vw' }}>
+      {/* Main Content - Adjust margin for sidebar */}
+      <div className={`h-full p-4 md:p-6 flex flex-col overflow-hidden transition-all duration-500 ${isSidebarCollapsed ? 'mr-0' : 'mr-96'}`}>
           {/* Collapsible Header */}
           <header className="glass-card-large mb-4 overflow-hidden transition-all duration-500" 
             style={{ maxHeight: isHeaderExpanded ? '300px' : '70px' }}>
@@ -747,10 +747,9 @@ function Products() {
           </div>
       </div>
 
-      {/* Right Sidebar - Collapsible */}
-      <div className={`${isSidebarCollapsed ? 'w-0 p-0' : 'w-96 p-4 md:p-6'} flex-shrink-0 space-y-6 h-full overflow-y-auto transition-all duration-500 relative`}>
-        {/* Sidebar Content - Hidden when collapsed */}
-        <div className={`${isSidebarCollapsed ? 'hidden' : 'block'} space-y-6`}>
+      {/* Right Sidebar - Fixed position */}
+      <div className={`fixed right-0 top-0 h-full ${isSidebarCollapsed ? 'w-0' : 'w-96'} glass-card-large transition-all duration-500 z-20 overflow-y-auto custom-scrollbar`}>
+        <div className={`${isSidebarCollapsed ? 'hidden' : 'block'} p-4 md:p-6 space-y-6 h-full`}>
         {/* Data Source Toggle */}
         <div className="glass-card-large p-4">
           <div className="flex items-center justify-between">
@@ -941,8 +940,8 @@ function Products() {
             )}
           </div>
         </div>
-        </div>
       </div>
+    </div>
 
       {/* Add/Edit Product Modal */}
       {(showAddModal || editingProduct) && (
