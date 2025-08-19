@@ -575,19 +575,21 @@ function Products() {
                               </button>
                             )}
                           </td>
-                          <td className="p-3" style={{ minWidth: '250px' }}>
+                          <td className="p-3" style={{ minWidth: '250px', maxWidth: '300px' }}>
                             <div className="flex items-start gap-2">
                               {prod.hasVariants && (
                                 <Layers size={14} className="text-purple-400 mt-1 flex-shrink-0" />
                               )}
-                              <div className="min-w-0 flex-1">
+                              <div className="min-w-0 flex-1 overflow-hidden">
                                 <TruncatedTooltip content={prod.name} variant="default">
                                   <div className="font-medium text-white text-sm truncate">
                                     {prod.name}
                                   </div>
                                 </TruncatedTooltip>
                                 {prod.handle && (
-                                  <div className="text-xs text-white/40 mt-0.5 truncate">Handle: {prod.handle}</div>
+                                  <div className="text-xs text-white/40 mt-0.5 truncate" title={`Handle: ${prod.handle}`}>
+                                    Handle: {prod.handle}
+                                  </div>
                                 )}
                                 {prod.hasVariants && prod.variants && (
                                   <div className="text-xs text-purple-400 mt-0.5">
@@ -685,11 +687,11 @@ function Products() {
                             }`}
                           >
                             <td className="p-3 w-10"></td>
-                            <td className="p-3 pl-12" style={{ minWidth: '250px' }}>
+                            <td className="p-3 pl-12" style={{ minWidth: '250px', maxWidth: '300px' }}>
                               <div className="flex items-center gap-3">
-                                <div className="w-1.5 h-1.5 rounded-full bg-purple-400/60"></div>
-                                <div>
-                                  <div className="text-sm text-white/80">
+                                <div className="w-1.5 h-1.5 rounded-full bg-purple-400/60 flex-shrink-0"></div>
+                                <div className="min-w-0 flex-1">
+                                  <div className="text-sm text-white/80 truncate" title={variant.name}>
                                     {variant.name}
                                   </div>
                                 </div>
