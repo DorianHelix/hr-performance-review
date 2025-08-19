@@ -418,9 +418,9 @@ function Products() {
 
   return (
     <div className="flex h-full overflow-hidden">
-      {/* Main Content - Dynamic width based on sidebar state */}
-      <div className={`flex-1 min-w-0 ${isSidebarCollapsed ? '' : 'max-w-[calc(100%-24rem)]'} p-4 md:p-6 overflow-hidden transition-all duration-500`}>
-        <div className="w-full h-full flex flex-col">
+      {/* Main Content - Optimized for 13" laptop */}
+      <div className={`flex-1 min-w-0 ${isSidebarCollapsed ? 'max-w-full' : 'max-w-[calc(100%-24rem)]'} p-4 md:p-6 overflow-hidden transition-all duration-500`}>
+        <div className="w-full h-full flex flex-col" style={{ maxWidth: '1200px' }}>
           {/* Collapsible Header */}
           <header className="glass-card-large mb-4 overflow-hidden transition-all duration-500" 
             style={{ maxHeight: isHeaderExpanded ? '300px' : '70px' }}>
@@ -533,21 +533,21 @@ function Products() {
             </div>
           </div>
 
-          {/* Products Table */}
-          <div className="glass-card-large flex flex-col overflow-hidden flex-1">
-            <div className="flex-1 overflow-x-auto overflow-y-auto">
-              <table className="w-max">
-                <thead>
+          {/* Products Table - Optimized for scroll */}
+          <div className="glass-card-large flex flex-col overflow-hidden flex-1 p-2">
+            <div className="flex-1 overflow-x-auto overflow-y-auto custom-scrollbar" style={{ maxHeight: 'calc(100vh - 320px)' }}>
+              <table className="w-max" style={{ minWidth: '100%' }}>
+                <thead className="sticky top-0 z-10 bg-black/80 backdrop-blur-md">
                   <tr className="border-b border-white/10">
-                    <th className="text-left p-4 text-white/70 font-medium w-10"></th>
-                    <th className="text-left p-4 text-white/70 font-medium min-w-[250px]">Product / Variant</th>
-                    <th className="text-left p-4 text-white/70 font-medium min-w-[120px]">SKU</th>
-                    <th className="text-left p-4 text-white/70 font-medium min-w-[120px]">Category</th>
-                    <th className="text-right p-4 text-white/70 font-medium min-w-[100px]">Price</th>
-                    <th className="text-right p-4 text-white/70 font-medium min-w-[100px]">Cost</th>
-                    <th className="text-right p-4 text-white/70 font-medium min-w-[100px]">Stock</th>
-                    <th className="text-left p-4 text-white/70 font-medium min-w-[100px]">Status</th>
-                    <th className="text-center p-4 text-white/70 font-medium min-w-[100px]">Actions</th>
+                    <th className="text-left p-3 text-white/70 font-medium" style={{ width: '40px' }}></th>
+                    <th className="text-left p-3 text-white/70 font-medium" style={{ width: '280px', minWidth: '280px' }}>Product / Variant</th>
+                    <th className="text-left p-3 text-white/70 font-medium" style={{ width: '120px', minWidth: '120px' }}>SKU</th>
+                    <th className="text-left p-3 text-white/70 font-medium" style={{ width: '120px', minWidth: '120px' }}>Category</th>
+                    <th className="text-right p-3 text-white/70 font-medium" style={{ width: '90px', minWidth: '90px' }}>Price</th>
+                    <th className="text-right p-3 text-white/70 font-medium" style={{ width: '90px', minWidth: '90px' }}>Cost</th>
+                    <th className="text-right p-3 text-white/70 font-medium" style={{ width: '80px', minWidth: '80px' }}>Stock</th>
+                    <th className="text-left p-3 text-white/70 font-medium" style={{ width: '90px', minWidth: '90px' }}>Status</th>
+                    <th className="text-center p-3 text-white/70 font-medium" style={{ width: '90px', minWidth: '90px' }}>Actions</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -562,43 +562,43 @@ function Products() {
                       <React.Fragment key={prod.id}>
                         {/* Main Product Row */}
                         <tr className="border-b border-white/5 hover:bg-white/5 transition-colors group">
-                          <td className="p-4">
+                          <td className="p-3" style={{ width: '40px' }}>
                             {prod.hasVariants && (
                               <button
                                 onClick={() => toggleExpand(prod.id)}
                                 className="p-1 rounded hover:bg-white/10 transition-colors"
                               >
                                 {expandedProducts[prod.id] ? (
-                                  <ChevronDown size={16} className="text-white/60" />
+                                  <ChevronDown size={14} className="text-white/60" />
                                 ) : (
-                                  <ChevronRight size={16} className="text-white/60" />
+                                  <ChevronRight size={14} className="text-white/60" />
                                 )}
                               </button>
                             )}
                           </td>
-                          <td className="p-4">
+                          <td className="p-3" style={{ width: '280px', maxWidth: '280px' }}>
                             <div className="flex items-start gap-2">
                               {prod.hasVariants && (
-                                <Layers size={16} className="text-purple-400 mt-1" />
+                                <Layers size={14} className="text-purple-400 mt-1 flex-shrink-0" />
                               )}
                               <div className="min-w-0 flex-1">
                                 <TruncatedTooltip content={prod.name} variant="default">
-                                  <div className="font-medium text-white truncate max-w-[250px]">
+                                  <div className="font-medium text-white text-sm truncate">
                                     {prod.name}
                                   </div>
                                 </TruncatedTooltip>
                                 {prod.handle && (
-                                  <div className="text-xs text-white/40 mt-1">Handle: {prod.handle}</div>
+                                  <div className="text-xs text-white/40 mt-0.5 truncate">Handle: {prod.handle}</div>
                                 )}
                                 {prod.hasVariants && prod.variants && (
-                                  <div className="text-xs text-purple-400 mt-1">
+                                  <div className="text-xs text-purple-400 mt-0.5">
                                     {prod.variants.length} variants
                                   </div>
                                 )}
                               </div>
                             </div>
                           </td>
-                          <td className="p-4">
+                          <td className="p-3" style={{ width: '120px' }}>
                             <div className="text-sm text-white/60 font-mono">
                               {prod.hasVariants ? (
                                 <span className="text-white/30">Multiple</span>
@@ -607,15 +607,15 @@ function Products() {
                               )}
                             </div>
                           </td>
-                          <td className="p-4">
+                          <td className="p-3" style={{ width: '120px' }}>
                             {prod.category && (
                               <span className="px-2 py-1 rounded-lg bg-purple-500/20 text-purple-300 text-xs">
                                 {prod.category}
                               </span>
                             )}
                           </td>
-                          <td className="p-4 text-right">
-                            <div className="text-white font-medium">
+                          <td className="p-3 text-right" style={{ width: '90px' }}>
+                            <div className="text-white font-medium text-sm">
                               {prod.hasVariants ? (
                                 <span className="text-white/50">Various</span>
                               ) : (
@@ -623,8 +623,8 @@ function Products() {
                               )}
                             </div>
                           </td>
-                          <td className="p-4 text-right">
-                            <div className="text-white/60">
+                          <td className="p-3 text-right" style={{ width: '90px' }}>
+                            <div className="text-white/60 text-sm">
                               {prod.hasVariants ? (
                                 <span className="text-white/30">Various</span>
                               ) : (
@@ -632,24 +632,24 @@ function Products() {
                               )}
                             </div>
                           </td>
-                          <td className="p-4 text-right">
+                          <td className="p-3 text-right" style={{ width: '80px' }}>
                             <button
                               onClick={() => setShowStockDetails(prod)}
-                              className={`font-medium flex items-center justify-end gap-2 hover:underline ${
+                              className={`font-medium text-sm flex items-center justify-end gap-1 hover:underline ${
                                 (prod.totalStock || prod.stock || 0) < 10 ? 'text-orange-400' : 'text-white'
                               }`}
                             >
                               <span>{prod.totalStock || prod.stock || 0}</span>
                               {(prod.totalStock || prod.stock || 0) < 10 && (prod.totalStock || prod.stock || 0) > 0 && (
-                                <AlertTriangle size={14} className="text-orange-400" />
+                                <AlertTriangle size={12} className="text-orange-400" />
                               )}
                               {(prod.totalStock || prod.stock || 0) === 0 && (
                                 <span className="text-red-400 text-xs">Out</span>
                               )}
                             </button>
                           </td>
-                          <td className="p-4">
-                            <span className={`px-2 py-1 rounded-lg text-xs ${
+                          <td className="p-3" style={{ width: '90px' }}>
+                            <span className={`px-1.5 py-0.5 rounded-lg text-xs ${
                               prod.status === 'active' 
                                 ? 'bg-green-500/20 text-green-300'
                                 : prod.status === 'draft'
@@ -659,19 +659,19 @@ function Products() {
                               {prod.status || 'Active'}
                             </span>
                           </td>
-                          <td className="p-4">
+                          <td className="p-3" style={{ width: '90px' }}>
                             <div className="flex items-center justify-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                               <button
                                 onClick={() => setEditingProduct(prod)}
                                 className="p-1.5 rounded hover:bg-white/10 transition-colors"
                               >
-                                <Settings size={14} className="text-white/70" />
+                                <Settings size={12} className="text-white/70" />
                               </button>
                               <button
                                 onClick={() => handleDeleteProduct(prod.id)}
                                 className="p-1.5 rounded hover:bg-red-500/20 transition-colors"
                               >
-                                <Trash2 size={14} className="text-red-400" />
+                                <Trash2 size={12} className="text-red-400" />
                               </button>
                             </div>
                           </td>
@@ -685,8 +685,8 @@ function Products() {
                               idx === prod.variants.length - 1 ? 'border-b-2 border-white/10' : ''
                             }`}
                           >
-                            <td className="p-4"></td>
-                            <td className="p-4 pl-14">
+                            <td className="p-3" style={{ width: '40px' }}></td>
+                            <td className="p-3 pl-12" style={{ width: '280px' }}>
                               <div className="flex items-center gap-3">
                                 <div className="w-1.5 h-1.5 rounded-full bg-purple-400/60"></div>
                                 <div>
@@ -696,28 +696,28 @@ function Products() {
                                 </div>
                               </div>
                             </td>
-                            <td className="p-4">
+                            <td className="p-3" style={{ width: '120px' }}>
                               <div className="text-xs text-white/50 font-mono">
                                 {variant.sku || '-'}
                               </div>
                             </td>
-                            <td className="p-4">
+                            <td className="p-3" style={{ width: '120px' }}>
                               <span className="text-white/20 text-xs">Inherited</span>
                             </td>
-                            <td className="p-4 text-right">
-                              <div className="text-white/80 text-sm">
+                            <td className="p-3 text-right" style={{ width: '90px' }}>
+                              <div className="text-white/80 text-xs">
                                 ${(variant.price || 0).toLocaleString()}
                               </div>
                             </td>
-                            <td className="p-4 text-right">
-                              <div className="text-white/60 text-sm">
+                            <td className="p-3 text-right" style={{ width: '90px' }}>
+                              <div className="text-white/60 text-xs">
                                 ${(variant.cost || 0).toLocaleString()}
                               </div>
                             </td>
-                            <td className="p-4 text-right">
+                            <td className="p-3 text-right" style={{ width: '80px' }}>
                               <button
                                 onClick={() => setShowStockDetails(variant)}
-                                className={`text-sm font-medium hover:underline ${
+                                className={`text-xs font-medium hover:underline ${
                                   variant.stock < 10 ? 'text-orange-400' : 'text-white/80'
                                 }`}
                               >
@@ -727,13 +727,13 @@ function Products() {
                                 )}
                               </button>
                             </td>
-                            <td className="p-4">
+                            <td className="p-3" style={{ width: '90px' }}>
                               <span className="text-white/20 text-xs">-</span>
                             </td>
-                            <td className="p-4">
+                            <td className="p-3" style={{ width: '90px' }}>
                               <div className="flex items-center justify-center">
                                 <button className="p-1 rounded hover:bg-white/10 opacity-50 hover:opacity-100 transition-all">
-                                  <Settings size={12} className="text-white/50" />
+                                  <Settings size={10} className="text-white/50" />
                                 </button>
                               </div>
                             </td>
