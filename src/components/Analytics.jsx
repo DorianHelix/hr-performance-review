@@ -6,10 +6,11 @@ import { ResponsiveRadar } from '@nivo/radar';
 import { ResponsiveHeatMap } from '@nivo/heatmap';
 import { ResponsiveCalendar } from '@nivo/calendar';
 import { ResponsiveStream } from '@nivo/stream';
+import { ResponsiveFunnel } from '@nivo/funnel';
 import {
   BarChart3, TrendingUp, PieChart, Activity, Calendar,
   Package, Users, DollarSign, ShoppingCart, ArrowUp, ArrowDown,
-  RefreshCw
+  RefreshCw, Target
 } from 'lucide-react';
 
 // Glass theme for Nivo charts
@@ -177,6 +178,35 @@ function Analytics() {
     { metric: "Efficiency", John: 78, Sarah: 88, Mike: 85, Emma: 82, David: 90 },
     { metric: "Teamwork", John: 88, Sarah: 90, Mike: 92, Emma: 85, David: 78 },
     { metric: "Innovation", John: 75, Sarah: 82, Mike: 70, Emma: 88, David: 85 }
+  ];
+
+  // Sales Funnel data
+  const funnelData = [
+    {
+      id: 'Website Visitors',
+      value: 12450,
+      label: 'Website Visitors'
+    },
+    {
+      id: 'Product Views',
+      value: 8234,
+      label: 'Product Views'
+    },
+    {
+      id: 'Add to Cart',
+      value: 4512,
+      label: 'Add to Cart'
+    },
+    {
+      id: 'Checkout',
+      value: 2341,
+      label: 'Checkout'
+    },
+    {
+      id: 'Purchase',
+      value: 1687,
+      label: 'Purchase'
+    }
   ];
 
   // Heatmap data for weekly activity
@@ -516,15 +546,56 @@ function Analytics() {
         </div>
       </div>
 
-      {/* Bottom Row - Radar and Heatmap */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      {/* Funnel and Radar Row */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+        {/* Funnel Chart - Sales Conversion */}
+        <div className="glass-card-large p-6">
+          <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+            <Target size={20} className="text-pink-400" />
+            Sales Conversion Funnel
+          </h3>
+          <div style={{ height: '300px' }}>
+            <ResponsiveFunnel
+              data={funnelData}
+              theme={glassTheme}
+              margin={{ top: 20, right: 20, bottom: 20, left: 20 }}
+              direction="vertical"
+              valueFormat=">,.0f"
+              colors={{ scheme: 'spectral' }}
+              borderWidth={20}
+              labelColor={{ from: 'color', modifiers: [['darker', 3]] }}
+              beforeSeparatorLength={100}
+              beforeSeparatorOffset={20}
+              afterSeparatorLength={100}
+              afterSeparatorOffset={20}
+              currentPartSizeExtension={10}
+              currentBorderWidth={20}
+              motionConfig="gentle"
+            />
+          </div>
+          <div className="mt-4 grid grid-cols-2 gap-4 text-xs">
+            <div className="glass-card p-2 rounded-lg">
+              <div className="text-white/60">Conversion Rate</div>
+              <div className="text-lg font-bold text-green-400">
+                {((1687 / 12450) * 100).toFixed(1)}%
+              </div>
+            </div>
+            <div className="glass-card p-2 rounded-lg">
+              <div className="text-white/60">Cart Abandonment</div>
+              <div className="text-lg font-bold text-orange-400">
+                {((1 - (1687 / 4512)) * 100).toFixed(1)}%
+              </div>
+            </div>
+          </div>
+        </div>
+        
         {/* Radar Chart - Employee Performance */}
         <div className="glass-card-large p-6">
           <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
             <Users size={20} className="text-yellow-400" />
             Employee Performance
           </h3>
-          <div style={{ height: '350px' }}>
+          <div style={{ height: '300px' }}>
             <ResponsiveRadar
               data={performanceData}
               theme={glassTheme}
@@ -563,9 +634,10 @@ function Analytics() {
             />
           </div>
         </div>
+      </div>
 
-        {/* Heatmap - Activity */}
-        <div className="glass-card-large p-6">
+      {/* Heatmap Section - Full Width */}
+      <div className="glass-card-large p-6">
           <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
             <Activity size={20} className="text-red-400" />
             Weekly Activity Heatmap
@@ -618,7 +690,6 @@ function Analytics() {
               ]}
             />
           </div>
-        </div>
       </div>
     </div>
   );
