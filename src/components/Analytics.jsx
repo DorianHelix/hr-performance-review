@@ -207,8 +207,10 @@ function Analytics() {
   
   const splitFunnelData = calculateBrandData(brandSplit);
   
-  // Revenue funnel data - NEW
+  // Base revenue constant
   const baseRevenue = 4500000;
+  
+  // Revenue funnel data - NEW
   const revenueFunnelData = [
     {
       id: 'Revenue',
@@ -335,6 +337,158 @@ function Analytics() {
       setIsLoading(false);
     }, 1000);
   };
+
+  // Draw funnel graph when component mounts or revenueSplit changes
+  useEffect(() => {
+    // Wait for FunnelGraph to be available
+    const checkAndDraw = () => {
+      const container = document.getElementById('unified-funnel');
+      if (container && typeof window !== 'undefined' && window.FunnelGraph) {
+        try {
+          // Clear previous content
+          container.innerHTML = '';
+          
+          // Create funnel data with brand split
+          const funnelData = {
+            labels: ['Revenue', 'After Ad Spend', 'After Shipping', 'After COGS', 'Profit'],
+            subLabels: ['Brand A', 'Brand B'],
+            colors: [
+              ['#a855f7', '#06b6d4'],
+              ['#9333ea', '#0891b2'],
+              ['#7c3aed', '#0e7490'],
+              ['#6d28d9', '#155e75'],
+              ['#5b21b6', '#164e63']
+            ],
+            values: [
+              [Math.round(baseRevenue * revenueSplit / 100), Math.round(baseRevenue * (100 - revenueSplit) / 100)],
+              [Math.round(baseRevenue * 0.8 * revenueSplit / 100), Math.round(baseRevenue * 0.8 * (100 - revenueSplit) / 100)],
+              [Math.round(baseRevenue * 0.7 * revenueSplit / 100), Math.round(baseRevenue * 0.7 * (100 - revenueSplit) / 100)],
+              [Math.round(baseRevenue * 0.4 * revenueSplit / 100), Math.round(baseRevenue * 0.4 * (100 - revenueSplit) / 100)],
+              [Math.round(baseRevenue * 0.3 * revenueSplit / 100), Math.round(baseRevenue * 0.3 * (100 - revenueSplit) / 100)]
+            ]
+          };
+          
+          // Create and draw the funnel
+          const graph = new window.FunnelGraph({
+            container: '#unified-funnel',
+            gradientDirection: 'vertical',
+            data: funnelData,
+            displayPercent: true,
+            direction: 'vertical',
+            width: 400,
+            height: 300,
+            subLabelValue: 'raw'
+          });
+          
+          graph.draw();
+          
+          // Add custom styling and animations
+          setTimeout(() => {
+            const svgElement = container.querySelector('svg');
+            if (svgElement) {
+              svgElement.style.filter = 'drop-shadow(0 4px 6px rgba(0, 0, 0, 0.1))';
+              svgElement.style.transition = 'all 0.3s ease';
+            }
+            
+            // Style the funnel segments
+            const paths = container.querySelectorAll('path');
+            paths.forEach(path => {
+              path.style.transition = 'all 0.3s ease';
+              path.style.cursor = 'pointer';
+              
+              // Add hover effects
+              path.addEventListener('mouseenter', function() {
+                this.style.filter = 'brightness(1.2)';
+                this.style.transform = 'scale(1.02)';
+                this.style.transformOrigin = 'center';
+              });
+              
+              path.addEventListener('mouseleave', function() {
+                this.style.filter = 'brightness(1)';
+                this.style.transform = 'scale(1)';
+              });
+            });
+            
+            // Style the text elements
+            const textElements = container.querySelectorAll('text');
+            textElements.forEach(text => {
+              text.style.fill = '#ffffff';
+              text.style.fontWeight = '600';
+              text.style.fontSize = '11px';
+              text.style.textShadow = '0 1px 2px rgba(0, 0, 0, 0.4)';
+            });
+            
+            // Style percentage labels
+            const percentLabels = container.querySelectorAll('.label__percentage');
+            percentLabels.forEach(label => {
+              label.style.fill = '#ffffff';
+              label.style.opacity = '0.9';
+              label.style.fontSize = '10px';
+              label.style.fontWeight = '500';
+            });
+            
+            // Style value labels
+            const valueLabels = container.querySelectorAll('.label__value');
+            valueLabels.forEach(label => {
+              label.style.fill = '#ffffff';
+              label.style.fontSize = '10px';
+              label.style.fontWeight = '600';
+            });
+            
+            // Add subtle animation on load
+            const allPaths = container.querySelectorAll('path');
+            allPaths.forEach((path, index) => {
+              path.style.opacity = '0';
+              path.style.animation = `fadeInScale 0.5s ease-out ${index * 0.1}s forwards`;
+            });
+            
+            // Add animation keyframes
+            if (!document.querySelector('#funnel-animations')) {
+              const style = document.createElement('style');
+              style.id = 'funnel-animations';
+              style.textContent = `
+                @keyframes fadeInScale {
+                  from {
+                    opacity: 0;
+                    transform: scale(0.95);
+                  }
+                  to {
+                    opacity: 1;
+                    transform: scale(1);
+                  }
+                }
+                
+                #unified-funnel path {
+                  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2));
+                }
+                
+                #unified-funnel .label__percentage,
+                #unified-funnel .label__value {
+                  pointer-events: none;
+                }
+                
+                #unified-funnel svg {
+                  overflow: visible;
+                }
+              `;
+              document.head.appendChild(style);
+            }
+          }, 100);
+        } catch (error) {
+          console.error('Error drawing funnel graph:', error);
+        }
+      }
+    };
+    
+    // Try immediately
+    checkAndDraw();
+    
+    // If FunnelGraph is not available yet, wait a bit and try again
+    if (!window.FunnelGraph) {
+      const timer = setTimeout(checkAndDraw, 500);
+      return () => clearTimeout(timer);
+    }
+  }, [revenueSplit]);
 
   return (
     <div className="h-full flex flex-col bg-gradient-to-br from-gray-900 via-black to-gray-900 p-4 md:p-6 overflow-auto">
@@ -791,11 +945,86 @@ function Analytics() {
         </div>
       </div>
 
+      {/* Single Funnel with Brand Split - NEW APPROACH */}
+      <div className="glass-card-large p-6 mb-6">
+        <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+          <Target size={20} className="text-orange-400" />
+          Unified Brand Revenue Funnel
+        </h3>
+        
+        {/* Revenue Split Slider for Single Funnel */}
+        <div className="mb-6">
+          <div className="flex items-center justify-between text-xs text-white/60 mb-2">
+            <span className="flex items-center gap-2">
+              <div className="w-3 h-3 rounded-full bg-purple-500"></div>
+              Brand A: {revenueSplit}%
+            </span>
+            <span className="flex items-center gap-2">
+              <div className="w-3 h-3 rounded-full bg-cyan-500"></div>
+              Brand B: {100 - revenueSplit}%
+            </span>
+          </div>
+          <input
+            type="range"
+            min="10"
+            max="90"
+            value={revenueSplit}
+            onChange={(e) => setRevenueSplit(Number(e.target.value))}
+            className="w-full h-2 bg-white/20 rounded-lg appearance-none cursor-pointer slider"
+            style={{
+              background: `linear-gradient(to right, #a855f7 0%, #a855f7 ${revenueSplit}%, #06b6d4 ${revenueSplit}%, #06b6d4 100%)`
+            }}
+          />
+        </div>
+
+        {/* Funnel Graph JS Implementation */}
+        <div className="funnel-container" style={{ height: '350px' }}>
+          <div id="unified-funnel" className="flex justify-center items-center h-full" />
+        </div>
+
+        {/* Brand Breakdown Summary */}
+        <div className="mt-6 grid grid-cols-2 gap-4">
+          <div className="glass-card p-4 rounded-xl bg-gradient-to-br from-purple-500/10 to-purple-600/10">
+            <div className="flex items-center justify-between mb-3">
+              <span className="text-sm font-medium text-purple-400">Brand A ({revenueSplit}%)</span>
+              <div className="w-3 h-3 rounded-full bg-purple-500"></div>
+            </div>
+            <div className="space-y-2 text-xs">
+              <div className="flex justify-between text-white/60">
+                <span>Revenue:</span>
+                <span className="text-purple-400">{Math.round(baseRevenue * revenueSplit / 100).toLocaleString()} Ft</span>
+              </div>
+              <div className="flex justify-between text-white/60">
+                <span>Final Profit:</span>
+                <span className="text-green-400 font-semibold">{Math.round(baseRevenue * 0.3 * revenueSplit / 100).toLocaleString()} Ft</span>
+              </div>
+            </div>
+          </div>
+          
+          <div className="glass-card p-4 rounded-xl bg-gradient-to-br from-cyan-500/10 to-cyan-600/10">
+            <div className="flex items-center justify-between mb-3">
+              <span className="text-sm font-medium text-cyan-400">Brand B ({100 - revenueSplit}%)</span>
+              <div className="w-3 h-3 rounded-full bg-cyan-500"></div>
+            </div>
+            <div className="space-y-2 text-xs">
+              <div className="flex justify-between text-white/60">
+                <span>Revenue:</span>
+                <span className="text-cyan-400">{Math.round(baseRevenue * (100 - revenueSplit) / 100).toLocaleString()} Ft</span>
+              </div>
+              <div className="flex justify-between text-white/60">
+                <span>Final Profit:</span>
+                <span className="text-green-400 font-semibold">{Math.round(baseRevenue * 0.3 * (100 - revenueSplit) / 100).toLocaleString()} Ft</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
       {/* Revenue Funnel Section - NEW */}
       <div className="glass-card-large p-6 mb-6">
         <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
           <DollarSign size={20} className="text-green-400" />
-          Revenue Breakdown by Brand
+          Revenue Breakdown by Brand (Side by Side)
         </h3>
         
         {/* Revenue Split Slider */}
