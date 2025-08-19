@@ -859,13 +859,109 @@ function CreativePerformance({
                                   >
                                     <div className="relative flex items-center justify-center py-1">
                                       {catScore ? (
-                                        <div className={`h-8 w-8 rounded-lg ${styles.bg} ${styles.text} text-sm font-semibold grid place-items-center`}>
-                                          {catScore}
-                                        </div>
+                                        scoringDesign === 'minimal' ? (
+                                          // Minimal Design for expanded category rows
+                                          <div className={`h-8 w-8 rounded-lg ${styles.bg} ${styles.text} text-sm font-semibold grid place-items-center`}>
+                                            {catScore}
+                                          </div>
+                                        ) : (
+                                          // Liquid Glass Design for expanded category rows
+                                          <div 
+                                            className="relative group cursor-pointer transition-all duration-300 hover:scale-105 active:scale-95"
+                                            style={{
+                                              width: '1.75rem',
+                                              height: '1.75rem'
+                                            }}
+                                          >
+                                            {(() => {
+                                              // Get score-based styling
+                                              const getScoreStyle = (score) => {
+                                                if (score >= 9) return {
+                                                  background: 'linear-gradient(135deg, rgba(34, 197, 94, 0.2) 0%, rgba(21, 128, 61, 0.3) 100%)',
+                                                  border: '1px solid rgba(34, 197, 94, 0.4)',
+                                                  glow: '0 0 6px rgba(34, 197, 94, 0.2)',
+                                                  textColor: 'text-green-100'
+                                                };
+                                                if (score >= 7) return {
+                                                  background: 'linear-gradient(135deg, rgba(34, 197, 94, 0.15) 0%, rgba(22, 163, 74, 0.25) 100%)',
+                                                  border: '1px solid rgba(34, 197, 94, 0.35)',
+                                                  glow: '0 0 5px rgba(34, 197, 94, 0.15)',
+                                                  textColor: 'text-green-200'
+                                                };
+                                                if (score >= 5) return {
+                                                  background: 'linear-gradient(135deg, rgba(251, 191, 36, 0.15) 0%, rgba(245, 158, 11, 0.25) 100%)',
+                                                  border: '1px solid rgba(251, 191, 36, 0.35)',
+                                                  glow: '0 0 5px rgba(251, 191, 36, 0.15)',
+                                                  textColor: 'text-yellow-100'
+                                                };
+                                                if (score >= 3) return {
+                                                  background: 'linear-gradient(135deg, rgba(249, 115, 22, 0.15) 0%, rgba(234, 88, 12, 0.25) 100%)',
+                                                  border: '1px solid rgba(249, 115, 22, 0.35)',
+                                                  glow: '0 0 5px rgba(249, 115, 22, 0.15)',
+                                                  textColor: 'text-orange-100'
+                                                };
+                                                return {
+                                                  background: 'linear-gradient(135deg, rgba(239, 68, 68, 0.15) 0%, rgba(220, 38, 38, 0.25) 100%)',
+                                                  border: '1px solid rgba(239, 68, 68, 0.35)',
+                                                  glow: '0 0 5px rgba(239, 68, 68, 0.15)',
+                                                  textColor: 'text-red-100'
+                                                };
+                                              };
+
+                                              // Get category-specific accent color
+                                              const getCategoryAccent = (categoryKey) => {
+                                                if (categoryKey === 'VCT') return 'rgba(147, 51, 234, 0.2)';
+                                                if (categoryKey === 'SCT') return 'rgba(59, 130, 246, 0.2)';
+                                                if (categoryKey === 'ACT') return 'rgba(34, 197, 94, 0.2)';
+                                                return 'rgba(156, 163, 175, 0.2)';
+                                              };
+
+                                              const scoreStyle = getScoreStyle(catScore);
+                                              const categoryAccent = getCategoryAccent(cat.key);
+
+                                              return (
+                                                <div
+                                                  className={`w-full h-full rounded-lg flex items-center justify-center font-bold text-sm ${scoreStyle.textColor} relative overflow-hidden`}
+                                                  style={{
+                                                    background: scoreStyle.background,
+                                                    border: scoreStyle.border,
+                                                    backdropFilter: 'blur(16px)',
+                                                    WebkitBackdropFilter: 'blur(16px)',
+                                                    boxShadow: `${scoreStyle.glow}, inset 0 1px 0 rgba(255, 255, 255, 0.2)`,
+                                                    position: 'relative'
+                                                  }}
+                                                >
+                                                  
+                                                  {/* Score number */}
+                                                  <span className="relative z-10 drop-shadow-lg">
+                                                    {catScore}
+                                                  </span>
+                                                </div>
+                                              );
+                                            })()}
+                                          </div>
+                                        )
                                       ) : (
-                                        <div className="h-8 w-8 rounded-lg border border-dashed border-white/30 text-white/40 grid place-items-center text-xs hover:border-white/50">
-                                          +
-                                        </div>
+                                        scoringDesign === 'minimal' ? (
+                                          // Minimal empty state
+                                          <div className="h-8 w-8 rounded-lg border border-dashed border-white/30 text-white/40 grid place-items-center text-xs hover:border-white/50">
+                                            +
+                                          </div>
+                                        ) : (
+                                          // Liquid Glass empty state
+                                          <div 
+                                            className="w-7 h-7 rounded-lg border-2 border-dashed transition-all duration-300 hover:scale-105 hover:border-white/40 cursor-pointer grid place-items-center group"
+                                            style={{
+                                              borderColor: 'rgba(255, 255, 255, 0.2)',
+                                              background: 'rgba(255, 255, 255, 0.05)',
+                                              backdropFilter: 'blur(8px)',
+                                              WebkitBackdropFilter: 'blur(8px)',
+                                              boxShadow: 'inset 0 1px 0 rgba(255, 255, 255, 0.1)'
+                                            }}
+                                          >
+                                            <span className="text-white/30 text-xs font-medium group-hover:text-white/50 transition-colors">+</span>
+                                          </div>
+                                        )
                                       )}
                                     </div>
                                   </td>
@@ -1010,6 +1106,7 @@ function CreativePerformance({
       {chartModal && (
         <ScoreChartModal 
           data={chartModal}
+          categories={categories}
           getCategoryScore={getCategoryScore}
           onClose={() => setChartModal(null)}
           DateRangePicker={DateRangePicker}
@@ -1229,13 +1326,38 @@ function TestTypesModal({ categories, setCategories, onClose }) {
 }
 
 // Score Chart Modal Component
-function ScoreChartModal({ data, getCategoryScore, onClose, DateRangePicker }) {
+function ScoreChartModal({ data, categories, getCategoryScore, onClose, DateRangePicker }) {
   if (!data) return null;
   
   const { employee, startDate: initialStart, endDate: initialEnd } = data;
-  const [startDate, setStartDate] = useState(initialStart);
-  const [endDate, setEndDate] = useState(initialEnd);
+  
+  // Auto-expand to full month if range is less than 30 days
+  const expandToFullMonth = (start, end) => {
+    const startDate = new Date(start);
+    const endDate = new Date(end);
+    const daysDiff = (endDate - startDate) / (1000 * 60 * 60 * 24);
+    
+    if (daysDiff < 30) {
+      // Expand to full month around the selected range
+      const midDate = new Date(startDate.getTime() + (endDate.getTime() - startDate.getTime()) / 2);
+      const firstDay = new Date(midDate.getFullYear(), midDate.getMonth(), 1);
+      const lastDay = new Date(midDate.getFullYear(), midDate.getMonth() + 1, 0);
+      
+      return {
+        start: firstDay.toISOString().split('T')[0],
+        end: lastDay.toISOString().split('T')[0]
+      };
+    }
+    
+    return { start, end };
+  };
+  
+  const expandedRange = expandToFullMonth(initialStart, initialEnd);
+  const [startDate, setStartDate] = useState(expandedRange.start);
+  const [endDate, setEndDate] = useState(expandedRange.end);
   const [chartData, setChartData] = useState([]);
+  const [hoveredPoint, setHoveredPoint] = useState(null);
+  const chartContainerRef = useRef(null);
   
   // Get scoring data for the date range from database
   useEffect(() => {
@@ -1266,16 +1388,14 @@ function ScoreChartModal({ data, getCategoryScore, onClose, DateRangePicker }) {
           // Find scores for this day
           const dayScores = response.filter(s => s.date === dayKey);
           
-          const vctScore = dayScores.find(s => s.category === 'VCT')?.score || null;
-          const actScore = dayScores.find(s => s.category === 'ACT')?.score || null;
-          const rctScore = dayScores.find(s => s.category === 'RCT')?.score || null;
+          // Build scores object dynamically from categories
+          const dayScoreData = { date: day };
+          categories.forEach(cat => {
+            const score = dayScores.find(s => s.category === cat.key)?.score || null;
+            dayScoreData[cat.key] = score;
+          });
           
-          return {
-            date: day,
-            VCT: vctScore,
-            ACT: actScore,
-            RCT: rctScore
-          };
+          return dayScoreData;
         });
         
         setChartData(scores);
@@ -1292,12 +1412,14 @@ function ScoreChartModal({ data, getCategoryScore, onClose, DateRangePicker }) {
         
         const scores = days.map(day => {
           const dayKey = day.replace(/-/g, '');
-          return {
-            date: day,
-            VCT: getCategoryScore?.(employee.id, dayKey, 'VCT'),
-            ACT: getCategoryScore?.(employee.id, dayKey, 'ACT'),
-            RCT: getCategoryScore?.(employee.id, dayKey, 'RCT')
-          };
+          
+          // Build scores object dynamically from categories
+          const dayScoreData = { date: day };
+          categories.forEach(cat => {
+            dayScoreData[cat.key] = getCategoryScore?.(employee.id, dayKey, cat.key);
+          });
+          
+          return dayScoreData;
         });
         
         setChartData(scores);
@@ -1309,12 +1431,14 @@ function ScoreChartModal({ data, getCategoryScore, onClose, DateRangePicker }) {
   
   // Simple line chart rendering
   const maxScore = 10;
-  const chartHeight = 300;
-  const chartWidth = 600;
-  const padding = 40;
+  const chartHeight = 450; // Increased from 300
+  const chartWidth = 800;   // Increased from 600
+  const padding = 50;
   
   // Filter out days with no scores
-  const dataWithScores = chartData.filter(d => d.VCT || d.ACT || d.RCT);
+  const dataWithScores = chartData.filter(d => 
+    categories.some(cat => d[cat.key] !== null && d[cat.key] !== undefined)
+  );
   
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={onClose}>
@@ -1351,41 +1475,55 @@ function ScoreChartModal({ data, getCategoryScore, onClose, DateRangePicker }) {
           </div>
           
           {/* Chart */}
-          <div className="glass-card p-6 rounded-xl bg-gradient-to-br from-blue-500/5 to-purple-500/5">
+          <div ref={chartContainerRef} className="glass-card p-6 rounded-xl bg-gradient-to-br from-blue-500/5 to-purple-500/5 relative">
             {dataWithScores.length > 0 ? (
               <div className="space-y-4">
                 {/* Legend */}
                 <div className="flex items-center gap-6 justify-center mb-6">
-                  <div className="flex items-center gap-2 glass-card px-3 py-1.5 rounded-lg">
-                    <div className="w-3 h-3 rounded-full bg-gradient-to-r from-blue-400 to-blue-600 shadow-lg shadow-blue-500/50"></div>
-                    <span className="text-sm text-white font-medium">VCT</span>
-                  </div>
-                  <div className="flex items-center gap-2 glass-card px-3 py-1.5 rounded-lg">
-                    <div className="w-3 h-3 rounded-full bg-gradient-to-r from-green-400 to-green-600 shadow-lg shadow-green-500/50"></div>
-                    <span className="text-sm text-white font-medium">ACT</span>
-                  </div>
-                  <div className="flex items-center gap-2 glass-card px-3 py-1.5 rounded-lg">
-                    <div className="w-3 h-3 rounded-full bg-gradient-to-r from-purple-400 to-purple-600 shadow-lg shadow-purple-500/50"></div>
-                    <span className="text-sm text-white font-medium">RCT</span>
-                  </div>
+                  {categories.map((cat, idx) => {
+                    // Get dynamic colors for each category
+                    const getColorClass = (index) => {
+                      const colors = [
+                        'from-blue-400 to-blue-600 shadow-blue-500/50',
+                        'from-green-400 to-green-600 shadow-green-500/50', 
+                        'from-purple-400 to-purple-600 shadow-purple-500/50',
+                        'from-orange-400 to-orange-600 shadow-orange-500/50',
+                        'from-pink-400 to-pink-600 shadow-pink-500/50',
+                        'from-yellow-400 to-yellow-600 shadow-yellow-500/50'
+                      ];
+                      return colors[index % colors.length];
+                    };
+                    
+                    return (
+                      <div key={cat.key} className="flex items-center gap-2 glass-card px-3 py-1.5 rounded-lg">
+                        <div className={`w-3 h-3 rounded-full bg-gradient-to-r ${getColorClass(idx)} shadow-lg`}></div>
+                        <span className="text-sm text-white font-medium">{cat.key}</span>
+                      </div>
+                    );
+                  })}
                 </div>
                 
                 {/* Enhanced SVG Chart with gradients and animations */}
                 <svg width="100%" height={chartHeight} viewBox={`0 0 ${chartWidth} ${chartHeight}`} className="w-full overflow-visible">
                   {/* Define gradients */}
                   <defs>
-                    <linearGradient id="vctGradient" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor="#3b82f6" stopOpacity="0.8"/>
-                      <stop offset="100%" stopColor="#3b82f6" stopOpacity="0.1"/>
-                    </linearGradient>
-                    <linearGradient id="actGradient" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor="#10b981" stopOpacity="0.8"/>
-                      <stop offset="100%" stopColor="#10b981" stopOpacity="0.1"/>
-                    </linearGradient>
-                    <linearGradient id="rctGradient" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor="#a855f7" stopOpacity="0.8"/>
-                      <stop offset="100%" stopColor="#a855f7" stopOpacity="0.1"/>
-                    </linearGradient>
+                    {/* Dynamic gradients for each category */}
+                    {categories.map((category, idx) => {
+                      const getColor = (index) => {
+                        const colors = ['#3b82f6', '#10b981', '#a855f7', '#f97316', '#ec4899', '#eab308'];
+                        return colors[index % colors.length];
+                      };
+                      
+                      const color = getColor(idx);
+                      const gradientId = `${category.key.toLowerCase()}Gradient`;
+                      
+                      return (
+                        <linearGradient key={gradientId} id={gradientId} x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="0%" stopColor={color} stopOpacity="0.8"/>
+                          <stop offset="100%" stopColor={color} stopOpacity="0.1"/>
+                        </linearGradient>
+                      );
+                    })}
                     <filter id="glow">
                       <feGaussianBlur stdDeviation="4" result="coloredBlur"/>
                       <feMerge>
@@ -1422,16 +1560,22 @@ function ScoreChartModal({ data, getCategoryScore, onClose, DateRangePicker }) {
                   })}
                   
                   {/* Area charts and lines for each category */}
-                  {['VCT', 'ACT', 'RCT'].map((category, idx) => {
-                    const color = idx === 0 ? '#3b82f6' : idx === 1 ? '#10b981' : '#a855f7';
-                    const gradientId = idx === 0 ? 'vctGradient' : idx === 1 ? 'actGradient' : 'rctGradient';
+                  {categories.map((category, idx) => {
+                    // Get dynamic colors for each category
+                    const getColor = (index) => {
+                      const colors = ['#3b82f6', '#10b981', '#a855f7', '#f97316', '#ec4899', '#eab308'];
+                      return colors[index % colors.length];
+                    };
+                    
+                    const color = getColor(idx);
+                    const gradientId = `${category.key.toLowerCase()}Gradient`;
                     
                     const validPoints = dataWithScores
                       .map((d, i) => {
-                        if (!d[category]) return null;
+                        if (!d[category.key]) return null;
                         const x = padding + (i / (dataWithScores.length - 1 || 1)) * (chartWidth - 2 * padding);
-                        const y = padding + ((10 - d[category]) / 10) * (chartHeight - 2 * padding);
-                        return { x, y, value: d[category], date: d.date };
+                        const y = padding + ((10 - d[category.key]) / 10) * (chartHeight - 2 * padding);
+                        return { x, y, value: d[category.key], date: d.date };
                       })
                       .filter(Boolean);
                     
@@ -1465,39 +1609,49 @@ function ScoreChartModal({ data, getCategoryScore, onClose, DateRangePicker }) {
                         {/* Data points with hover effect */}
                         {validPoints.map((point, i) => (
                           <g key={`${category}-${i}`}>
-                            {/* Outer glow circle */}
+                            {/* Invisible larger hover area */}
                             <circle
                               cx={point.x}
                               cy={point.y}
-                              r="8"
-                              fill={color}
-                              opacity="0.2"
-                              className="animate-pulse"
+                              r="15"
+                              fill="transparent"
+                              className="cursor-pointer"
+                              onMouseEnter={(e) => {
+                                const svgElement = e.target.closest('svg');
+                                const containerElement = chartContainerRef.current;
+                                if (svgElement && containerElement) {
+                                  const svgRect = svgElement.getBoundingClientRect();
+                                  const containerRect = containerElement.getBoundingClientRect();
+                                  const relativeX = point.x + (svgRect.left - containerRect.left);
+                                  const relativeY = point.y + (svgRect.top - containerRect.top);
+                                  
+                                  setHoveredPoint({
+                                    ...point,
+                                    category: category.key,
+                                    color: color,
+                                    chartX: point.x,
+                                    chartY: point.y,
+                                    tooltipX: relativeX,
+                                    tooltipY: relativeY
+                                  });
+                                }
+                              }}
+                              onMouseLeave={() => setHoveredPoint(null)}
                             />
                             {/* Main point */}
                             <circle
                               cx={point.x}
                               cy={point.y}
-                              r="5"
+                              r={hoveredPoint && hoveredPoint.chartX === point.x && hoveredPoint.chartY === point.y ? "7.2" : "6"}
                               fill="white"
                               stroke={color}
-                              strokeWidth="2"
-                              className="hover:r-7 transition-all cursor-pointer"
-                            >
-                              <title>{`${new Date(point.date).toLocaleDateString()}: ${point.value}/10`}</title>
-                            </circle>
-                            {/* Value label on hover */}
-                            <text
-                              x={point.x}
-                              y={point.y - 15}
-                              fill={color}
-                              fontSize="12"
-                              fontWeight="bold"
-                              textAnchor="middle"
-                              className="opacity-0 hover:opacity-100 transition-opacity pointer-events-none"
-                            >
-                              {point.value}
-                            </text>
+                              strokeWidth="3"
+                              className="transition-all duration-200 pointer-events-none"
+                              style={{
+                                filter: 'drop-shadow(0 0 6px rgba(255,255,255,0.3))',
+                                transformOrigin: `${point.x}px ${point.y}px`
+                              }}
+                            />
                           </g>
                         ))}
                       </g>
@@ -1522,57 +1676,6 @@ function ScoreChartModal({ data, getCategoryScore, onClose, DateRangePicker }) {
                     );
                   })}
                 </svg>
-                
-                {/* Data Table */}
-                <div className="mt-6">
-                  <h3 className="text-sm font-medium text-white/80 mb-3">Score Details</h3>
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-sm">
-                      <thead>
-                        <tr className="border-b border-white/10">
-                          <th className="text-left p-2 text-white/60">Date</th>
-                          <th className="text-center p-2 text-white/60">VCT</th>
-                          <th className="text-center p-2 text-white/60">ACT</th>
-                          <th className="text-center p-2 text-white/60">RCT</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {dataWithScores.map((d, i) => (
-                          <tr key={i} className="border-b border-white/5 hover:bg-white/5">
-                            <td className="p-2 text-white/80">
-                              {new Date(d.date).toLocaleDateString('en-US', { 
-                                weekday: 'short',
-                                month: 'short', 
-                                day: 'numeric' 
-                              })}
-                            </td>
-                            <td className="text-center p-2">
-                              {d.VCT ? (
-                                <span className="px-2 py-1 rounded bg-blue-500/20 text-blue-300 font-bold">
-                                  {d.VCT}
-                                </span>
-                              ) : '-'}
-                            </td>
-                            <td className="text-center p-2">
-                              {d.ACT ? (
-                                <span className="px-2 py-1 rounded bg-green-500/20 text-green-300 font-bold">
-                                  {d.ACT}
-                                </span>
-                              ) : '-'}
-                            </td>
-                            <td className="text-center p-2">
-                              {d.RCT ? (
-                                <span className="px-2 py-1 rounded bg-purple-500/20 text-purple-300 font-bold">
-                                  {d.RCT}
-                                </span>
-                              ) : '-'}
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
               </div>
             ) : (
               <div className="text-center py-12 text-white/50">
@@ -1581,6 +1684,51 @@ function ScoreChartModal({ data, getCategoryScore, onClose, DateRangePicker }) {
             )}
           </div>
         </div>
+        
+        {/* Hover Tooltip */}
+        {hoveredPoint && hoveredPoint.tooltipX && hoveredPoint.tooltipY && (
+          <div 
+            className="absolute z-50 pointer-events-none"
+            style={{
+              left: `${hoveredPoint.tooltipX + 15}px`,
+              top: `${hoveredPoint.tooltipY - 10}px`,
+              transform: 'translate(0, -100%)',
+              maxWidth: '200px'
+            }}
+          >
+            <div className="glass-card p-3 rounded-lg border border-white/20 whitespace-nowrap" style={{
+              background: 'rgba(0, 0, 0, 0.9)',
+              backdropFilter: 'blur(12px)',
+              boxShadow: '0 8px 32px rgba(0, 0, 0, 0.4)',
+              userSelect: 'none'
+            }}>
+              <div className="text-white/90 text-sm font-medium mb-1">
+                {new Date(hoveredPoint.date).toLocaleDateString('en-US', { 
+                  weekday: 'short',
+                  month: 'short', 
+                  day: 'numeric' 
+                })}
+              </div>
+              <div className="flex items-center gap-2">
+                <div 
+                  className="w-3 h-3 rounded-full"
+                  style={{ backgroundColor: hoveredPoint.color }}
+                />
+                <span className="text-white font-bold text-sm">{hoveredPoint.category}</span>
+                <span className="text-white/60 text-sm">:</span>
+                <span 
+                  className="font-bold text-sm px-2 py-0.5 rounded"
+                  style={{ 
+                    color: hoveredPoint.color,
+                    backgroundColor: `${hoveredPoint.color}20`
+                  }}
+                >
+                  {hoveredPoint.value}/10
+                </span>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
