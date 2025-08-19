@@ -33,6 +33,7 @@ function Products() {
   const [showStockDetails, setShowStockDetails] = useState(null);
   const [filterCategory, setFilterCategory] = useState('');
   const [filterStatus, setFilterStatus] = useState('');
+  const [filterType, setFilterType] = useState('');
   const [sortBy, setSortBy] = useState('name'); // name, price, stock, created
   const [showImportedProducts, setShowImportedProducts] = useState(() => {
     // Check if we have imported products
@@ -382,7 +383,8 @@ function Products() {
                           prod.handle?.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesCategory = !filterCategory || prod.category === filterCategory;
     const matchesStatus = !filterStatus || prod.status === filterStatus;
-    return matchesSearch && matchesCategory && matchesStatus;
+    const matchesType = !filterType || prod.type === filterType;
+    return matchesSearch && matchesCategory && matchesStatus && matchesType;
   });
 
   // Sort products
@@ -401,8 +403,9 @@ function Products() {
     }
   });
   
-  // Get unique categories
+  // Get unique categories and types
   const categories = [...new Set(products.map(prod => prod.category))].filter(Boolean);
+  const types = [...new Set(products.map(prod => prod.type))].filter(Boolean);
   const totalProducts = products.length;
   const totalVariants = products.reduce((sum, p) => sum + (p.variants?.length || 0), 0);
   const totalStock = products.reduce((sum, p) => {
@@ -534,6 +537,17 @@ function Products() {
                 <option value="active">Active</option>
                 <option value="draft">Draft</option>
                 <option value="discontinued">Discontinued</option>
+              </select>
+              
+              <select
+                value={filterType}
+                onChange={(e) => setFilterType(e.target.value)}
+                className="glass-input px-4 py-2"
+              >
+                <option value="">All Types</option>
+                {types.map(type => (
+                  <option key={type} value={type}>{type}</option>
+                ))}
               </select>
               
               <select
@@ -799,26 +813,22 @@ function Products() {
             </div>
             <button
               onClick={() => setShowImportedProducts(!showImportedProducts)}
-              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors cursor-pointer z-10 ${
                 showImportedProducts ? 'bg-purple-600' : 'bg-gray-600'
               }`}
-              disabled={!localStorage.getItem('hr_products_imported')}
-              title={!localStorage.getItem('hr_products_imported') ? 'No imported products available' : ''}
             >
-              <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+              <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform pointer-events-none ${
                 showImportedProducts ? 'translate-x-6' : 'translate-x-1'
               }`} />
             </button>
           </div>
           <div className="mt-2 text-xs text-white/50">
             {showImportedProducts ? 'Showing Shopify Imported' : 'Showing Manual Products'}
-            {!localStorage.getItem('hr_products_imported') && (
-              <span className="block mt-1 text-yellow-400/50">Import Shopify data to enable toggle</span>
-            )}
           </div>
         </div>
 
-        {/* Shopify Import Widget */}
+        {/* Shopify Import Widget - Only show when viewing imported products */}
+        {showImportedProducts && (
         <div className="p-6 rounded-2xl bg-gradient-to-br from-purple-500/10 to-pink-500/10 backdrop-blur-sm border border-purple-400/20 hover:from-purple-500/15 hover:to-pink-500/15 transition-all">
           <div className="flex items-center gap-3 mb-4">
             <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center">
@@ -855,8 +865,10 @@ function Products() {
             )}
           </div>
         </div>
+        )}
 
-        {/* Product Actions */}
+        {/* Product Actions - Only show when viewing manual products */}
+        {!showImportedProducts && (
         <div className="p-6 rounded-2xl bg-white/5 backdrop-blur-sm border border-white/10 hover:bg-white/10 transition-all">
           <div className="flex items-center gap-3 mb-4">
             <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-green-500 to-emerald-500 flex items-center justify-center">
@@ -917,9 +929,11 @@ function Products() {
               </button>
             )}
           </div>
+        </div>
+        )}
 
-          {/* Quick Stats */}
-          <div className="mt-6 space-y-4">
+        {/* Statistics Section - Always visible */}
+        <div className="space-y-4">
             <div className="p-4 rounded-xl bg-white/5 border border-white/10 backdrop-blur-sm">
               <h4 className="text-sm font-medium text-white/70 mb-3">Inventory Overview</h4>
               <div className="space-y-3">
@@ -985,7 +999,6 @@ function Products() {
                 </p>
               </div>
             )}
-            </div>
           </div>
         </div>
       </div>
