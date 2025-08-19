@@ -418,9 +418,9 @@ function Products() {
 
   return (
     <div className="flex h-full overflow-hidden">
-      {/* Main Content - Optimized for 13" laptop */}
-      <div className={`flex-1 min-w-0 ${isSidebarCollapsed ? 'max-w-full' : 'max-w-[calc(100%-24rem)]'} p-4 md:p-6 overflow-hidden transition-all duration-500`}>
-        <div className="w-full h-full flex flex-col" style={{ maxWidth: '1200px' }}>
+      {/* Main Content - Flexible width */}
+      <div className={`flex-1 min-w-0 p-4 md:p-6 overflow-hidden transition-all duration-500`}>
+        <div className="w-full h-full flex flex-col">
           {/* Collapsible Header */}
           <header className="glass-card-large mb-4 overflow-hidden transition-all duration-500" 
             style={{ maxHeight: isHeaderExpanded ? '300px' : '70px' }}>
@@ -533,21 +533,21 @@ function Products() {
             </div>
           </div>
 
-          {/* Products Table - Optimized for scroll */}
+          {/* Products Table - Flexible width with scroll */}
           <div className="glass-card-large flex flex-col overflow-hidden flex-1 p-2">
-            <div className="flex-1 overflow-x-auto overflow-y-auto custom-scrollbar" style={{ maxHeight: 'calc(100vh - 320px)' }}>
-              <table className="w-max" style={{ minWidth: '100%' }}>
+            <div className="flex-1 overflow-auto custom-scrollbar" style={{ maxHeight: 'calc(100vh - 320px)' }}>
+              <table className="w-full" style={{ minWidth: '1000px' }}>
                 <thead className="sticky top-0 z-10 bg-black/80 backdrop-blur-md">
                   <tr className="border-b border-white/10">
-                    <th className="text-left p-3 text-white/70 font-medium" style={{ width: '40px' }}></th>
-                    <th className="text-left p-3 text-white/70 font-medium" style={{ width: '280px', minWidth: '280px' }}>Product / Variant</th>
-                    <th className="text-left p-3 text-white/70 font-medium" style={{ width: '120px', minWidth: '120px' }}>SKU</th>
-                    <th className="text-left p-3 text-white/70 font-medium" style={{ width: '120px', minWidth: '120px' }}>Category</th>
-                    <th className="text-right p-3 text-white/70 font-medium" style={{ width: '90px', minWidth: '90px' }}>Price</th>
-                    <th className="text-right p-3 text-white/70 font-medium" style={{ width: '90px', minWidth: '90px' }}>Cost</th>
-                    <th className="text-right p-3 text-white/70 font-medium" style={{ width: '80px', minWidth: '80px' }}>Stock</th>
-                    <th className="text-left p-3 text-white/70 font-medium" style={{ width: '90px', minWidth: '90px' }}>Status</th>
-                    <th className="text-center p-3 text-white/70 font-medium" style={{ width: '90px', minWidth: '90px' }}>Actions</th>
+                    <th className="text-left p-3 text-white/70 font-medium w-10"></th>
+                    <th className="text-left p-3 text-white/70 font-medium" style={{ minWidth: '250px' }}>Product / Variant</th>
+                    <th className="text-left p-3 text-white/70 font-medium w-32">SKU</th>
+                    <th className="text-left p-3 text-white/70 font-medium w-32">Category</th>
+                    <th className="text-right p-3 text-white/70 font-medium w-24">Price</th>
+                    <th className="text-right p-3 text-white/70 font-medium w-24">Cost</th>
+                    <th className="text-right p-3 text-white/70 font-medium w-20">Stock</th>
+                    <th className="text-left p-3 text-white/70 font-medium w-24">Status</th>
+                    <th className="text-center p-3 text-white/70 font-medium w-24">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -562,7 +562,7 @@ function Products() {
                       <React.Fragment key={prod.id}>
                         {/* Main Product Row */}
                         <tr className="border-b border-white/5 hover:bg-white/5 transition-colors group">
-                          <td className="p-3" style={{ width: '40px' }}>
+                          <td className="p-3 w-10">
                             {prod.hasVariants && (
                               <button
                                 onClick={() => toggleExpand(prod.id)}
@@ -576,7 +576,7 @@ function Products() {
                               </button>
                             )}
                           </td>
-                          <td className="p-3" style={{ width: '280px', maxWidth: '280px' }}>
+                          <td className="p-3" style={{ minWidth: '250px' }}>
                             <div className="flex items-start gap-2">
                               {prod.hasVariants && (
                                 <Layers size={14} className="text-purple-400 mt-1 flex-shrink-0" />
@@ -685,8 +685,8 @@ function Products() {
                               idx === prod.variants.length - 1 ? 'border-b-2 border-white/10' : ''
                             }`}
                           >
-                            <td className="p-3" style={{ width: '40px' }}></td>
-                            <td className="p-3 pl-12" style={{ width: '280px' }}>
+                            <td className="p-3 w-10"></td>
+                            <td className="p-3 pl-12" style={{ minWidth: '250px' }}>
                               <div className="flex items-center gap-3">
                                 <div className="w-1.5 h-1.5 rounded-full bg-purple-400/60"></div>
                                 <div>
@@ -704,17 +704,17 @@ function Products() {
                             <td className="p-3" style={{ width: '120px' }}>
                               <span className="text-white/20 text-xs">Inherited</span>
                             </td>
-                            <td className="p-3 text-right" style={{ width: '90px' }}>
+                            <td className="p-3 text-right w-24">
                               <div className="text-white/80 text-xs">
                                 ${(variant.price || 0).toLocaleString()}
                               </div>
                             </td>
-                            <td className="p-3 text-right" style={{ width: '90px' }}>
+                            <td className="p-3 text-right w-24">
                               <div className="text-white/60 text-xs">
                                 ${(variant.cost || 0).toLocaleString()}
                               </div>
                             </td>
-                            <td className="p-3 text-right" style={{ width: '80px' }}>
+                            <td className="p-3 text-right w-20">
                               <button
                                 onClick={() => setShowStockDetails(variant)}
                                 className={`text-xs font-medium hover:underline ${
