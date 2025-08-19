@@ -108,6 +108,19 @@
         
         .btn-danger {
             background: #dc3545;
+            padding: 6px 15px;
+            font-size: 14px;
+        }
+        
+        #recent-scores-list table,
+        #scores-table table {
+            margin-top: 10px;
+        }
+        
+        #recent-scores-list,
+        #scores-table {
+            max-height: 400px;
+            overflow-y: auto;
         }
         
         table {
@@ -208,9 +221,10 @@
 
         <!-- Scores Panel -->
         <div id="scores-panel" class="panel">
-            <h2>Add Individual Score</h2>
+            <h2>Manage Scores</h2>
             <div id="score-alert"></div>
             
+            <h3>Add New Score</h3>
             <form id="score-form">
                 <div class="inline-form">
                     <div class="form-group">
@@ -239,6 +253,9 @@
                     </div>
                 </div>
             </form>
+            
+            <h3 style="margin-top: 30px;">Recent Scores</h3>
+            <div id="recent-scores-list"></div>
         </div>
 
         <!-- Bulk Add Panel -->
@@ -321,7 +338,11 @@
             
             if (tab === 'view') loadAllData();
             if (tab === 'products') loadProducts();
-            if (tab === 'scores' || tab === 'bulk') loadProductsForSelect();
+            if (tab === 'scores') {
+                loadProductsForSelect();
+                loadRecentScores();
+            }
+            if (tab === 'bulk') loadProductsForSelect();
         }
         
         // Alert helper
@@ -446,6 +467,7 @@
                 
                 showAlert('score-alert', 'Score added successfully!');
                 e.target.reset();
+                loadRecentScores();
             } catch (error) {
                 showAlert('score-alert', 'Error adding score', 'error');
             }
@@ -553,26 +575,101 @@
             showAlert('bulk-alert', `Generated ${count} realistic scores with improving trend!`);
         }
         
+        // Load recent scores for scores tab
+        async function loadRecentScores() {
+            try {
+                const scoresRes = await fetch(`${API_URL}/scores`);
+                const scores = await scoresRes.json();
+                
+                const productsRes = await fetch(`${API_URL}/products`);
+                const products = await productsRes.json();
+                const productMap = {};
+                products.forEach(p => productMap[p.id] = p.name);
+                
+                const list = document.getElementById('recent-scores-list');
+                if (scores.length === 0) {
+                    list.innerHTML = '<p>No scores yet.</p>';
+                    return;
+                }
+                
+                // Sort by date and take last 20
+                const recentScores = scores.sort((a, b) => b.id - a.id).slice(0, 20);
+                
+                let html = '<table><thead><tr><th>Product</th><th>Date</th><th>Category</th><th>Score</th><th>Actions</th></tr></thead><tbody>';
+                recentScores.forEach(s => {
+                    const dateStr = s.date.toString();
+                    const formattedDate = `${dateStr.slice(0,4)}-${dateStr.slice(4,6)}-${dateStr.slice(6,8)}`;
+                    html += `
+                        <tr>
+                            <td>${productMap[s.employee_id] || s.employee_id}</td>
+                            <td>${formattedDate}</td>
+                            <td>${s.category}</td>
+                            <td><strong>${s.score}</strong></td>
+                            <td>
+                                <button onclick="deleteScore('${s.employee_id}', '${s.date}', '${s.category}')" class="btn-danger">Delete</button>
+                            </td>
+                        </tr>
+                    `;
+                });
+                html += '</tbody></table>';
+                list.innerHTML = html;
+            } catch (error) {
+                console.error('Error loading scores:', error);
+            }
+        }
+        
+        // Delete score
+        async function deleteScore(employeeId, date, category) {
+            if (!confirm('Delete this score?')) return;
+            
+            try {
+                await fetch(`${API_URL}/scores/${employeeId}/${date}/${category}`, { method: 'DELETE' });
+                loadRecentScores();
+                showAlert('score-alert', 'Score deleted successfully!');
+            } catch (error) {
+                showAlert('score-alert', 'Error deleting score', 'error');
+            }
+        }
+        
+        // Delete score from View tab
+        async function deleteScoreFromView(employeeId, date, category) {
+            if (!confirm('Delete this score?')) return;
+            
+            try {
+                await fetch(`${API_URL}/scores/${employeeId}/${date}/${category}`, { method: 'DELETE' });
+                loadAllData();
+                showAlert('view-alert', 'Score deleted successfully!');
+            } catch (error) {
+                showAlert('view-alert', 'Error deleting score', 'error');
+            }
+        }
+        
         // Load all data for view
         async function loadAllData() {
             try {
                 // Load scores
-                const scoresRes = await fetch(`${API_URL}/scores?limit=50`);
+                const scoresRes = await fetch(`${API_URL}/scores`);
                 const scores = await scoresRes.json();
                 
                 const scoresTable = document.getElementById('scores-table');
                 if (scores.length === 0) {
                     scoresTable.innerHTML = '<p>No scores yet.</p>';
                 } else {
-                    let html = '<table><thead><tr><th>Product</th><th>Date</th><th>Category</th><th>Score</th></tr></thead><tbody>';
-                    
                     // Get product names
                     const productsRes = await fetch(`${API_URL}/products`);
                     const products = await productsRes.json();
                     const productMap = {};
                     products.forEach(p => productMap[p.id] = p.name);
                     
-                    scores.slice(0, 50).forEach(s => {
+                    // Sort scores by date descending
+                    const sortedScores = scores.sort((a, b) => {
+                        if (a.date !== b.date) return b.date.toString().localeCompare(a.date.toString());
+                        return b.id - a.id;
+                    });
+                    
+                    let html = '<table><thead><tr><th>Product</th><th>Date</th><th>Category</th><th>Score</th><th>Actions</th></tr></thead><tbody>';
+                    
+                    sortedScores.slice(0, 50).forEach(s => {
                         const dateStr = s.date.toString();
                         const formattedDate = `${dateStr.slice(0,4)}-${dateStr.slice(4,6)}-${dateStr.slice(6,8)}`;
                         html += `
@@ -581,11 +678,14 @@
                                 <td>${formattedDate}</td>
                                 <td>${s.category}</td>
                                 <td><strong>${s.score}</strong></td>
+                                <td>
+                                    <button onclick="deleteScoreFromView('${s.employee_id}', '${s.date}', '${s.category}')" class="btn-danger">Delete</button>
+                                </td>
                             </tr>
                         `;
                     });
                     html += '</tbody></table>';
-                    scoresTable.innerHTML = html;
+                    scoresTable.innerHTML = html + `<p style="margin-top: 10px; color: #666;">Showing ${Math.min(50, sortedScores.length)} of ${scores.length} total scores</p>`;
                 }
                 
                 // Load products
@@ -649,6 +749,14 @@
         
         // Load initial data
         loadProducts();
+        
+        // Auto-refresh View Data tab every 5 seconds when active
+        setInterval(() => {
+            const viewPanel = document.getElementById('view-panel');
+            if (viewPanel && viewPanel.classList.contains('active')) {
+                loadAllData();
+            }
+        }, 5000);
     </script>
 </body>
 </html>
