@@ -3,12 +3,14 @@ import {
   Package, Plus, Trash2, Settings, Upload, PlusCircle,
   Search, Filter, Tag, DollarSign, Box, BarChart,
   TrendingUp, ShoppingCart, Archive, AlertTriangle,
-  ChevronDown, ChevronRight, Layers, FileDown, Menu
+  ChevronDown, ChevronRight, Layers, FileDown, Menu,
+  Mail, Bell, Send
 } from 'lucide-react';
 import API from '../api';
 import { TruncatedTooltip } from './LiquidTooltip';
 import { useToast } from './Toast';
 import Papa from 'papaparse';
+import emailService from '../services/emailService';
 
 // Helper functions
 function uid() { 
@@ -50,6 +52,12 @@ function Products() {
     cancelText: 'Cancel',
     type: 'danger' // danger, warning, info
   });
+  
+  // Email alert state
+  const [showEmailModal, setShowEmailModal] = useState(false);
+  const [emailRecipient, setEmailRecipient] = useState('manager@company.com');
+  const [sendingEmail, setSendingEmail] = useState(false);
+  const [sentEmails, setSentEmails] = useState([]);
 
   // Load products from database
   useEffect(() => {
@@ -112,6 +120,45 @@ function Products() {
       type
     });
   };
+  
+  // Send low stock email alert
+  const sendLowStockAlert = async () => {
+    if (!emailRecipient) {
+      showError('Please enter a recipient email address');
+      return;
+    }
+    
+    setSendingEmail(true);
+    try {
+      const result = await emailService.sendLowStockAlert(products, emailRecipient);
+      
+      if (result.success) {
+        showSuccess(`Stock alert sent to ${emailRecipient}`);
+        setShowEmailModal(false);
+        
+        // Refresh sent emails list
+        const emails = emailService.getSentEmails();
+        setSentEmails(emails);
+      } else {
+        if (result.reason === 'No low stock items') {
+          showInfo('All products have sufficient stock levels');
+        } else {
+          showError('Failed to send email alert');
+        }
+      }
+    } catch (error) {
+      console.error('Error sending email:', error);
+      showError('Error sending email alert');
+    } finally {
+      setSendingEmail(false);
+    }
+  };
+  
+  // Load sent emails
+  useEffect(() => {
+    const emails = emailService.getSentEmails();
+    setSentEmails(emails);
+  }, [showEmailModal]);
 
   // Import Stock Levels CSV
   const handleStockImport = (file) => {
@@ -1043,9 +1090,16 @@ function Products() {
                   <AlertTriangle size={16} />
                   Low Stock Alert
                 </h4>
-                <p className="text-xs text-white/60">
+                <p className="text-xs text-white/60 mb-3">
                   {lowStockCount} product{lowStockCount > 1 ? 's' : ''} running low on stock
                 </p>
+                <button
+                  onClick={() => setShowEmailModal(true)}
+                  className="w-full glass-button py-2 flex items-center justify-center gap-2 text-xs hover:scale-105 transition-transform bg-orange-500/20 border-orange-400/30"
+                >
+                  <Mail size={14} />
+                  Send Email Alert
+                </button>
               </div>
             )}
           </div>
@@ -1186,6 +1240,158 @@ function Products() {
                 }`}
               >
                 {confirmDialog.confirmText}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Email Alert Modal */}
+      {showEmailModal && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="glass-card-large w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+            <div className="p-6 border-b border-white/20 bg-gradient-to-r from-orange-500/10 to-yellow-500/10">
+              <h2 className="text-xl font-bold text-white flex items-center gap-3">
+                <Mail size={24} className="text-orange-400" />
+                Send Low Stock Alert
+              </h2>
+              <p className="text-sm text-white/60 mt-2">
+                Send email notification for products with low or no stock
+              </p>
+            </div>
+            
+            <div className="p-6">
+              {/* Preview Section */}
+              <div className="mb-6">
+                <h3 className="text-white font-semibold mb-3">Alert Preview</h3>
+                <div className="glass-card p-4 rounded-xl">
+                  <div className="space-y-3">
+                    {products.filter(p => (p.totalStock || p.stock || 0) === 0).length > 0 && (
+                      <div>
+                        <div className="text-red-400 font-medium text-sm mb-2">
+                          🚨 Out of Stock ({products.filter(p => (p.totalStock || p.stock || 0) === 0).length} items)
+                        </div>
+                        <div className="text-xs text-white/60">
+                          {products.filter(p => (p.totalStock || p.stock || 0) === 0)
+                            .slice(0, 3)
+                            .map(p => p.name)
+                            .join(', ')}
+                          {products.filter(p => (p.totalStock || p.stock || 0) === 0).length > 3 && '...'}
+                        </div>
+                      </div>
+                    )}
+                    
+                    {products.filter(p => {
+                      const stock = p.totalStock || p.stock || 0;
+                      return stock > 0 && stock < 10;
+                    }).length > 0 && (
+                      <div>
+                        <div className="text-orange-400 font-medium text-sm mb-2">
+                          ⚠️ Low Stock ({products.filter(p => {
+                            const stock = p.totalStock || p.stock || 0;
+                            return stock > 0 && stock < 10;
+                          }).length} items)
+                        </div>
+                        <div className="text-xs text-white/60">
+                          {products.filter(p => {
+                            const stock = p.totalStock || p.stock || 0;
+                            return stock > 0 && stock < 10;
+                          })
+                            .slice(0, 3)
+                            .map(p => `${p.name} (${p.totalStock || p.stock} left)`)
+                            .join(', ')}
+                          {products.filter(p => {
+                            const stock = p.totalStock || p.stock || 0;
+                            return stock > 0 && stock < 10;
+                          }).length > 3 && '...'}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+              
+              {/* Recipient Input */}
+              <div className="mb-6">
+                <label className="block text-sm font-medium text-white/70 mb-2">
+                  Recipient Email Address
+                </label>
+                <input
+                  type="email"
+                  value={emailRecipient}
+                  onChange={(e) => setEmailRecipient(e.target.value)}
+                  placeholder="manager@company.com"
+                  className="w-full glass-input px-4 py-2"
+                />
+              </div>
+              
+              {/* Recent Sent Emails */}
+              {sentEmails.length > 0 && (
+                <div>
+                  <h3 className="text-white font-semibold mb-3">Recent Alerts</h3>
+                  <div className="space-y-2 max-h-40 overflow-y-auto">
+                    {sentEmails.slice(-5).reverse().map((email) => (
+                      <div key={email.id} className="glass-card p-3 rounded-lg">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <Bell size={14} className="text-white/60" />
+                            <span className="text-xs text-white/80">{email.to}</span>
+                          </div>
+                          <span className="text-xs text-white/40">
+                            {new Date(email.timestamp).toLocaleString()}
+                          </span>
+                        </div>
+                        <div className="text-xs text-white/60 mt-1 truncate">
+                          {email.subject}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+              
+              {/* Info Box */}
+              <div className="mt-6 p-4 rounded-xl bg-blue-500/10 border border-blue-400/20">
+                <div className="flex items-start gap-3">
+                  <AlertTriangle size={16} className="text-blue-400 mt-0.5" />
+                  <div className="text-xs text-white/70">
+                    <p>This will send an automated email alert with all products that have:</p>
+                    <ul className="mt-2 space-y-1 ml-4">
+                      <li>• Zero stock (out of stock)</li>
+                      <li>• Less than 10 items in stock (low stock)</li>
+                    </ul>
+                    <p className="mt-2 text-white/50">
+                      Note: In demo mode, emails are stored locally instead of being sent.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            <div className="p-6 border-t border-white/20 flex justify-end gap-3">
+              <button
+                onClick={() => setShowEmailModal(false)}
+                className="px-6 py-2 glass-button rounded-xl"
+                disabled={sendingEmail}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={sendLowStockAlert}
+                disabled={sendingEmail || !emailRecipient}
+                className="px-6 py-2 rounded-xl bg-gradient-to-r from-orange-500 to-yellow-500 text-white font-medium hover:scale-105 transition-transform disabled:opacity-50 flex items-center gap-2"
+              >
+                {sendingEmail ? (
+                  <>
+                    <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                    Sending...
+                  </>
+                ) : (
+                  <>
+                    <Send size={18} />
+                    Send Alert
+                  </>
+                )}
               </button>
             </div>
           </div>

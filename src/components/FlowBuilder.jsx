@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useMemo } from 'react';
+import React, { useState, useCallback } from 'react';
 import ReactFlow, {
   ReactFlowProvider,
   MiniMap,
@@ -8,27 +8,27 @@ import ReactFlow, {
   useEdgesState,
   addEdge,
   Panel,
-  useReactFlow,
   MarkerType,
   Handle,
-  Position,
-  applyNodeChanges,
-  applyEdgeChanges,
+  Position
 } from 'reactflow';
 import 'reactflow/dist/style.css';
 import {
   GitBranch, Plus, Save, Download, Upload, Trash2,
-  User, CheckCircle, AlertCircle, Mail, Database,
+  User, CheckCircle, AlertCircle, AlertTriangle, Mail, Database,
   Settings, Zap, Clock, FileText, Calendar, Target,
-  Activity, Hash, MessageSquare, Filter
+  Activity, Hash, MessageSquare, Filter, Users, Layers
 } from 'lucide-react';
 import { useToast } from './Toast';
+import emailService from '../services/emailService';
 
-// Custom node types
+// Custom node types with executable actions
 const StartNode = ({ data, selected }) => {
   return (
     <div className={`glass-card p-4 rounded-2xl min-w-[180px] border-2 relative ${
-      selected ? 'border-purple-500 shadow-lg shadow-purple-500/30' : 'border-green-500/50'
+      selected ? 'border-purple-500 shadow-lg shadow-purple-500/30' : 
+      data.executing ? 'border-green-400 shadow-lg shadow-green-400/50 animate-pulse' : 
+      'border-green-500/50'
     } bg-gradient-to-br from-green-500/20 to-emerald-500/20`}>
       <Handle
         type="source"
@@ -43,6 +43,9 @@ const StartNode = ({ data, selected }) => {
         <div>
           <div className="text-white font-semibold">Start</div>
           <div className="text-xs text-white/60">{data.label || 'Entry Point'}</div>
+          {data.executing && (
+            <div className="text-xs text-green-400 mt-1">Running...</div>
+          )}
         </div>
       </div>
     </div>
@@ -52,7 +55,10 @@ const StartNode = ({ data, selected }) => {
 const ProcessNode = ({ data, selected }) => {
   return (
     <div className={`glass-card p-4 rounded-2xl min-w-[180px] border-2 relative ${
-      selected ? 'border-purple-500 shadow-lg shadow-purple-500/30' : 'border-blue-500/50'
+      selected ? 'border-purple-500 shadow-lg shadow-purple-500/30' : 
+      data.executing ? 'border-blue-400 shadow-lg shadow-blue-400/50 animate-pulse' :
+      data.executed ? 'border-green-500/50' :
+      'border-blue-500/50'
     } bg-gradient-to-br from-blue-500/20 to-cyan-500/20`}>
       <Handle
         type="target"
@@ -273,12 +279,15 @@ const initialEdges = [
 
 // Flow Builder Component
 function FlowBuilder() {
-  const { showSuccess, showError, showInfo } = useToast();
+  const { showSuccess, showError, showInfo, showWarning } = useToast();
   const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
   const [showNodeMenu, setShowNodeMenu] = useState(false);
   const [flowName, setFlowName] = useState('Untitled Flow');
   const [selectedNode, setSelectedNode] = useState(null);
+  const [isExecuting, setIsExecuting] = useState(false);
+  const [executionLog, setExecutionLog] = useState([]);
+  const [showTemplates, setShowTemplates] = useState(false);
 
   // Handle connection
   const onConnect = useCallback(
@@ -369,7 +378,265 @@ function FlowBuilder() {
     setNodes([]);
     setEdges([]);
     setFlowName('Untitled Flow');
+    setExecutionLog([]);
     showInfo('Flow cleared');
+  };
+
+  // Execute flow
+  const executeFlow = async () => {
+    if (nodes.length === 0) {
+      showError('No nodes to execute');
+      return;
+    }
+
+    setIsExecuting(true);
+    setExecutionLog([]);
+    
+    // Find start node
+    const startNode = nodes.find(n => n.type === 'start');
+    if (!startNode) {
+      showError('No start node found');
+      setIsExecuting(false);
+      return;
+    }
+
+    showInfo('Starting flow execution...');
+    
+    try {
+      // Mark start node as executing
+      await executeNode(startNode.id);
+      
+      // Continue execution following edges
+      await executeNextNodes(startNode.id);
+      
+      showSuccess('Flow execution completed!');
+    } catch (error) {
+      showError(`Flow execution failed: ${error.message}`);
+    } finally {
+      setIsExecuting(false);
+      // Clear execution states
+      setNodes(nodes => nodes.map(n => ({ ...n, data: { ...n.data, executing: false } })));
+    }
+  };
+
+  // Execute a single node
+  const executeNode = async (nodeId) => {
+    const node = nodes.find(n => n.id === nodeId);
+    if (!node) return;
+
+    // Mark node as executing
+    setNodes(nodes => nodes.map(n => 
+      n.id === nodeId ? { ...n, data: { ...n.data, executing: true } } : n
+    ));
+
+    // Add to execution log
+    const logEntry = {
+      nodeId,
+      type: node.type,
+      label: node.data.label,
+      timestamp: new Date().toISOString(),
+      status: 'executing'
+    };
+    setExecutionLog(log => [...log, logEntry]);
+
+    // Simulate execution based on node type
+    await new Promise(resolve => setTimeout(resolve, 1000)); // Simulate processing
+
+    // Execute action based on node type and data
+    let result = null;
+    switch (node.type) {
+      case 'data':
+        if (node.data.action === 'fetch_products') {
+          // Get products from localStorage
+          const products = JSON.parse(localStorage.getItem('hr_products_imported') || localStorage.getItem('hr_products') || '[]');
+          result = { products, lowStockCount: products.filter(p => (p.stock || 0) < 10 && (p.stock || 0) > 0).length };
+          node.data.result = result;
+        }
+        break;
+      
+      case 'process':
+        if (node.data.action === 'send_email') {
+          // Send email alert
+          const products = JSON.parse(localStorage.getItem('hr_products_imported') || localStorage.getItem('hr_products') || '[]');
+          const emailResult = await emailService.sendLowStockAlert(products, node.data.recipient || 'manager@company.com');
+          result = emailResult;
+          if (emailResult.success) {
+            showSuccess('Email alert sent!');
+          }
+        } else if (node.data.action === 'log_message') {
+          console.log('Flow Log:', node.data.message || 'Process executed');
+          showInfo(node.data.message || 'Process executed');
+        }
+        break;
+      
+      case 'decision':
+        // Check condition
+        if (node.data.condition === 'has_low_stock') {
+          const products = JSON.parse(localStorage.getItem('hr_products_imported') || localStorage.getItem('hr_products') || '[]');
+          const lowStockCount = products.filter(p => (p.stock || p.totalStock || 0) < 10).length;
+          result = lowStockCount > 0;
+          node.data.result = result;
+        }
+        break;
+    }
+
+    // Mark node as executed
+    setNodes(nodes => nodes.map(n => 
+      n.id === nodeId ? { ...n, data: { ...n.data, executing: false, executed: true, result } } : n
+    ));
+
+    // Update log
+    setExecutionLog(log => log.map(l => 
+      l.nodeId === nodeId ? { ...l, status: 'completed', result } : l
+    ));
+
+    return result;
+  };
+
+  // Execute next nodes following edges
+  const executeNextNodes = async (currentNodeId) => {
+    const currentNode = nodes.find(n => n.id === currentNodeId);
+    const outgoingEdges = edges.filter(e => e.source === currentNodeId);
+    
+    if (outgoingEdges.length === 0) return;
+
+    // For decision nodes, choose path based on result
+    if (currentNode?.type === 'decision') {
+      const result = currentNode.data.result;
+      const edge = result 
+        ? outgoingEdges.find(e => e.sourceHandle === 'right' || e.label === 'Yes')
+        : outgoingEdges.find(e => e.sourceHandle === 'left' || e.label === 'No');
+      
+      if (edge) {
+        await executeNode(edge.target);
+        await executeNextNodes(edge.target);
+      }
+    } else {
+      // Execute all next nodes
+      for (const edge of outgoingEdges) {
+        await executeNode(edge.target);
+        await executeNextNodes(edge.target);
+      }
+    }
+  };
+
+  // Load template flow
+  const loadTemplate = (templateName) => {
+    if (templateName === 'low_stock_alert') {
+      const templateNodes = [
+        {
+          id: 'start-1',
+          type: 'start',
+          position: { x: 250, y: 50 },
+          data: { label: 'Daily Check' }
+        },
+        {
+          id: 'data-1',
+          type: 'data',
+          position: { x: 250, y: 150 },
+          data: { 
+            label: 'Fetch Products',
+            source: 'Products Database',
+            action: 'fetch_products'
+          }
+        },
+        {
+          id: 'decision-1',
+          type: 'decision',
+          position: { x: 250, y: 250 },
+          data: { 
+            label: 'Check Stock',
+            condition: 'has_low_stock',
+            description: 'Any products < 10?'
+          }
+        },
+        {
+          id: 'process-1',
+          type: 'process',
+          position: { x: 450, y: 350 },
+          data: { 
+            label: 'Send Alert',
+            description: 'Email to manager',
+            action: 'send_email',
+            recipient: 'manager@company.com'
+          }
+        },
+        {
+          id: 'process-2',
+          type: 'process',
+          position: { x: 50, y: 350 },
+          data: { 
+            label: 'Log Status',
+            description: 'All stock OK',
+            action: 'log_message',
+            message: 'Stock levels are healthy'
+          }
+        },
+        {
+          id: 'end-1',
+          type: 'end',
+          position: { x: 250, y: 450 },
+          data: { label: 'Check Complete' }
+        }
+      ];
+
+      const templateEdges = [
+        {
+          id: 'e-start-data',
+          source: 'start-1',
+          target: 'data-1',
+          animated: true,
+          style: { stroke: '#60a5fa', strokeWidth: 2 }
+        },
+        {
+          id: 'e-data-decision',
+          source: 'data-1',
+          target: 'decision-1',
+          animated: true,
+          style: { stroke: '#60a5fa', strokeWidth: 2 }
+        },
+        {
+          id: 'e-decision-yes',
+          source: 'decision-1',
+          sourceHandle: 'right',
+          target: 'process-1',
+          label: 'Yes',
+          animated: true,
+          style: { stroke: '#34d399', strokeWidth: 2 },
+          labelStyle: { fill: '#34d399', fontWeight: 700 }
+        },
+        {
+          id: 'e-decision-no',
+          source: 'decision-1',
+          sourceHandle: 'left',
+          target: 'process-2',
+          label: 'No',
+          animated: true,
+          style: { stroke: '#f87171', strokeWidth: 2 },
+          labelStyle: { fill: '#f87171', fontWeight: 700 }
+        },
+        {
+          id: 'e-process1-end',
+          source: 'process-1',
+          target: 'end-1',
+          animated: true,
+          style: { stroke: '#60a5fa', strokeWidth: 2 }
+        },
+        {
+          id: 'e-process2-end',
+          source: 'process-2',
+          target: 'end-1',
+          animated: true,
+          style: { stroke: '#60a5fa', strokeWidth: 2 }
+        }
+      ];
+
+      setNodes(templateNodes);
+      setEdges(templateEdges);
+      setFlowName('Low Stock Alert Automation');
+      setShowTemplates(false);
+      showSuccess('Low Stock Alert template loaded!');
+    }
   };
 
   return (
@@ -393,6 +660,44 @@ function FlowBuilder() {
           </div>
           
           <div className="flex items-center gap-2">
+            <button
+              onClick={executeFlow}
+              disabled={isExecuting || nodes.length === 0}
+              className={`glass-button px-4 py-2 flex items-center gap-2 hover:scale-105 transition-transform ${
+                isExecuting ? 'animate-pulse bg-green-500/20 border-green-500/30' : 'bg-gradient-to-r from-green-500/20 to-emerald-500/20 border-green-500/30'
+              }`}
+            >
+              {isExecuting ? (
+                <>
+                  <div className="w-4 h-4 border-2 border-green-400/30 border-t-green-400 rounded-full animate-spin" />
+                  Running...
+                </>
+              ) : (
+                <>
+                  <Zap size={18} />
+                  Run Flow
+                </>
+              )}
+            </button>
+            <button
+              onClick={() => loadTemplate('low_stock_alert')}
+              className="glass-button px-4 py-2 flex items-center gap-2 hover:scale-105 transition-transform bg-orange-500/20 border-orange-500/30"
+              title="Load Low Stock Alert automation flow"
+            >
+              <AlertTriangle size={18} />
+              Low Stock Alert
+            </button>
+            <button
+              onClick={() => {
+                console.log('Templates clicked, current state:', showTemplates);
+                setShowTemplates(!showTemplates);
+                setShowNodeMenu(false); // Close other dropdowns
+              }}
+              className="glass-button px-4 py-2 flex items-center gap-2 hover:scale-105 transition-transform bg-purple-500/20 border-purple-500/30"
+            >
+              <Layers size={18} />
+              More Templates
+            </button>
             <button
               onClick={() => setShowNodeMenu(!showNodeMenu)}
               className="glass-button px-4 py-2 flex items-center gap-2 hover:scale-105 transition-transform"
@@ -431,6 +736,51 @@ function FlowBuilder() {
           </div>
         </div>
       </div>
+
+      {/* Templates Dropdown */}
+      {showTemplates && (
+        <div className="absolute top-24 left-80 z-50 glass-card-large p-4 rounded-2xl" style={{ minWidth: '280px' }}>
+          <div className="text-white font-semibold mb-3">Flow Templates</div>
+          <div className="space-y-2">
+            <button
+              onClick={() => loadTemplate('low_stock_alert')}
+              className="w-full glass-button px-4 py-3 flex flex-col items-start gap-1 hover:bg-orange-500/20 text-left"
+            >
+              <div className="flex items-center gap-2">
+                <AlertTriangle size={18} className="text-orange-400" />
+                <span className="font-medium">Low Stock Alert</span>
+              </div>
+              <span className="text-xs text-white/60">
+                Check products and send email if stock is low
+              </span>
+            </button>
+            <button
+              className="w-full glass-button px-4 py-3 flex flex-col items-start gap-1 hover:bg-blue-500/20 text-left opacity-50 cursor-not-allowed"
+              disabled
+            >
+              <div className="flex items-center gap-2">
+                <Users size={18} className="text-blue-400" />
+                <span className="font-medium">Performance Review</span>
+              </div>
+              <span className="text-xs text-white/60">
+                Coming soon...
+              </span>
+            </button>
+            <button
+              className="w-full glass-button px-4 py-3 flex flex-col items-start gap-1 hover:bg-green-500/20 text-left opacity-50 cursor-not-allowed"
+              disabled
+            >
+              <div className="flex items-center gap-2">
+                <Calendar size={18} className="text-green-400" />
+                <span className="font-medium">Weekly Report</span>
+              </div>
+              <span className="text-xs text-white/60">
+                Coming soon...
+              </span>
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Node Menu Dropdown */}
       {showNodeMenu && (
@@ -507,6 +857,40 @@ function FlowBuilder() {
             }}
           />
           <Controls />
+          
+          {/* Execution Log Panel */}
+          {executionLog.length > 0 && (
+            <Panel position="bottom-right" className="glass-card-large p-4 rounded-2xl m-2 max-w-md">
+              <div className="text-white font-semibold mb-2 flex items-center gap-2">
+                <Activity size={16} />
+                Execution Log
+              </div>
+              <div className="space-y-2 max-h-40 overflow-y-auto">
+                {executionLog.map((log, idx) => (
+                  <div key={idx} className="text-xs">
+                    <div className="flex items-center gap-2">
+                      {log.status === 'executing' ? (
+                        <div className="w-2 h-2 bg-yellow-400 rounded-full animate-pulse" />
+                      ) : (
+                        <div className="w-2 h-2 bg-green-400 rounded-full" />
+                      )}
+                      <span className="text-white/80">{log.label}</span>
+                      <span className="text-white/40 ml-auto">
+                        {new Date(log.timestamp).toLocaleTimeString()}
+                      </span>
+                    </div>
+                    {log.result && (
+                      <div className="ml-4 text-white/60 mt-1">
+                        {typeof log.result === 'boolean' 
+                          ? (log.result ? '✓ Condition met' : '✗ Condition not met')
+                          : log.result.success ? '✓ Success' : '✗ Failed'}
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </Panel>
+          )}
           
           {/* Instructions Panel */}
           <Panel position="top-right" className="glass-card-large p-4 rounded-2xl m-2 max-w-sm">
