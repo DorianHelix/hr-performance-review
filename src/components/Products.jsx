@@ -33,26 +33,28 @@ function Products() {
   const [showStockDetails, setShowStockDetails] = useState(null);
   const [filterCategory, setFilterCategory] = useState('');
   const [sortBy, setSortBy] = useState('name'); // name, price, stock, created
-  const [showImportedProducts, setShowImportedProducts] = useState(false);
+  const [showImportedProducts, setShowImportedProducts] = useState(() => {
+    // Check if we have imported products
+    return !!localStorage.getItem('hr_products_imported');
+  });
 
   // Load products from database
   useEffect(() => {
     const loadProducts = async () => {
-      // Check if we have imported products
+      // Check if we have imported products and should show them
       const imported = localStorage.getItem('hr_products_imported');
-      if (imported) {
+      if (imported && showImportedProducts) {
         console.log('Loading imported products from localStorage');
         const importedData = JSON.parse(imported);
         console.log('Imported products:', importedData.length, 'items');
         setProducts(importedData);
-        setShowImportedProducts(true);
         setLoading(false);
         return;
       }
       
-      // Otherwise load from database/localStorage
+      // Otherwise load manual products from database/localStorage
       try {
-        console.log('Loading products from database...');
+        console.log('Loading manual products from database...');
         const data = await API.products.getAll();
         console.log('Loaded from database:', data.length, 'items');
         setProducts(data);
@@ -70,13 +72,12 @@ function Products() {
     };
     
     loadProducts();
-    // Don't refresh if we have imported products
-    const imported = localStorage.getItem('hr_products_imported');
-    if (!imported) {
+    // Don't refresh if we're showing imported products
+    if (!showImportedProducts) {
       const interval = setInterval(loadProducts, 5000);
       return () => clearInterval(interval);
     }
-  }, []);
+  }, [showImportedProducts]);
 
   // Toggle product expansion for variants
   const toggleExpand = (productId) => {
@@ -268,7 +269,7 @@ function Products() {
         // Update local state and mark as imported
         setProducts(importedProducts);
         localStorage.setItem('hr_products_imported', JSON.stringify(importedProducts));
-        setShowImportedProducts(true);
+        setShowImportedProducts(true); // Automatically switch to imported view
         
         // Show success message
         showSuccess(`Successfully imported ${importedProducts.length} products with ${importedProducts.reduce((sum, p) => sum + (p.variants?.length || 0), 0)} variants!`);
@@ -761,6 +762,8 @@ function Products() {
               className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
                 showImportedProducts ? 'bg-purple-600' : 'bg-gray-600'
               }`}
+              disabled={!localStorage.getItem('hr_products_imported')}
+              title={!localStorage.getItem('hr_products_imported') ? 'No imported products available' : ''}
             >
               <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
                 showImportedProducts ? 'translate-x-6' : 'translate-x-1'
@@ -769,6 +772,9 @@ function Products() {
           </div>
           <div className="mt-2 text-xs text-white/50">
             {showImportedProducts ? 'Showing Shopify Imported' : 'Showing Manual Products'}
+            {!localStorage.getItem('hr_products_imported') && (
+              <span className="block mt-1 text-yellow-400/50">Import Shopify data to enable toggle</span>
+            )}
           </div>
         </div>
 
@@ -791,8 +797,13 @@ function Products() {
             {localStorage.getItem('hr_products_imported') && (
               <button
                 onClick={() => {
-                  localStorage.removeItem('hr_products_imported');
-                  window.location.reload();
+                  if (confirm('Are you sure you want to clear all imported data? This will switch back to manual products.')) {
+                    localStorage.removeItem('hr_products_imported');
+                    setShowImportedProducts(false);
+                    showInfo('Imported data cleared. Showing manual products.');
+                    // Reload to refresh the products
+                    window.location.reload();
+                  }
                 }}
                 className="w-full py-3 font-medium transition-all flex items-center justify-center gap-2 rounded-2xl border bg-yellow-900/50 hover:bg-yellow-800/50 border-yellow-700/30 text-yellow-400"
               >
