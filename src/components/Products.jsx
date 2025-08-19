@@ -37,7 +37,10 @@ function Products() {
       // Check if we have imported products
       const imported = localStorage.getItem('hr_products_imported');
       if (imported) {
-        setProducts(JSON.parse(imported));
+        console.log('Loading imported products from localStorage');
+        const importedData = JSON.parse(imported);
+        console.log('Imported products:', importedData.length, 'items');
+        setProducts(importedData);
         setShowImportedProducts(true);
         setLoading(false);
         return;
@@ -45,13 +48,19 @@ function Products() {
       
       // Otherwise load from database/localStorage
       try {
+        console.log('Loading products from database...');
         const data = await API.products.getAll();
+        console.log('Loaded from database:', data.length, 'items');
         setProducts(data);
         localStorage.setItem('hr_products', JSON.stringify(data));
       } catch (error) {
         console.error('Error loading products from database:', error);
         const saved = localStorage.getItem('hr_products');
-        if (saved) setProducts(JSON.parse(saved));
+        if (saved) {
+          const savedData = JSON.parse(saved);
+          console.log('Loaded from localStorage fallback:', savedData.length, 'items');
+          setProducts(savedData);
+        }
       }
       setLoading(false);
     };
@@ -167,10 +176,11 @@ function Products() {
 
   // Import Shopify CSV
   const handleShopifyImport = (file) => {
+    console.log('Starting Shopify import, file:', file.name);
     Papa.parse(file, {
       header: true,
       complete: async (results) => {
-        console.log('Parsing CSV...', results.data.length, 'rows');
+        console.log('CSV parsed successfully:', results.data.length, 'rows');
         const productMap = new Map();
         
         results.data.forEach(row => {
@@ -254,7 +264,13 @@ function Products() {
         // Update local state and mark as imported
         setProducts(importedProducts);
         localStorage.setItem('hr_products_imported', JSON.stringify(importedProducts));
-        setShowShopifyImportModal(false);
+        setShowImportedProducts(true);
+        
+        // Show success message
+        alert(`Successfully imported ${importedProducts.length} products with ${importedProducts.reduce((sum, p) => sum + (p.variants?.length || 0), 0)} variants!`);
+        
+        // Don't close modal yet - allow inventory import
+        // setShowShopifyImportModal(false);
       },
       error: (error) => {
         console.error('CSV parse error:', error);
@@ -925,87 +941,6 @@ function Products() {
         />
       )}
 
-      {/* Stock Import Modal */}
-      {showStockImportModal && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="glass-card-large w-full max-w-2xl">
-            <div className="p-6 border-b border-white/20">
-              <h2 className="text-xl font-bold text-white">Import Stock Levels</h2>
-              <p className="text-sm text-white/60 mt-2">Import inventory levels from Shopify inventory export</p>
-            </div>
-            
-            <div className="p-6">
-              <div 
-                className="border-2 border-dashed border-blue-400/30 rounded-xl p-8 text-center bg-gradient-to-br from-blue-500/5 to-cyan-500/5 transition-all hover:border-blue-400/50 hover:bg-blue-500/10"
-                onDragOver={(e) => {
-                  e.preventDefault();
-                  e.currentTarget.classList.add('border-blue-400', 'bg-blue-500/20');
-                }}
-                onDragLeave={(e) => {
-                  e.preventDefault();
-                  e.currentTarget.classList.remove('border-blue-400', 'bg-blue-500/20');
-                }}
-                onDrop={(e) => {
-                  e.preventDefault();
-                  e.currentTarget.classList.remove('border-blue-400', 'bg-blue-500/20');
-                  const file = e.dataTransfer.files[0];
-                  if (file && file.type === 'text/csv') {
-                    handleStockImport(file);
-                  } else {
-                    alert('Please drop a CSV file');
-                  }
-                }}
-              >
-                <Package size={48} className="mx-auto mb-4 text-blue-400" />
-                <p className="text-white/60 mb-4">
-                  Drag and drop your inventory CSV file here, or click to browse
-                </p>
-                <input
-                  type="file"
-                  accept=".csv"
-                  onChange={(e) => {
-                    if (e.target.files[0]) {
-                      handleStockImport(e.target.files[0]);
-                    }
-                  }}
-                  className="hidden"
-                  id="stock-csv-upload"
-                />
-                <label
-                  htmlFor="stock-csv-upload"
-                  className="glass-button px-6 py-2 cursor-pointer inline-block bg-gradient-to-r from-blue-500/20 to-cyan-500/20 border-blue-400/30 hover:scale-105 transition-transform"
-                >
-                  Choose Inventory CSV
-                </label>
-              </div>
-              
-              <div className="mt-6 space-y-2 text-sm text-white/50">
-                <p className="flex items-center gap-2">
-                  <Box size={14} className="text-blue-400" />
-                  Stock levels will be matched by Handle and Option1 Value
-                </p>
-                <p className="flex items-center gap-2">
-                  <TrendingUp size={14} className="text-blue-400" />
-                  Location-specific stock will be aggregated
-                </p>
-                <p className="flex items-center gap-2">
-                  <BarChart size={14} className="text-blue-400" />
-                  Click on stock numbers to see location breakdown
-                </p>
-              </div>
-            </div>
-            
-            <div className="p-6 border-t border-white/20 flex justify-end gap-3">
-              <button
-                onClick={() => setShowStockImportModal(false)}
-                className="px-6 py-2 glass-button rounded-xl"
-              >
-                Cancel
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* Stock Details Modal */}
       {showStockDetails && (
@@ -1057,84 +992,142 @@ function Products() {
         </div>
       )}
 
-      {/* Shopify Import Modal */}
+      {/* Shopify Import Modal - Combined Products & Inventory */}
       {showShopifyImportModal && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="glass-card-large w-full max-w-2xl">
+          <div className="glass-card-large w-full max-w-3xl max-h-[90vh] overflow-y-auto">
             <div className="p-6 border-b border-white/20">
-              <h2 className="text-xl font-bold text-white">Import Shopify CSV</h2>
-              <p className="text-sm text-white/60 mt-2">Import products with variants from Shopify export</p>
+              <h2 className="text-xl font-bold text-white">Import Shopify Data</h2>
+              <p className="text-sm text-white/60 mt-2">Import products and inventory levels from Shopify</p>
             </div>
             
-            <div className="p-6">
-              <div 
-                className="border-2 border-dashed border-purple-400/30 rounded-xl p-8 text-center bg-gradient-to-br from-purple-500/5 to-pink-500/5 transition-all hover:border-purple-400/50 hover:bg-purple-500/10"
-                onDragOver={(e) => {
-                  e.preventDefault();
-                  e.currentTarget.classList.add('border-purple-400', 'bg-purple-500/20');
-                }}
-                onDragLeave={(e) => {
-                  e.preventDefault();
-                  e.currentTarget.classList.remove('border-purple-400', 'bg-purple-500/20');
-                }}
-                onDrop={(e) => {
-                  e.preventDefault();
-                  e.currentTarget.classList.remove('border-purple-400', 'bg-purple-500/20');
-                  const file = e.dataTransfer.files[0];
-                  if (file && file.type === 'text/csv') {
-                    handleShopifyImport(file);
-                    setShowShopifyImportModal(false);
-                  } else {
-                    alert('Please drop a CSV file');
-                  }
-                }}
-              >
-                <Upload size={48} className="mx-auto mb-4 text-purple-400" />
-                <p className="text-white/60 mb-4">
-                  Drag and drop your Shopify CSV file here, or click to browse
-                </p>
-                <input
-                  type="file"
-                  accept=".csv"
-                  onChange={(e) => {
-                    if (e.target.files[0]) {
-                      handleShopifyImport(e.target.files[0]);
-                      setShowShopifyImportModal(false);
+            <div className="p-6 space-y-6">
+              {/* Products CSV Drop Zone */}
+              <div>
+                <h3 className="text-white font-medium mb-3 flex items-center gap-2">
+                  <Package size={18} className="text-purple-400" />
+                  1. Products Export (Required)
+                </h3>
+                <div 
+                  className="border-2 border-dashed border-purple-400/30 rounded-xl p-6 text-center bg-gradient-to-br from-purple-500/5 to-pink-500/5 transition-all hover:border-purple-400/50 hover:bg-purple-500/10"
+                  onDragOver={(e) => {
+                    e.preventDefault();
+                    e.currentTarget.classList.add('border-purple-400', 'bg-purple-500/20');
+                  }}
+                  onDragLeave={(e) => {
+                    e.preventDefault();
+                    e.currentTarget.classList.remove('border-purple-400', 'bg-purple-500/20');
+                  }}
+                  onDrop={(e) => {
+                    e.preventDefault();
+                    e.currentTarget.classList.remove('border-purple-400', 'bg-purple-500/20');
+                    const file = e.dataTransfer.files[0];
+                    if (file && file.type === 'text/csv') {
+                      handleShopifyImport(file);
+                      // Don't close modal yet, allow inventory import
+                    } else {
+                      alert('Please drop a CSV file');
                     }
                   }}
-                  className="hidden"
-                  id="shopify-csv-upload"
-                />
-                <label
-                  htmlFor="shopify-csv-upload"
-                  className="glass-button px-6 py-2 cursor-pointer inline-block bg-gradient-to-r from-purple-500/20 to-pink-500/20 border-purple-400/30 hover:scale-105 transition-transform"
                 >
-                  Choose CSV File
-                </label>
+                  <Upload size={36} className="mx-auto mb-3 text-purple-400" />
+                  <p className="text-white/60 mb-3 text-sm">
+                    Drag and drop your Products CSV here
+                  </p>
+                  <input
+                    type="file"
+                    accept=".csv"
+                    onChange={(e) => {
+                      if (e.target.files[0]) {
+                        handleShopifyImport(e.target.files[0]);
+                      }
+                    }}
+                    className="hidden"
+                    id="shopify-products-upload"
+                  />
+                  <label
+                    htmlFor="shopify-products-upload"
+                    className="glass-button px-4 py-1.5 cursor-pointer inline-block bg-gradient-to-r from-purple-500/20 to-pink-500/20 border-purple-400/30 hover:scale-105 transition-transform text-sm"
+                  >
+                    Choose Products CSV
+                  </label>
+                </div>
+              </div>
+
+              {/* Inventory CSV Drop Zone */}
+              <div>
+                <h3 className="text-white font-medium mb-3 flex items-center gap-2">
+                  <Box size={18} className="text-blue-400" />
+                  2. Inventory Export (Optional)
+                </h3>
+                <div 
+                  className="border-2 border-dashed border-blue-400/30 rounded-xl p-6 text-center bg-gradient-to-br from-blue-500/5 to-cyan-500/5 transition-all hover:border-blue-400/50 hover:bg-blue-500/10"
+                  onDragOver={(e) => {
+                    e.preventDefault();
+                    e.currentTarget.classList.add('border-blue-400', 'bg-blue-500/20');
+                  }}
+                  onDragLeave={(e) => {
+                    e.preventDefault();
+                    e.currentTarget.classList.remove('border-blue-400', 'bg-blue-500/20');
+                  }}
+                  onDrop={(e) => {
+                    e.preventDefault();
+                    e.currentTarget.classList.remove('border-blue-400', 'bg-blue-500/20');
+                    const file = e.dataTransfer.files[0];
+                    if (file && file.type === 'text/csv') {
+                      handleStockImport(file);
+                      setTimeout(() => setShowShopifyImportModal(false), 1000);
+                    } else {
+                      alert('Please drop a CSV file');
+                    }
+                  }}
+                >
+                  <Archive size={36} className="mx-auto mb-3 text-blue-400" />
+                  <p className="text-white/60 mb-3 text-sm">
+                    Drag and drop your Inventory CSV here
+                  </p>
+                  <input
+                    type="file"
+                    accept=".csv"
+                    onChange={(e) => {
+                      if (e.target.files[0]) {
+                        handleStockImport(e.target.files[0]);
+                        setTimeout(() => setShowShopifyImportModal(false), 1000);
+                      }
+                    }}
+                    className="hidden"
+                    id="shopify-inventory-upload"
+                  />
+                  <label
+                    htmlFor="shopify-inventory-upload"
+                    className="glass-button px-4 py-1.5 cursor-pointer inline-block bg-gradient-to-r from-blue-500/20 to-cyan-500/20 border-blue-400/30 hover:scale-105 transition-transform text-sm"
+                  >
+                    Choose Inventory CSV
+                  </label>
+                </div>
               </div>
               
-              <div className="mt-6 space-y-2 text-sm text-white/50">
+              <div className="space-y-2 text-xs text-white/40 pt-2">
                 <p className="flex items-center gap-2">
-                  <Layers size={14} className="text-purple-400" />
-                  Products with the same Handle will be grouped as variants
+                  <Layers size={12} className="text-purple-400" />
+                  Products will be grouped by Handle, variants by Option1 Value
                 </p>
                 <p className="flex items-center gap-2">
-                  <Package size={14} className="text-purple-400" />
-                  Variant options (like "1 darab", "2 darab") will be imported
-                </p>
-                <p className="flex items-center gap-2">
-                  <DollarSign size={14} className="text-purple-400" />
-                  Price and cost per item will be preserved for each variant
+                  <TrendingUp size={12} className="text-blue-400" />
+                  Stock levels will be matched and aggregated by location
                 </p>
               </div>
             </div>
             
-            <div className="p-6 border-t border-white/20 flex justify-end gap-3">
+            <div className="p-6 border-t border-white/20 flex justify-between items-center">
+              <div className="text-xs text-white/50">
+                You can import products first, then add inventory levels
+              </div>
               <button
                 onClick={() => setShowShopifyImportModal(false)}
                 className="px-6 py-2 glass-button rounded-xl"
               >
-                Cancel
+                Done
               </button>
             </div>
           </div>
