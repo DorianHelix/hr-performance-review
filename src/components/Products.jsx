@@ -74,18 +74,20 @@ function Products() {
       header: true,
       complete: async (results) => {
         console.log('Parsing CSV...', results.data.length, 'rows');
-        const rows = results.data.filter(row => row.Handle && row.Title);
         const productMap = new Map();
         
-        rows.forEach(row => {
+        results.data.forEach(row => {
+          // Skip empty rows
+          if (!row.Handle) return;
+          
           const handle = row.Handle;
           
           if (!productMap.has(handle)) {
-            // New product
+            // New product - first row with this handle
             productMap.set(handle, {
               id: `prod-${uid()}`,
               handle: handle,
-              name: row.Title,
+              name: row.Title || '',
               category: row['Product Category'] || '',
               vendor: row.Vendor || '',
               status: row.Status?.toLowerCase() || 'active',
@@ -97,23 +99,41 @@ function Products() {
           
           const product = productMap.get(handle);
           
-          // Add variant if Option1 Value exists
-          if (row['Option1 Value']) {
-            product.hasVariants = true;
-            product.variants.push({
-              id: `var-${uid()}`,
-              name: row['Option1 Value'],
-              sku: row['Variant SKU'] || '',
-              price: parseFloat(row['Variant Price']) || 0,
-              cost: parseFloat(row['Cost per item']) || 0,
-              stock: 0 // Set stock to 0 for now since inventory tracking might be off
-            });
-          } else if (!product.hasVariants && row['Variant Price']) {
-            // Single product without variants
-            product.sku = row['Variant SKU'] || '';
-            product.price = parseFloat(row['Variant Price']) || 0;
-            product.cost = parseFloat(row['Cost per item']) || 0;
-            product.stock = 0; // Set stock to 0 for now
+          // If Title is empty, this is a continuation row (variant or image)
+          if (!row.Title) {
+            // This is a variant row if it has Option1 Value
+            if (row['Option1 Value'] && row['Option1 Value'] !== 'Default Title') {
+              product.hasVariants = true;
+              product.variants.push({
+                id: `var-${uid()}`,
+                name: row['Option1 Value'],
+                sku: row['Variant SKU'] || '',
+                price: parseFloat(row['Variant Price']) || 0,
+                cost: parseFloat(row['Cost per item']) || 0,
+                stock: parseInt(row['Variant Inventory Qty']) || 0
+              });
+            }
+          } else {
+            // This is the first row for this product
+            // Check if it has a real variant or just "Default Title"
+            if (row['Option1 Value'] && row['Option1 Value'] !== 'Default Title') {
+              // It's a product with variants, and this is the first variant
+              product.hasVariants = true;
+              product.variants.push({
+                id: `var-${uid()}`,
+                name: row['Option1 Value'],
+                sku: row['Variant SKU'] || '',
+                price: parseFloat(row['Variant Price']) || 0,
+                cost: parseFloat(row['Cost per item']) || 0,
+                stock: parseInt(row['Variant Inventory Qty']) || 0
+              });
+            } else {
+              // It's a simple product without variants
+              product.sku = row['Variant SKU'] || '';
+              product.price = parseFloat(row['Variant Price']) || 0;
+              product.cost = parseFloat(row['Cost per item']) || 0;
+              product.stock = parseInt(row['Variant Inventory Qty']) || 0;
+            }
           }
           
           // Add image if exists
@@ -124,7 +144,7 @@ function Products() {
         
         // Convert map to array and calculate total stock
         const importedProducts = Array.from(productMap.values()).map(product => {
-          if (product.hasVariants) {
+          if (product.hasVariants && product.variants.length > 0) {
             product.totalStock = product.variants.reduce((sum, v) => sum + v.stock, 0);
           } else {
             product.totalStock = product.stock || 0;
