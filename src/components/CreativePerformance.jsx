@@ -8,6 +8,59 @@ import {
   PanelRightClose, PanelRightOpen, BarChart3, BarChartHorizontal,
   LineChart
 } from 'lucide-react';
+
+// Low Stock Tooltip Component
+function LowStockTooltip({ emp }) {
+  const [showTooltip, setShowTooltip] = useState(false);
+
+  return (
+    <div className="relative">
+      <button 
+        className="p-1 rounded hover:bg-orange-500/20 text-orange-400"
+        onClick={() => setShowTooltip(!showTooltip)}
+      >
+        <svg 
+          className="w-4 h-4" 
+          fill="currentColor" 
+          viewBox="0 0 20 20"
+        >
+          <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+        </svg>
+      </button>
+      
+      {/* Liquid Glass Tooltip */}
+      {showTooltip && (
+        <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 z-50">
+          <div className="glass-card px-3 py-1.5 rounded-lg border border-orange-400/20 whitespace-nowrap" style={{
+            background: 'linear-gradient(135deg, rgba(251, 146, 60, 0.15) 0%, rgba(234, 88, 12, 0.2) 100%)',
+            backdropFilter: 'blur(6px)',
+            WebkitBackdropFilter: 'blur(6px)',
+            boxShadow: '0 4px 16px rgba(251, 146, 60, 0.2), inset 0 1px 1px rgba(255, 255, 255, 0.1)'
+          }}>
+            <div className="flex items-center gap-2">
+              <svg className="w-3 h-3 text-orange-300" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+              </svg>
+              <span className="text-xs text-orange-200 font-medium">
+                Low Stock: {emp.stock} remaining
+              </span>
+            </div>
+            
+            {/* Tooltip Arrow */}
+            <div className="absolute top-full left-1/2 transform -translate-x-1/2 w-0 h-0" 
+                 style={{
+                   borderLeft: '4px solid transparent',
+                   borderRight: '4px solid transparent', 
+                   borderTop: '4px solid rgba(251, 146, 60, 0.4)',
+                   filter: 'drop-shadow(0 1px 1px rgba(0, 0, 0, 0.1))'
+                 }}>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
 import API from '../api';
 import ScoreChartModal from './CreativePerformance/ScoreChartModal';
 import TestTypesModal from './CreativePerformance/TestTypesModal';
@@ -90,6 +143,10 @@ function CreativePerformance({
     const saved = localStorage.getItem('hr_creative_scoring_design');
     return saved !== null ? saved : 'liquid'; // 'minimal' or 'liquid'
   });
+  const [cellHeight, setCellHeight] = useState(() => {
+    const saved = localStorage.getItem('hr_creative_cell_height');
+    return saved !== null ? parseInt(saved) : 70; // Default 70px height
+  });
   const [showSidebar, setShowSidebar] = useState(() => {
     // Check localStorage first, then default based on screen size
     const saved = localStorage.getItem('hr_creative_sidebar_visible');
@@ -119,6 +176,11 @@ function CreativePerformance({
   useEffect(() => {
     localStorage.setItem('hr_creative_scoring_design', scoringDesign);
   }, [scoringDesign]);
+  
+  // Save cell height to localStorage when it changes
+  useEffect(() => {
+    localStorage.setItem('hr_creative_cell_height', cellHeight.toString());
+  }, [cellHeight]);
   
   // Filter products based on search
   const filteredEmployees = employees.filter(emp => {
@@ -414,18 +476,6 @@ function CreativePerformance({
                       </div>
                     </th>
                     {weeks.map(week => {
-                      // Calculate daily average across all products and categories
-                      const dailyScores = [];
-                      employees.forEach(emp => {
-                        categories.forEach(cat => {
-                          const score = getCategoryScore ? getCategoryScore(emp.id, week.key, cat.key) : null;
-                          if (score !== null) dailyScores.push(score);
-                        });
-                      });
-                      const dailyAvg = dailyScores.length > 0 
-                        ? (dailyScores.reduce((sum, s) => sum + s, 0) / dailyScores.length).toFixed(1)
-                        : null;
-                      
                       return (
                         <th 
                           key={week.key}
@@ -443,21 +493,6 @@ function CreativePerformance({
                             <div className="text-[10px] text-white/50">
                               {week.dayName}
                             </div>
-                            {dailyAvg && (
-                              <div className="mt-1 flex justify-center">
-                                <span className={`text-[8px] font-bold px-1.5 py-0.5 rounded-full ${
-                                  parseFloat(dailyAvg) >= 8 
-                                    ? 'bg-green-500/20 text-green-300' 
-                                    : parseFloat(dailyAvg) >= 6 
-                                    ? 'bg-yellow-500/20 text-yellow-300'
-                                    : parseFloat(dailyAvg) >= 4
-                                    ? 'bg-orange-500/20 text-orange-300'
-                                    : 'bg-red-500/20 text-red-300'
-                                }`}>
-                                  {dailyAvg}
-                                </span>
-                              </div>
-                            )}
                           </div>
                         </th>
                       );
@@ -504,29 +539,22 @@ function CreativePerformance({
                                     <Settings size={16} className="text-white/60" />
                                   </button>
                                 )}
+                                {/* Low Stock Warning Icon */}
+                                {emp.stock <= (emp.minStock || 10) && (
+                                  <LowStockTooltip emp={emp} />
+                                )}
                                 <div className="min-w-0 flex-1">
-                                  <div className="flex items-start gap-2">
-                                    <div className="font-medium text-white leading-tight min-w-0 flex-1" 
-                                         style={{ 
-                                           display: '-webkit-box',
-                                           WebkitLineClamp: '2',
-                                           WebkitBoxOrient: 'vertical',
-                                           overflow: 'hidden',
-                                           lineHeight: '1.3',
-                                           maxHeight: '2.6em'
-                                         }}
-                                         title={emp.name}>
-                                      {emp.name}
-                                    </div>
-                                    {/* Low Stock Badge */}
-                                    {emp.stock <= (emp.minStock || 10) && (
-                                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-orange-500/20 border border-orange-400/30 text-orange-300 text-xs font-medium flex-shrink-0">
-                                        <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
-                                          <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
-                                        </svg>
-                                        Low Stock
-                                      </span>
-                                    )}
+                                  <div className="font-medium text-white leading-tight" 
+                                       style={{ 
+                                         display: '-webkit-box',
+                                         WebkitLineClamp: '2',
+                                         WebkitBoxOrient: 'vertical',
+                                         overflow: 'hidden',
+                                         lineHeight: '1.3',
+                                         maxHeight: '2.6em'
+                                       }}
+                                       title={emp.name}>
+                                    {emp.name}
                                   </div>
                                   {emp.sku && (
                                     <div className="text-xs text-white/50 font-mono truncate" title={emp.sku}>{emp.sku}</div>
@@ -583,13 +611,21 @@ function CreativePerformance({
                               <td 
                                 key={week.key}
                                 className="border-b border-white/10 hover:bg-white/5"
-                                style={{ minWidth: cellSize, width: cellSize }}
+                                style={{ minWidth: cellSize, width: cellSize, height: cellHeight }}
                               >
-                                <div className="flex flex-col items-center justify-center p-1 gap-1">
+                                <div className={`flex flex-col items-center justify-center ${
+                                  cellHeight <= 30 ? 'p-0 gap-0' : 
+                                  cellHeight <= 50 ? 'p-0.5 gap-0.5' : 
+                                  'p-1 gap-1'
+                                }`}>
                                   {categoryScores.length > 0 ? (
                                     scoringDesign === 'minimal' ? (
                                       // Minimal Design (Original)
-                                      <div className="glass-card p-1.5 rounded-lg w-full">
+                                      <div className={`glass-card ${
+                                        cellHeight <= 30 ? 'p-0.5 rounded-sm' : 
+                                        cellHeight <= 50 ? 'p-1 rounded-md' : 
+                                        'p-1.5 rounded-lg'
+                                      } w-full`}>
                                         {categoryScores.map((item, idx) => {
                                           // Get score-based colors
                                           const getBarColor = () => {
@@ -872,7 +908,7 @@ function CreativePerformance({
                                   <td 
                                     key={week.key}
                                     className="border-b border-white/10 hover:bg-white/5 cursor-pointer group/cell"
-                                    style={{ minWidth: cellSize, width: cellSize }}
+                                    style={{ minWidth: cellSize, width: cellSize, height: cellHeight }}
                                     onClick={(e) => {
                                       e.stopPropagation();
                                       setQuickScoreModal && setQuickScoreModal({
@@ -883,11 +919,19 @@ function CreativePerformance({
                                       });
                                     }}
                                   >
-                                    <div className="relative flex items-center justify-center py-1">
+                                    <div className={`relative flex items-center justify-center ${
+                                      cellHeight <= 30 ? 'py-0' : 
+                                      cellHeight <= 50 ? 'py-0.5' : 
+                                      'py-1'
+                                    }`}>
                                       {catScore ? (
                                         scoringDesign === 'minimal' ? (
                                           // Minimal Design for expanded category rows
-                                          <div className={`h-8 w-8 rounded-lg ${styles.bg} ${styles.text} text-sm font-semibold grid place-items-center`}>
+                                          <div className={`${
+                                            cellHeight <= 30 ? 'h-5 w-5 text-[10px]' : 
+                                            cellHeight <= 50 ? 'h-6 w-6 text-xs' : 
+                                            'h-8 w-8 text-sm'
+                                          } rounded-lg ${styles.bg} ${styles.text} font-semibold grid place-items-center`}>
                                             {catScore}
                                           </div>
                                         ) : (
@@ -895,8 +939,8 @@ function CreativePerformance({
                                           <div 
                                             className="relative group cursor-pointer transition-all duration-300 hover:scale-105 active:scale-95"
                                             style={{
-                                              width: '1.75rem',
-                                              height: '1.75rem'
+                                              width: cellHeight <= 30 ? '1.25rem' : cellHeight <= 50 ? '1.5rem' : '1.75rem',
+                                              height: cellHeight <= 30 ? '1.25rem' : cellHeight <= 50 ? '1.5rem' : '1.75rem'
                                             }}
                                           >
                                             {(() => {
@@ -1146,6 +1190,8 @@ function CreativePerformance({
           setScoringDesign={setScoringDesign}
           cellSize={cellSize}
           setCellSize={setCellSize}
+          cellHeight={cellHeight}
+          setCellHeight={setCellHeight}
           onClose={() => setShowSettingsModal(false)}
         />
       )}

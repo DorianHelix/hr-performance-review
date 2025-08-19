@@ -2,7 +2,7 @@ import React from 'react';
 import { Settings, X, Sparkles, BarChart3, Zap, RefreshCw } from 'lucide-react';
 
 // Settings Modal Component
-function SettingsModal({ scoringDesign, setScoringDesign, cellSize, setCellSize, onClose }) {
+function SettingsModal({ scoringDesign, setScoringDesign, cellSize, setCellSize, cellHeight, setCellHeight, onClose }) {
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={onClose}>
       <div className="glass-card-large w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col" onClick={e => e.stopPropagation()}>
@@ -125,37 +125,71 @@ function SettingsModal({ scoringDesign, setScoringDesign, cellSize, setCellSize,
               <BarChart3 size={18} className="text-green-400" />
               Table Cell Size
             </h3>
-            <p className="text-sm text-white/60">Adjust the width of date columns in the scoring table</p>
+            <p className="text-sm text-white/60">Adjust the width and height of cells in the scoring table</p>
             
-            <div className="glass-card p-4 rounded-xl">
-              <div className="flex items-center gap-4">
-                <label className="text-sm text-white/70 min-w-[60px]">Size:</label>
-                <div className="flex-1">
-                  <input 
-                    type="range" 
-                    min={80} 
-                    max={150} 
-                    step={10} 
-                    value={cellSize}
-                    onChange={e => setCellSize(Number(e.target.value))}
-                    className="w-full"
-                  />
+            <div className="glass-card p-4 rounded-xl space-y-4">
+              {/* Cell Width */}
+              <div>
+                <div className="flex items-center gap-4 mb-2">
+                  <label className="text-sm text-white/70 min-w-[60px]">Width:</label>
+                  <div className="flex-1">
+                    <input 
+                      type="range" 
+                      min={80} 
+                      max={150} 
+                      step={10} 
+                      value={cellSize}
+                      onChange={e => setCellSize(Number(e.target.value))}
+                      className="w-full"
+                    />
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm text-white/80 font-mono w-12">{cellSize}px</span>
+                    <button 
+                      onClick={() => setCellSize(100)}
+                      className="glass-button px-2 py-1 text-xs hover:scale-105"
+                    >
+                      Reset
+                    </button>
+                  </div>
                 </div>
-                <div className="flex items-center gap-2">
-                  <span className="text-sm text-white/80 font-mono w-12">{cellSize}px</span>
-                  <button 
-                    onClick={() => setCellSize(100)}
-                    className="glass-button px-2 py-1 text-xs hover:scale-105"
-                  >
-                    Reset
-                  </button>
+                <div className="flex items-center gap-2 text-xs text-white/50">
+                  <span>Narrow (80px)</span>
+                  <div className="flex-1 h-px bg-white/10"></div>
+                  <span>Wide (150px)</span>
                 </div>
               </div>
-              
-              <div className="mt-3 flex items-center gap-2 text-xs text-white/50">
-                <span>Narrow (80px)</span>
-                <div className="flex-1 h-px bg-white/10"></div>
-                <span>Wide (150px)</span>
+
+              {/* Cell Height */}
+              <div>
+                <div className="flex items-center gap-4 mb-2">
+                  <label className="text-sm text-white/70 min-w-[60px]">Height:</label>
+                  <div className="flex-1">
+                    <input 
+                      type="range" 
+                      min={40} 
+                      max={150} 
+                      step={5} 
+                      value={cellHeight || 70}
+                      onChange={e => setCellHeight && setCellHeight(Number(e.target.value))}
+                      className="w-full"
+                    />
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm text-white/80 font-mono w-14">{cellHeight || 70}px</span>
+                    <button 
+                      onClick={() => setCellHeight && setCellHeight(70)}
+                      className="glass-button px-2 py-1 text-xs hover:scale-105"
+                    >
+                      Reset
+                    </button>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2 text-xs text-white/50">
+                  <span>Compact (40px)</span>
+                  <div className="flex-1 h-px bg-white/10"></div>
+                  <span>Huge (150px)</span>
+                </div>
               </div>
             </div>
           </div>
@@ -172,6 +206,7 @@ function SettingsModal({ scoringDesign, setScoringDesign, cellSize, setCellSize,
                 onClick={() => {
                   setScoringDesign('minimal');
                   setCellSize(100);
+                  setCellHeight && setCellHeight(70);
                 }}
                 className="glass-button flex items-center gap-2 px-3 py-2 text-sm hover:scale-105"
               >

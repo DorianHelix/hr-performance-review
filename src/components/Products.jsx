@@ -230,7 +230,7 @@ function Products() {
                 <thead>
                   <tr className="border-b border-white/10">
                     <th className="text-left p-4 text-white/70 font-medium min-w-[100px]">SKU</th>
-                    <th className="text-left p-4 text-white/70 font-medium min-w-[200px]">Product Name</th>
+                    <th className="text-left p-4 text-white/70 font-medium min-w-[200px] max-w-[300px]">Product Name</th>
                     <th className="text-left p-4 text-white/70 font-medium min-w-[120px]">Category</th>
                     <th className="text-right p-4 text-white/70 font-medium min-w-[100px]">Price</th>
                     <th className="text-right p-4 text-white/70 font-medium min-w-[100px]">Stock</th>
@@ -252,10 +252,10 @@ function Products() {
                         <td className="p-4">
                           <div className="font-mono text-sm text-blue-300">{prod.sku || 'N/A'}</div>
                         </td>
-                        <td className="p-4">
-                          <div className="font-medium text-white">{prod.name}</div>
+                        <td className="p-4" style={{ minWidth: '200px', maxWidth: '300px' }}>
+                          <div className="font-medium text-white truncate" title={prod.name}>{prod.name}</div>
                           {prod.description && (
-                            <div className="text-xs text-white/50 mt-1 truncate max-w-xs">{prod.description}</div>
+                            <div className="text-xs text-white/50 mt-1 truncate" title={prod.description}>{prod.description}</div>
                           )}
                         </td>
                         <td className="p-4">
