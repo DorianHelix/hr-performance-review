@@ -9,59 +9,32 @@ import {
   LineChart
 } from 'lucide-react';
 
-// Low Stock Tooltip Component
+
+// Low Stock Tooltip Component (specific implementation)
 function LowStockTooltip({ emp }) {
-  const [showTooltip, setShowTooltip] = useState(false);
+  const warningIcon = (
+    <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+      <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+    </svg>
+  );
 
   return (
-    <div className="relative">
-      <button 
-        className="p-1 rounded hover:bg-orange-500/20 text-orange-400"
-        onClick={() => setShowTooltip(!showTooltip)}
-      >
-        <svg 
-          className="w-4 h-4" 
-          fill="currentColor" 
-          viewBox="0 0 20 20"
-        >
+    <LiquidTooltip 
+      content={`Low Stock: ${emp.stock} remaining`}
+      variant="warning"
+      onClick={true}
+      icon={warningIcon}
+    >
+      <button className="p-1 rounded hover:bg-orange-500/20 text-orange-400">
+        <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
           <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
         </svg>
       </button>
-      
-      {/* Liquid Glass Tooltip */}
-      {showTooltip && (
-        <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 z-50">
-          <div className="glass-card px-3 py-1.5 rounded-lg border border-orange-400/20 whitespace-nowrap" style={{
-            background: 'linear-gradient(135deg, rgba(251, 146, 60, 0.15) 0%, rgba(234, 88, 12, 0.2) 100%)',
-            backdropFilter: 'blur(6px)',
-            WebkitBackdropFilter: 'blur(6px)',
-            boxShadow: '0 4px 16px rgba(251, 146, 60, 0.2), inset 0 1px 1px rgba(255, 255, 255, 0.1)'
-          }}>
-            <div className="flex items-center gap-2">
-              <svg className="w-3 h-3 text-orange-300" fill="currentColor" viewBox="0 0 20 20">
-                <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
-              </svg>
-              <span className="text-xs text-orange-200 font-medium">
-                Low Stock: {emp.stock} remaining
-              </span>
-            </div>
-            
-            {/* Tooltip Arrow */}
-            <div className="absolute top-full left-1/2 transform -translate-x-1/2 w-0 h-0" 
-                 style={{
-                   borderLeft: '4px solid transparent',
-                   borderRight: '4px solid transparent', 
-                   borderTop: '4px solid rgba(251, 146, 60, 0.4)',
-                   filter: 'drop-shadow(0 1px 1px rgba(0, 0, 0, 0.1))'
-                 }}>
-            </div>
-          </div>
-        </div>
-      )}
-    </div>
+    </LiquidTooltip>
   );
 }
 import API from '../api';
+import LiquidTooltip, { TruncatedTooltip } from './LiquidTooltip';
 import ScoreChartModal from './CreativePerformance/ScoreChartModal';
 import TestTypesModal from './CreativePerformance/TestTypesModal';
 import SettingsModal from './CreativePerformance/SettingsModal';
@@ -288,7 +261,6 @@ function CreativePerformance({
               <button 
                 onClick={() => setShowKPICards(!showKPICards)}
                 className="glass-card p-1.5 rounded-xl hover:bg-white/10 transition-all"
-                title={showKPICards ? 'Hide metrics cards' : 'Show metrics cards'}
               >
                 {showKPICards ? <BarChartHorizontal size={16} className="rotate-180" /> : <BarChartHorizontal size={16} />}
               </button>
@@ -296,7 +268,6 @@ function CreativePerformance({
               <button 
                 onClick={() => setShowSidebar(!showSidebar)}
                 className="glass-card p-1.5 rounded-xl hover:bg-white/10 transition-all"
-                title={showSidebar ? 'Hide sidebar' : 'Show sidebar'}
               >
                 {showSidebar ? <PanelRightClose size={16} /> : <PanelRightOpen size={16} />}
               </button>
@@ -446,7 +417,6 @@ function CreativePerformance({
                 <button
                   onClick={() => setShowSettingsModal(true)}
                   className="glass-button inline-flex items-center gap-2 px-3 py-2 text-sm font-medium hover:scale-105"
-                  title="Table Settings"
                 >
                   <Settings size={14} /> Settings
                 </button>
@@ -544,20 +514,21 @@ function CreativePerformance({
                                   <LowStockTooltip emp={emp} />
                                 )}
                                 <div className="min-w-0 flex-1">
-                                  <div className="font-medium text-white leading-tight" 
-                                       style={{ 
-                                         display: '-webkit-box',
-                                         WebkitLineClamp: '2',
-                                         WebkitBoxOrient: 'vertical',
-                                         overflow: 'hidden',
-                                         lineHeight: '1.3',
-                                         maxHeight: '2.6em'
-                                       }}
-                                       title={emp.name}>
-                                    {emp.name}
-                                  </div>
+                                  <TruncatedTooltip content={emp.name} variant="default">
+                                    <div className="font-medium text-white leading-tight" 
+                                         style={{ 
+                                           display: '-webkit-box',
+                                           WebkitLineClamp: '2',
+                                           WebkitBoxOrient: 'vertical',
+                                           overflow: 'hidden',
+                                           lineHeight: '1.3',
+                                           maxHeight: '2.6em'
+                                         }}>
+                                      {emp.name}
+                                    </div>
+                                  </TruncatedTooltip>
                                   {emp.sku && (
-                                    <div className="text-xs text-white/50 font-mono truncate" title={emp.sku}>{emp.sku}</div>
+                                    <div className="text-xs text-white/50 font-mono truncate">{emp.sku}</div>
                                   )}
                                   {/* Creative Badge for high scoring products */}
                                   {creativeMode === 'creative' && avgScore && avgScore >= 8 && (
@@ -582,7 +553,6 @@ function CreativePerformance({
                                     <button
                                       onClick={() => setChartModal({ employee: emp, startDate, endDate })}
                                       className="p-1 rounded hover:bg-blue-500/20 text-blue-400 opacity-0 group-hover:opacity-100"
-                                      title="View score trends"
                                     >
                                       <LineChart size={14} />
                                     </button>

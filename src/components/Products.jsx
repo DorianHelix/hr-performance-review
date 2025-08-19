@@ -5,6 +5,7 @@ import {
   TrendingUp, ShoppingCart, Archive, AlertTriangle
 } from 'lucide-react';
 import API from '../api';
+import { TruncatedTooltip } from './LiquidTooltip';
 
 // Helper functions
 function uid() { 
@@ -253,9 +254,13 @@ function Products() {
                           <div className="font-mono text-sm text-blue-300">{prod.sku || 'N/A'}</div>
                         </td>
                         <td className="p-4" style={{ minWidth: '200px', maxWidth: '300px' }}>
-                          <div className="font-medium text-white truncate" title={prod.name}>{prod.name}</div>
+                          <TruncatedTooltip content={prod.name} variant="default">
+                            <div className="font-medium text-white truncate">{prod.name}</div>
+                          </TruncatedTooltip>
                           {prod.description && (
-                            <div className="text-xs text-white/50 mt-1 truncate" title={prod.description}>{prod.description}</div>
+                            <TruncatedTooltip content={prod.description} variant="default">
+                              <div className="text-xs text-white/50 mt-1 truncate">{prod.description}</div>
+                            </TruncatedTooltip>
                           )}
                         </td>
                         <td className="p-4">
@@ -300,14 +305,12 @@ function Products() {
                             <button
                               onClick={() => setEditingProduct(prod)}
                               className="p-2 rounded-lg hover:bg-white/10 transition-colors"
-                              title="Edit"
                             >
                               <Settings size={16} className="text-white/70" />
                             </button>
                             <button
                               onClick={() => handleDeleteProduct(prod.id)}
                               className="p-2 rounded-lg hover:bg-red-500/20 transition-colors"
-                              title="Delete"
                             >
                               <Trash2 size={16} className="text-red-400" />
                             </button>
