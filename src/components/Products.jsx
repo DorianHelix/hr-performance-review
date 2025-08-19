@@ -417,9 +417,9 @@ function Products() {
   }).length;
 
   return (
-    <div className="h-full overflow-hidden relative" style={{ maxWidth: '100vw' }}>
-      {/* Main Content - Adjust margin for sidebar */}
-      <div className={`h-full p-4 md:p-6 flex flex-col overflow-hidden transition-all duration-500 ${isSidebarCollapsed ? 'mr-0' : 'mr-96'}`}>
+    <div className="h-full flex relative overflow-hidden">
+      {/* Main Content */}
+      <div className="flex-1 p-4 md:p-6 flex flex-col overflow-hidden transition-all duration-500">
           {/* Collapsible Header */}
           <header className="glass-card-large mb-4 overflow-hidden transition-all duration-500" 
             style={{ maxHeight: isHeaderExpanded ? '300px' : '70px' }}>
@@ -747,8 +747,8 @@ function Products() {
           </div>
       </div>
 
-      {/* Right Sidebar - Fixed position */}
-      <div className={`fixed right-0 top-0 h-full ${isSidebarCollapsed ? 'w-0' : 'w-96'} glass-card-large transition-all duration-500 z-20 overflow-y-auto custom-scrollbar`}>
+      {/* Right Sidebar */}
+      <div className={`${isSidebarCollapsed ? 'w-0' : 'w-80 ml-4'} glass-card-large transition-all duration-500 overflow-y-auto custom-scrollbar h-full mr-4 my-4`}>
         <div className={`${isSidebarCollapsed ? 'hidden' : 'block'} p-4 md:p-6 space-y-6 h-full`}>
         {/* Data Source Toggle */}
         <div className="glass-card-large p-4">
