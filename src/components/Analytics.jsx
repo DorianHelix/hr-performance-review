@@ -180,7 +180,92 @@ function Analytics() {
     { metric: "Innovation", John: 75, Sarah: 82, Mike: 70, Emma: 88, David: 85 }
   ];
 
-  // Sales Funnel data
+  // Sales Funnel data - Split by Brand
+  const [brandSplit, setBrandSplit] = useState(60); // Brand A percentage (Brand B = 100 - brandSplit)
+  const [revenueSplit, setRevenueSplit] = useState(55); // Brand A revenue percentage
+  
+  // Original total values
+  const funnelTotals = {
+    'Website Visitors': 12450,
+    'Product Views': 8234,
+    'Add to Cart': 4512,
+    'Checkout': 2341,
+    'Purchase': 1687
+  };
+  
+  // Calculate split data for both brands
+  const calculateBrandData = (brandAPercentage) => {
+    const brandBPercentage = 100 - brandAPercentage;
+    
+    return Object.entries(funnelTotals).map(([stage, total]) => ({
+      stage,
+      'Brand A': Math.round(total * (brandAPercentage / 100)),
+      'Brand B': Math.round(total * (brandBPercentage / 100)),
+      total
+    }));
+  };
+  
+  const splitFunnelData = calculateBrandData(brandSplit);
+  
+  // Revenue funnel data - NEW
+  const baseRevenue = 4500000;
+  const revenueFunnelData = [
+    {
+      id: 'Revenue',
+      value: Math.round(baseRevenue * revenueSplit / 100),
+      label: 'Revenue'
+    },
+    {
+      id: 'After Ad Spend',
+      value: Math.round(baseRevenue * revenueSplit / 100 * 0.8),
+      label: 'After Ad Spend'
+    },
+    {
+      id: 'After Shipping',
+      value: Math.round(baseRevenue * revenueSplit / 100 * 0.7),
+      label: 'After Shipping'
+    },
+    {
+      id: 'After COGS',
+      value: Math.round(baseRevenue * revenueSplit / 100 * 0.4),
+      label: 'After COGS'
+    },
+    {
+      id: 'Profit',
+      value: Math.round(baseRevenue * revenueSplit / 100 * 0.3),
+      label: 'Net Profit'
+    }
+  ];
+
+  const revenueFunnelDataBrandB = [
+    {
+      id: 'Revenue',
+      value: Math.round(baseRevenue * (100 - revenueSplit) / 100),
+      label: 'Revenue'
+    },
+    {
+      id: 'After Ad Spend',
+      value: Math.round(baseRevenue * (100 - revenueSplit) / 100 * 0.8),
+      label: 'After Ad Spend'
+    },
+    {
+      id: 'After Shipping',
+      value: Math.round(baseRevenue * (100 - revenueSplit) / 100 * 0.7),
+      label: 'After Shipping'
+    },
+    {
+      id: 'After COGS',
+      value: Math.round(baseRevenue * (100 - revenueSplit) / 100 * 0.4),
+      label: 'After COGS'
+    },
+    {
+      id: 'Profit',
+      value: Math.round(baseRevenue * (100 - revenueSplit) / 100 * 0.3),
+      label: 'Net Profit'
+    }
+  ];
+  
+  // Data for the original funnel visualization
   const funnelData = [
     {
       id: 'Website Visitors',
@@ -548,42 +633,112 @@ function Analytics() {
 
       {/* Funnel and Radar Row */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-        {/* Funnel Chart - Sales Conversion */}
+        {/* Split Funnel Chart - Brand Comparison */}
         <div className="glass-card-large p-6">
           <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
             <Target size={20} className="text-pink-400" />
-            Sales Conversion Funnel
+            Brand Comparison Funnel
           </h3>
-          <div style={{ height: '300px' }}>
-            <ResponsiveFunnel
-              data={funnelData}
-              theme={glassTheme}
-              margin={{ top: 20, right: 20, bottom: 20, left: 20 }}
-              direction="vertical"
-              valueFormat=">,.0f"
-              colors={{ scheme: 'spectral' }}
-              borderWidth={20}
-              labelColor={{ from: 'color', modifiers: [['darker', 3]] }}
-              beforeSeparatorLength={100}
-              beforeSeparatorOffset={20}
-              afterSeparatorLength={100}
-              afterSeparatorOffset={20}
-              currentPartSizeExtension={10}
-              currentBorderWidth={20}
-              motionConfig="gentle"
+          
+          {/* Brand Split Slider */}
+          <div className="mb-4">
+            <div className="flex items-center justify-between text-xs text-white/60 mb-2">
+              <span className="flex items-center gap-2">
+                <div className="w-3 h-3 rounded-full bg-purple-500"></div>
+                Brand A: {brandSplit}%
+              </span>
+              <span className="flex items-center gap-2">
+                <div className="w-3 h-3 rounded-full bg-cyan-500"></div>
+                Brand B: {100 - brandSplit}%
+              </span>
+            </div>
+            <input
+              type="range"
+              min="10"
+              max="90"
+              value={brandSplit}
+              onChange={(e) => setBrandSplit(Number(e.target.value))}
+              className="w-full h-2 bg-white/20 rounded-lg appearance-none cursor-pointer slider"
+              style={{
+                background: `linear-gradient(to right, #a855f7 0%, #a855f7 ${brandSplit}%, #06b6d4 ${brandSplit}%, #06b6d4 100%)`
+              }}
             />
           </div>
-          <div className="mt-4 grid grid-cols-2 gap-4 text-xs">
-            <div className="glass-card p-2 rounded-lg">
-              <div className="text-white/60">Conversion Rate</div>
-              <div className="text-lg font-bold text-green-400">
-                {((1687 / 12450) * 100).toFixed(1)}%
+          
+          {/* Custom Split Funnel Visualization */}
+          <div className="space-y-3">
+            {splitFunnelData.map((level, index) => {
+              const maxWidth = index === 0 ? 100 : (funnelTotals[level.stage] / funnelTotals['Website Visitors']) * 100;
+              const brandAWidth = (level['Brand A'] / level.total) * 100;
+              const brandBWidth = (level['Brand B'] / level.total) * 100;
+              
+              return (
+                <div key={level.stage} className="relative">
+                  <div className="text-xs text-white/60 mb-1">{level.stage}</div>
+                  <div 
+                    className="relative h-12 rounded-lg overflow-hidden flex transition-all duration-300"
+                    style={{ width: `${maxWidth}%`, margin: '0 auto' }}
+                  >
+                    {/* Brand A */}
+                    <div 
+                      className="bg-gradient-to-r from-purple-600 to-purple-500 flex items-center justify-center transition-all duration-300 hover:brightness-110"
+                      style={{ width: `${brandAWidth}%` }}
+                      title={`Brand A: ${level['Brand A'].toLocaleString()}`}
+                    >
+                      <span className="text-white text-xs font-medium px-1 truncate">
+                        {level['Brand A'] > 500 ? level['Brand A'].toLocaleString() : ''}
+                      </span>
+                    </div>
+                    
+                    {/* Separator */}
+                    <div className="w-0.5 bg-white/30"></div>
+                    
+                    {/* Brand B */}
+                    <div 
+                      className="bg-gradient-to-r from-cyan-600 to-cyan-500 flex items-center justify-center transition-all duration-300 hover:brightness-110"
+                      style={{ width: `${brandBWidth}%` }}
+                      title={`Brand B: ${level['Brand B'].toLocaleString()}`}
+                    >
+                      <span className="text-white text-xs font-medium px-1 truncate">
+                        {level['Brand B'] > 500 ? level['Brand B'].toLocaleString() : ''}
+                      </span>
+                    </div>
+                  </div>
+                  
+                  {/* Total value */}
+                  <div className="text-right text-xs text-white/40 mt-1">
+                    Total: {level.total.toLocaleString()}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+          
+          {/* Metrics */}
+          <div className="mt-6 grid grid-cols-2 gap-4">
+            <div className="glass-card p-3 rounded-lg">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-xs text-white/60">Brand A</span>
+                <div className="w-3 h-3 rounded-full bg-purple-500"></div>
+              </div>
+              <div className="text-sm font-bold text-purple-400">
+                Conversion: {((splitFunnelData[4]['Brand A'] / splitFunnelData[0]['Brand A']) * 100).toFixed(1)}%
+              </div>
+              <div className="text-xs text-white/50 mt-1">
+                {splitFunnelData[4]['Brand A'].toLocaleString()} purchases
               </div>
             </div>
-            <div className="glass-card p-2 rounded-lg">
-              <div className="text-white/60">Cart Abandonment</div>
-              <div className="text-lg font-bold text-orange-400">
-                {((1 - (1687 / 4512)) * 100).toFixed(1)}%
+            
+            <div className="glass-card p-3 rounded-lg">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-xs text-white/60">Brand B</span>
+                <div className="w-3 h-3 rounded-full bg-cyan-500"></div>
+              </div>
+              <div className="text-sm font-bold text-cyan-400">
+                Conversion: {((splitFunnelData[4]['Brand B'] / splitFunnelData[0]['Brand B']) * 100).toFixed(1)}%
+              </div>
+              <div className="text-xs text-white/50 mt-1">
+                {splitFunnelData[4]['Brand B'].toLocaleString()} purchases
               </div>
             </div>
           </div>
@@ -632,6 +787,170 @@ function Analytics() {
                 }
               ]}
             />
+          </div>
+        </div>
+      </div>
+
+      {/* Revenue Funnel Section - NEW */}
+      <div className="glass-card-large p-6 mb-6">
+        <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+          <DollarSign size={20} className="text-green-400" />
+          Revenue Breakdown by Brand
+        </h3>
+        
+        {/* Revenue Split Slider */}
+        <div className="mb-6">
+          <div className="flex items-center justify-between text-xs text-white/60 mb-2">
+            <span className="flex items-center gap-2">
+              <div className="w-3 h-3 rounded-full bg-purple-500"></div>
+              Brand A Revenue: {revenueSplit}%
+            </span>
+            <span className="flex items-center gap-2">
+              <div className="w-3 h-3 rounded-full bg-cyan-500"></div>
+              Brand B Revenue: {100 - revenueSplit}%
+            </span>
+          </div>
+          <input
+            type="range"
+            min="10"
+            max="90"
+            value={revenueSplit}
+            onChange={(e) => setRevenueSplit(Number(e.target.value))}
+            className="w-full h-2 bg-white/20 rounded-lg appearance-none cursor-pointer slider"
+            style={{
+              background: `linear-gradient(to right, #a855f7 0%, #a855f7 ${revenueSplit}%, #06b6d4 ${revenueSplit}%, #06b6d4 100%)`
+            }}
+          />
+        </div>
+        
+        {/* Nivo Funnel Charts Side by Side */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Brand A Funnel */}
+          <div>
+            <div className="text-sm font-medium text-purple-400 mb-3 text-center">Brand A</div>
+            <div style={{ height: '400px' }}>
+              <ResponsiveFunnel
+                data={revenueFunnelData}
+                theme={glassTheme}
+                margin={{ top: 20, right: 20, bottom: 20, left: 20 }}
+                shapeBlending={0.66}
+                valueFormat=" >-.0f"
+                colors={['#a855f7', '#d946ef', '#c026d3', '#9333ea', '#7c3aed']}
+                borderWidth={20}
+                borderColor={{ from: 'color', modifiers: [['darker', 0.3]] }}
+                borderOpacity={0.5}
+                labelColor={{ from: 'color', modifiers: [['brighter', 3]] }}
+                beforeSeparatorLength={100}
+                beforeSeparatorOffset={20}
+                afterSeparatorLength={100}
+                afterSeparatorOffset={20}
+                currentPartSizeExtension={10}
+                currentBorderWidth={40}
+                motionConfig="gentle"
+                isInteractive={true}
+                enableLabel={true}
+                animate={true}
+              />
+            </div>
+            <div className="mt-4 space-y-2 text-xs">
+              <div className="flex justify-between text-white/60">
+                <span>Revenue:</span>
+                <span className="text-purple-400 font-semibold">{Math.round(4500000 * revenueSplit / 100).toLocaleString()} Ft</span>
+              </div>
+              <div className="flex justify-between text-white/60">
+                <span>Ad Spend:</span>
+                <span className="text-orange-400">-{Math.round(900000 * revenueSplit / 100).toLocaleString()} Ft</span>
+              </div>
+              <div className="flex justify-between text-white/60">
+                <span>Shipping:</span>
+                <span className="text-yellow-400">-{Math.round(450000 * revenueSplit / 100).toLocaleString()} Ft</span>
+              </div>
+              <div className="flex justify-between text-white/60">
+                <span>COGS:</span>
+                <span className="text-red-400">-{Math.round(1800000 * revenueSplit / 100).toLocaleString()} Ft</span>
+              </div>
+              <div className="flex justify-between text-white/60 pt-2 border-t border-white/20">
+                <span className="font-semibold">Profit:</span>
+                <span className="text-green-400 font-bold">{Math.round(1350000 * revenueSplit / 100).toLocaleString()} Ft</span>
+              </div>
+            </div>
+          </div>
+          
+          {/* Brand B Funnel */}
+          <div>
+            <div className="text-sm font-medium text-cyan-400 mb-3 text-center">Brand B</div>
+            <div style={{ height: '400px' }}>
+              <ResponsiveFunnel
+                data={revenueFunnelDataBrandB}
+                theme={glassTheme}
+                margin={{ top: 20, right: 20, bottom: 20, left: 20 }}
+                shapeBlending={0.66}
+                valueFormat=" >-.0f"
+                colors={['#06b6d4', '#0891b2', '#0e7490', '#155e75', '#164e63']}
+                borderWidth={20}
+                borderColor={{ from: 'color', modifiers: [['darker', 0.3]] }}
+                borderOpacity={0.5}
+                labelColor={{ from: 'color', modifiers: [['brighter', 3]] }}
+                beforeSeparatorLength={100}
+                beforeSeparatorOffset={20}
+                afterSeparatorLength={100}
+                afterSeparatorOffset={20}
+                currentPartSizeExtension={10}
+                currentBorderWidth={40}
+                motionConfig="gentle"
+                isInteractive={true}
+                enableLabel={true}
+                animate={true}
+              />
+            </div>
+            <div className="mt-4 space-y-2 text-xs">
+              <div className="flex justify-between text-white/60">
+                <span>Revenue:</span>
+                <span className="text-cyan-400 font-semibold">{Math.round(4500000 * (100 - revenueSplit) / 100).toLocaleString()} Ft</span>
+              </div>
+              <div className="flex justify-between text-white/60">
+                <span>Ad Spend:</span>
+                <span className="text-orange-400">-{Math.round(900000 * (100 - revenueSplit) / 100).toLocaleString()} Ft</span>
+              </div>
+              <div className="flex justify-between text-white/60">
+                <span>Shipping:</span>
+                <span className="text-yellow-400">-{Math.round(450000 * (100 - revenueSplit) / 100).toLocaleString()} Ft</span>
+              </div>
+              <div className="flex justify-between text-white/60">
+                <span>COGS:</span>
+                <span className="text-red-400">-{Math.round(1800000 * (100 - revenueSplit) / 100).toLocaleString()} Ft</span>
+              </div>
+              <div className="flex justify-between text-white/60 pt-2 border-t border-white/20">
+                <span className="font-semibold">Profit:</span>
+                <span className="text-green-400 font-bold">{Math.round(1350000 * (100 - revenueSplit) / 100).toLocaleString()} Ft</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        {/* Combined Totals */}
+        <div className="mt-6 glass-card p-4 rounded-xl bg-gradient-to-r from-purple-500/10 to-cyan-500/10">
+          <div className="grid grid-cols-5 gap-4 text-center">
+            <div>
+              <div className="text-xs text-white/60">Total Revenue</div>
+              <div className="text-lg font-bold text-white">4,500,000 Ft</div>
+            </div>
+            <div>
+              <div className="text-xs text-white/60">Total Ad Spend</div>
+              <div className="text-lg font-bold text-orange-400">-900,000 Ft</div>
+            </div>
+            <div>
+              <div className="text-xs text-white/60">Total Shipping</div>
+              <div className="text-lg font-bold text-yellow-400">-450,000 Ft</div>
+            </div>
+            <div>
+              <div className="text-xs text-white/60">Total COGS</div>
+              <div className="text-lg font-bold text-red-400">-1,800,000 Ft</div>
+            </div>
+            <div>
+              <div className="text-xs text-white/60">Total Profit</div>
+              <div className="text-lg font-bold text-green-400">1,350,000 Ft</div>
+            </div>
           </div>
         </div>
       </div>
