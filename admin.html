@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Admin - Performance Review Database</title>
+    <title>Helix Finance - Admin Panel</title>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
         
@@ -179,8 +179,8 @@
 <body>
     <div class="container">
         <div class="header">
-            <h1>🎯 Performance Review Admin</h1>
-            <p>Manage products and scores directly in the database</p>
+            <h1>🏛️ Helix Finance Admin</h1>
+            <p>Manage products and performance scores</p>
         </div>
 
         <div class="tabs">
@@ -238,9 +238,7 @@
                     <div class="form-group">
                         <label>Category</label>
                         <select id="score-category" required>
-                            <option value="VCT">VCT</option>
-                            <option value="ACT">ACT</option>
-                            <option value="RCT">RCT</option>
+                            <!-- Categories will be loaded dynamically -->
                         </select>
                     </div>
                     <div class="form-group">
@@ -340,6 +338,7 @@
             if (tab === 'products') loadProducts();
             if (tab === 'scores') {
                 loadProductsForSelect();
+                loadCategories();
                 loadRecentScores();
             }
             if (tab === 'bulk') loadProductsForSelect();
@@ -403,6 +402,34 @@
                 });
             } catch (error) {
                 console.error('Error loading products:', error);
+            }
+        }
+        
+        // Load categories for select
+        async function loadCategories() {
+            try {
+                const response = await fetch(`${API_URL}/test-categories`);
+                const categories = await response.json();
+                
+                const select = document.getElementById('score-category');
+                if (select) {
+                    select.innerHTML = '<option value="">Select Category</option>';
+                    categories.forEach(cat => {
+                        select.innerHTML += `<option value="${cat.key}">${cat.key} - ${cat.label}</option>`;
+                    });
+                }
+            } catch (error) {
+                console.error('Error loading categories:', error);
+                // Fallback to hardcoded categories
+                const select = document.getElementById('score-category');
+                if (select) {
+                    select.innerHTML = `
+                        <option value="">Select Category</option>
+                        <option value="VCT">VCT - Video Creative Test</option>
+                        <option value="SCT">SCT - Static Creative Test</option>
+                        <option value="ACT">ACT - Ad Copy Test</option>
+                    `;
+                }
             }
         }
         
@@ -749,6 +776,7 @@
         
         // Load initial data
         loadProducts();
+        loadCategories();
         
         // Auto-refresh View Data tab every 5 seconds when active
         setInterval(() => {

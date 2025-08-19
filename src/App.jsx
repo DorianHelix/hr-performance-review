@@ -965,7 +965,7 @@ Continue monitoring progress with focus on identified improvement areas.`;
             <div className="flex items-center justify-between mb-2">
               <h3 className="font-medium flex items-center gap-2 text-white">
                 <Bot size={18} className="text-blue-400" />
-                AI Performance Review
+                AI Financial Analysis
               </h3>
               <button
                 onClick={handleEvaluate}
@@ -4252,7 +4252,7 @@ export default function App() {
                   <div className="glass-card p-2 rounded-2xl bg-gradient-to-br from-blue-400/20 to-purple-600/20 border-blue-400/30">
                     <BarChart3 size={24} className="text-blue-300" />
                   </div>
-                  Performance Review Matrix
+                  Helix Finance
                 </h1>
                 <p className="text-white/60 text-lg">
                   Track employee performance weekly with AI-powered insights

@@ -471,6 +471,34 @@ app.post('/api/migrate', (req, res) => {
   });
 });
 
+// Get test categories from frontend (hardcoded for now)
+app.get('/api/test-categories', (req, res) => {
+  const testCategories = [
+    { 
+      id: "test-1",
+      key: "VCT", 
+      label: "Video Creative Test", 
+      short: "VCT", 
+      description: "Video creative performance testing"
+    },
+    { 
+      id: "test-2",
+      key: "SCT", 
+      label: "Static Creative Test", 
+      short: "SCT", 
+      description: "Static creative performance testing"
+    },
+    { 
+      id: "test-3",
+      key: "ACT", 
+      label: "Ad Copy Test", 
+      short: "ACT", 
+      description: "Ad copy effectiveness testing"
+    }
+  ];
+  res.json(testCategories);
+});
+
 // Health check
 app.get('/api/health', (req, res) => {
   res.json({ status: 'OK', timestamp: new Date().toISOString() });
