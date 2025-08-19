@@ -21,6 +21,8 @@ function Products() {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [expandedProducts, setExpandedProducts] = useState({});
+  const [isHeaderExpanded, setIsHeaderExpanded] = useState(true);
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   
   const [showAddModal, setShowAddModal] = useState(false);
   const [showBulkImportModal, setShowBulkImportModal] = useState(false);
@@ -404,9 +406,9 @@ function Products() {
   }, 0);
   const totalValue = products.reduce((sum, prod) => {
     if (prod.hasVariants && prod.variants) {
-      return sum + prod.variants.reduce((vSum, v) => vSum + ((v.price || 0) * (v.stock || 0)), 0);
+      return sum + prod.variants.reduce((vSum, v) => vSum + ((v.cost || 0) * (v.stock || 0)), 0);
     }
-    return sum + ((prod.price || 0) * (prod.stock || 0));
+    return sum + ((prod.cost || 0) * (prod.stock || 0));
   }, 0);
   const lowStockCount = products.filter(prod => {
     const stock = prod.totalStock || prod.stock || 0;
@@ -415,53 +417,75 @@ function Products() {
 
   return (
     <div className="flex h-full overflow-hidden">
-      {/* Main Content - Fixed width container */}
-      <div className="flex-1 min-w-0 max-w-[calc(100%-24rem)] p-4 md:p-6 overflow-hidden">
+      {/* Main Content - Dynamic width based on sidebar state */}
+      <div className={`flex-1 min-w-0 ${isSidebarCollapsed ? '' : 'max-w-[calc(100%-24rem)]'} p-4 md:p-6 overflow-hidden transition-all duration-500`}>
         <div className="w-full h-full flex flex-col">
-          <header className="glass-card-large p-6 mb-6" style={{ minHeight: '170px' }}>
-            <div className="flex items-center justify-between mb-4">
-              <div>
-                <h1 className="text-2xl font-bold text-white mb-2 flex items-center gap-3">
-                  <div className="glass-card p-2 rounded-2xl bg-gradient-to-br from-purple-400/20 to-pink-600/20 border-purple-400/30">
-                    <Package size={24} className="text-purple-300" />
-                  </div>
-                  Product Management
-                </h1>
-                <p className="text-white/60">Manage your product catalog and inventory</p>
+          {/* Collapsible Header */}
+          <header className="glass-card-large mb-4 overflow-hidden transition-all duration-500" 
+            style={{ maxHeight: isHeaderExpanded ? '300px' : '70px' }}>
+            <div className="flex items-center justify-between p-4">
+              <div className="flex items-center gap-3">
+                <div className="glass-card p-2 rounded-2xl bg-gradient-to-br from-purple-400/20 to-pink-600/20 border-purple-400/30">
+                  <Package size={20} className="text-purple-300" />
+                </div>
+                <div>
+                  <h1 className="text-xl font-bold text-white">Product Management</h1>
+                  {!isHeaderExpanded && (
+                    <p className="text-xs text-white/60">
+                      {totalProducts} products • {totalStock} items • {totalValue.toLocaleString()} Ft
+                    </p>
+                  )}
+                </div>
               </div>
               
-              {/* Stats Cards */}
-              <div className="flex gap-4">
-                <div className="glass-card p-4 rounded-xl">
-                  <div className="text-2xl font-bold text-white">{totalProducts}</div>
-                  <div className="text-xs text-white/60">Products</div>
-                </div>
-                {totalVariants > 0 && (
-                  <div className="glass-card p-4 rounded-xl">
-                    <div className="text-2xl font-bold text-purple-400">{totalVariants}</div>
-                    <div className="text-xs text-white/60">Variants</div>
-                  </div>
-                )}
-                <div className="glass-card p-4 rounded-xl">
-                  <div className="text-2xl font-bold text-blue-400">{totalStock}</div>
-                  <div className="text-xs text-white/60">Total Stock</div>
-                </div>
-                <div className="glass-card p-4 rounded-xl">
-                  <div className="text-2xl font-bold text-green-400">
-                    ${totalValue.toLocaleString()}
-                  </div>
-                  <div className="text-xs text-white/60">Inventory Value</div>
-                </div>
-                {lowStockCount > 0 && (
-                  <div className="glass-card p-4 rounded-xl border-orange-500/30">
-                    <div className="text-2xl font-bold text-orange-400">{lowStockCount}</div>
-                    <div className="text-xs text-white/60">Low Stock</div>
-                  </div>
-                )}
-              </div>
+              <button
+                onClick={() => setIsHeaderExpanded(!isHeaderExpanded)}
+                className="p-2 rounded-lg hover:bg-white/10 transition-colors"
+              >
+                <ChevronDown 
+                  size={20} 
+                  className={`text-white/60 transform transition-transform ${isHeaderExpanded ? '' : '-rotate-180'}`} 
+                />
+              </button>
             </div>
+            
+            {/* Stats Cards - Only visible when expanded */}
+            {isHeaderExpanded && (
+              <div className="px-4 pb-4">
+                <div className="flex gap-3 flex-wrap">
+                  <div className="glass-card p-3 rounded-xl flex-1 min-w-[120px]">
+                    <div className="text-xl font-bold text-white">{totalProducts}</div>
+                    <div className="text-xs text-white/60">Products</div>
+                  </div>
+                  {totalVariants > 0 && (
+                    <div className="glass-card p-3 rounded-xl flex-1 min-w-[120px]">
+                      <div className="text-xl font-bold text-purple-400">{totalVariants}</div>
+                      <div className="text-xs text-white/60">Variants</div>
+                    </div>
+                  )}
+                  <div className="glass-card p-3 rounded-xl flex-1 min-w-[120px]">
+                    <div className="text-xl font-bold text-blue-400">{totalStock}</div>
+                    <div className="text-xs text-white/60">Total Stock</div>
+                  </div>
+                  <div className="glass-card p-3 rounded-xl flex-1 min-w-[140px]">
+                    <div className="text-xl font-bold text-green-400">
+                      {totalValue.toLocaleString()} Ft
+                    </div>
+                    <div className="text-xs text-white/60">Inventory Value</div>
+                  </div>
+                  {lowStockCount > 0 && (
+                    <div className="glass-card p-3 rounded-xl flex-1 min-w-[120px] border-orange-500/30">
+                      <div className="text-xl font-bold text-orange-400">{lowStockCount}</div>
+                      <div className="text-xs text-white/60">Low Stock</div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+          </header>
 
-            {/* Search and Filter Bar */}
+          {/* Search and Filter Section */}
+          <div className="glass-card-large p-4 mb-4">
             <div className="flex gap-3">
               <div className="flex-1 relative">
                 <input
@@ -496,7 +520,7 @@ function Products() {
                 <option value="created">Sort by Date Added</option>
               </select>
             </div>
-          </header>
+          </div>
 
           {/* Products Table */}
           <div className="glass-card-large flex flex-col overflow-hidden flex-1">
@@ -714,8 +738,21 @@ function Products() {
         </div>
       </div>
 
-      {/* Right Sidebar - Fixed position */}
-      <div className="w-96 flex-shrink-0 p-4 md:p-6 space-y-6 h-full overflow-y-auto">
+      {/* Right Sidebar - Collapsible */}
+      <div className={`${isSidebarCollapsed ? 'w-20' : 'w-96'} flex-shrink-0 p-4 md:p-6 space-y-6 h-full overflow-y-auto transition-all duration-500 relative`}>
+        {/* Sidebar Toggle Button */}
+        <button
+          onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
+          className="absolute -left-3 top-1/2 -translate-y-1/2 z-10 w-6 h-12 bg-gradient-to-r from-purple-500/20 to-pink-500/20 border border-purple-400/30 rounded-l-lg flex items-center justify-center hover:from-purple-500/30 hover:to-pink-500/30 transition-all"
+        >
+          <ChevronRight 
+            size={16} 
+            className={`text-white/60 transform transition-transform ${isSidebarCollapsed ? '' : 'rotate-180'}`}
+          />
+        </button>
+        
+        {/* Sidebar Content - Hidden when collapsed */}
+        <div className={`${isSidebarCollapsed ? 'hidden' : 'block'} space-y-6`}>
         {/* Data Source Toggle */}
         <div className="glass-card-large p-4">
           <div className="flex items-center justify-between">
@@ -748,19 +785,9 @@ function Products() {
               onClick={() => setShowShopifyImportModal(true)}
               className="w-full glass-button py-3 font-medium hover:scale-105 transition-transform flex items-center justify-center gap-2 bg-gradient-to-r from-purple-500/20 to-pink-500/20 border-purple-400/30"
             >
-              <Package size={18} />
-              Import Products CSV
+              <Upload size={18} />
+              Import Shopify Data
             </button>
-            
-            {products.length > 0 && (
-              <button
-                onClick={() => setShowStockImportModal(true)}
-                className="w-full glass-button py-3 font-medium hover:scale-105 transition-transform flex items-center justify-center gap-2 bg-gradient-to-r from-blue-500/20 to-cyan-500/20 border-blue-400/30"
-              >
-                <Box size={18} />
-                Import Stock Levels
-              </button>
-            )}
             
             {localStorage.getItem('hr_products_imported') && (
               <button
@@ -905,6 +932,7 @@ function Products() {
               </div>
             )}
           </div>
+        </div>
         </div>
       </div>
 
