@@ -3577,6 +3577,7 @@ export default function App() {
     return saved ? JSON.parse(saved) : [];
   });
   const [categories, setCategories] = useState([]);
+  const [dbScores, setDbScores] = useState({});
   
   // Test categories state for Creative component
   const [testCategories, setTestCategories] = useState(() => {
@@ -3600,6 +3601,36 @@ export default function App() {
   });
   const [cellSize, setCellSize] = useState(100);
   const [filterMinTier, setFilterMinTier] = useState(5);
+  
+  // Load scores from database
+  const loadScoresFromDatabase = async () => {
+    try {
+      const scores = await API.scores.getScores();
+      const scoreMap = {};
+      scores.forEach(score => {
+        const dateStr = score.date.toString();
+        const formattedDate = `${dateStr.slice(0,4)}-${dateStr.slice(4,6)}-${dateStr.slice(6,8)}`;
+        const dbKey = `${score.employee_id}|${formattedDate}|${score.category}`;
+        scoreMap[dbKey] = score.score;
+      });
+      setDbScores(scoreMap);
+      console.log('✅ Loaded scores from database:', Object.keys(scoreMap).length);
+    } catch (error) {
+      console.error('Error loading scores from database:', error);
+    }
+  };
+  
+  // Load scores when component mounts or date range changes
+  useEffect(() => {
+    loadScoresFromDatabase();
+    
+    // Refresh scores every 5 seconds to sync with database
+    const interval = setInterval(() => {
+      loadScoresFromDatabase();
+    }, 5000);
+    
+    return () => clearInterval(interval);
+  }, [startDate, endDate]);
   
   // UI State
   const [weeklyEvalModal, setWeeklyEvalModal] = useState(null);
@@ -3825,6 +3856,13 @@ export default function App() {
   };
 
   const getCategoryScore = (employeeId, weekKey, categoryKey) => {
+    // First check database scores
+    const dbKey = `${employeeId}|${weekKey}|${categoryKey}`;
+    if (dbScores[dbKey] !== undefined) {
+      return dbScores[dbKey];
+    }
+    
+    // Fallback to localStorage
     const evaluations = lsRead(LS_EVALUATIONS, {});
     const evalKey = `${employeeId}|${weekKey}`;
     const scores = evaluations[evalKey];
@@ -3844,7 +3882,7 @@ export default function App() {
       // Save to database
       await API.scores.saveScore({
         employee_id: employeeId,
-        date: weekKey,
+        date: weekKey.replace(/-/g, ''),
         category: categoryKey,
         score: score,
         performance_report: reports?.performanceReport || '',
@@ -3852,6 +3890,9 @@ export default function App() {
       });
       
       console.log('✅ Score saved to database');
+      
+      // Reload scores from database
+      await loadScoresFromDatabase();
     } catch (error) {
       console.error('Error saving to database:', error);
     }
@@ -3879,9 +3920,13 @@ export default function App() {
   
   const deleteCategoryScore = async (employeeId, weekKey, categoryKey) => {
     try {
-      // Delete from database
-      await API.scores.deleteScore(employeeId, weekKey, categoryKey);
+      // Delete from database - format date properly for API
+      const dateForDb = weekKey.replace(/-/g, '');
+      await API.scores.deleteScore(employeeId, dateForDb, categoryKey);
       console.log('✅ Score deleted from database');
+      
+      // Reload scores from database
+      await loadScoresFromDatabase();
     } catch (error) {
       console.error('Error deleting from database:', error);
     }
