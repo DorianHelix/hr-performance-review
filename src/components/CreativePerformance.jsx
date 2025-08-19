@@ -112,6 +112,7 @@ function CreativePerformance({
   const [chartModal, setChartModal] = useState(null);
   const [showTestTypesModal, setShowTestTypesModal] = useState(false);
   const [showSettingsModal, setShowSettingsModal] = useState(false);
+  const [editingProduct, setEditingProduct] = useState(null);
   const [scoringDesign, setScoringDesign] = useState(() => {
     const saved = localStorage.getItem('hr_creative_scoring_design');
     return saved !== null ? saved : 'liquid'; // 'minimal' or 'liquid'
@@ -501,18 +502,12 @@ function CreativePerformance({
                                     />
                                   </button>
                                 )}
-                                {setEmployeeSettingsModal && (
-                                  <button
-                                    onClick={() => setEmployeeSettingsModal(emp)}
-                                    className="p-1 rounded hover:bg-white/10"
-                                  >
-                                    <Settings size={16} className="text-white/60" />
-                                  </button>
-                                )}
-                                {/* Low Stock Warning Icon */}
-                                {emp.stock <= (emp.minStock || 10) && (
-                                  <LowStockTooltip emp={emp} />
-                                )}
+                                <button
+                                  onClick={() => setEditingProduct(emp)}
+                                  className="p-1 rounded hover:bg-white/10"
+                                >
+                                  <Settings size={16} className="text-white/60" />
+                                </button>
                                 <div className="min-w-0 flex-1">
                                   <TruncatedTooltip content={emp.name} variant="default">
                                     <div className="font-medium text-white leading-tight" 
@@ -527,9 +522,15 @@ function CreativePerformance({
                                       {emp.name}
                                     </div>
                                   </TruncatedTooltip>
-                                  {emp.sku && (
-                                    <div className="text-xs text-white/50 font-mono truncate">{emp.sku}</div>
-                                  )}
+                                  <div className="flex items-center gap-1 text-xs">
+                                    <span className={`${emp.stock <= (emp.minStock || 10) ? 'text-orange-400' : 'text-white/50'}`}>
+                                      Stock: {emp.stock || 0}
+                                    </span>
+                                    {/* Low Stock Warning Icon */}
+                                    {emp.stock <= (emp.minStock || 10) && (
+                                      <LowStockTooltip emp={emp} />
+                                    )}
+                                  </div>
                                   {/* Creative Badge for high scoring products */}
                                   {creativeMode === 'creative' && avgScore && avgScore >= 8 && (
                                     <div className="inline-flex items-center gap-1 mt-1 px-2 py-0.5 rounded-full bg-gradient-to-r from-purple-500 to-pink-500 text-white text-xs">
@@ -1165,6 +1166,185 @@ function CreativePerformance({
           onClose={() => setShowSettingsModal(false)}
         />
       )}
+      
+      {/* Product Settings Modal */}
+      {editingProduct && (
+        <ProductSettingsModal
+          product={editingProduct}
+          onSave={async (updates) => {
+            try {
+              await API.products.update(editingProduct.id, updates);
+              // Refresh the products list
+              if (typeof handleAddEmployee === 'function') {
+                // Trigger a refresh by calling the parent's refresh mechanism
+                window.location.reload();
+              }
+            } catch (error) {
+              console.error('Error updating product:', error);
+            }
+            setEditingProduct(null);
+          }}
+          onClose={() => setEditingProduct(null)}
+        />
+      )}
+    </div>
+  );
+}
+
+// Product Settings Modal Component
+function ProductSettingsModal({ product, onSave, onClose }) {
+  const [formData, setFormData] = useState({
+    name: product?.name || '',
+    sku: product?.sku || '',
+    description: product?.description || '',
+    category: product?.category || '',
+    price: product?.price || '',
+    stock: product?.stock || '',
+    status: product?.status || 'active',
+    supplier: product?.supplier || '',
+    minStock: product?.minStock || 10
+  });
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    if (!formData.name) {
+      alert('Product name is required');
+      return;
+    }
+    onSave(formData);
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={onClose}>
+      <div className="glass-card-large w-full max-w-2xl max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+        <div className="p-6 border-b border-white/20">
+          <h2 className="text-xl font-bold text-white">
+            Product Settings
+          </h2>
+          <p className="text-sm text-white/60 mt-1">Edit product information and inventory details</p>
+        </div>
+        
+        <form onSubmit={handleSubmit} className="p-6 space-y-4">
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-white/70 mb-2">Product Name *</label>
+              <input
+                type="text"
+                value={formData.name}
+                onChange={(e) => setFormData({...formData, name: e.target.value})}
+                className="w-full glass-input px-4 py-2"
+                required
+              />
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium text-white/70 mb-2">SKU</label>
+              <input
+                type="text"
+                value={formData.sku}
+                onChange={(e) => setFormData({...formData, sku: e.target.value})}
+                className="w-full glass-input px-4 py-2"
+                placeholder="PRD-001"
+              />
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-white/70 mb-2">Description</label>
+            <textarea
+              value={formData.description}
+              onChange={(e) => setFormData({...formData, description: e.target.value})}
+              className="w-full glass-input px-4 py-2"
+              rows="3"
+            />
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-white/70 mb-2">Category</label>
+              <input
+                type="text"
+                value={formData.category}
+                onChange={(e) => setFormData({...formData, category: e.target.value})}
+                className="w-full glass-input px-4 py-2"
+                placeholder="Electronics"
+              />
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium text-white/70 mb-2">Status</label>
+              <select
+                value={formData.status}
+                onChange={(e) => setFormData({...formData, status: e.target.value})}
+                className="w-full glass-input px-4 py-2"
+              >
+                <option value="active">Active</option>
+                <option value="draft">Draft</option>
+                <option value="discontinued">Discontinued</option>
+              </select>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-3 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-white/70 mb-2">Price ($)</label>
+              <input
+                type="number"
+                step="0.01"
+                value={formData.price}
+                onChange={(e) => setFormData({...formData, price: parseFloat(e.target.value) || 0})}
+                className="w-full glass-input px-4 py-2"
+              />
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium text-white/70 mb-2">Stock</label>
+              <input
+                type="number"
+                value={formData.stock}
+                onChange={(e) => setFormData({...formData, stock: parseInt(e.target.value) || 0})}
+                className="w-full glass-input px-4 py-2"
+              />
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium text-white/70 mb-2">Min Stock</label>
+              <input
+                type="number"
+                value={formData.minStock}
+                onChange={(e) => setFormData({...formData, minStock: parseInt(e.target.value) || 0})}
+                className="w-full glass-input px-4 py-2"
+              />
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-white/70 mb-2">Supplier</label>
+            <input
+              type="text"
+              value={formData.supplier}
+              onChange={(e) => setFormData({...formData, supplier: e.target.value})}
+              className="w-full glass-input px-4 py-2"
+              placeholder="Supplier name"
+            />
+          </div>
+        </form>
+        
+        <div className="p-6 border-t border-white/20 flex justify-end gap-3">
+          <button
+            onClick={onClose}
+            className="px-6 py-2 rounded-xl border bg-red-900/80 hover:bg-red-800 border-red-700/50 text-white font-medium hover:scale-105 transition-all"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={handleSubmit}
+            className="px-6 py-2 rounded-xl bg-gradient-to-r from-blue-500 to-blue-600 text-white font-medium hover:scale-105 transition-transform"
+          >
+            Update Product
+          </button>
+        </div>
+      </div>
     </div>
   );
 }
