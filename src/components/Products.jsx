@@ -32,6 +32,7 @@ function Products() {
   const [searchTerm, setSearchTerm] = useState('');
   const [showStockDetails, setShowStockDetails] = useState(null);
   const [filterCategory, setFilterCategory] = useState('');
+  const [filterStatus, setFilterStatus] = useState('');
   const [sortBy, setSortBy] = useState('name'); // name, price, stock, created
   const [showImportedProducts, setShowImportedProducts] = useState(() => {
     // Check if we have imported products
@@ -200,7 +201,11 @@ function Products() {
               id: `prod-${uid()}`,
               handle: handle,
               name: row.Title || '',
-              category: row['Product Category'] || '',
+              category: row['Product Category']?.includes('>') 
+                ? row['Product Category'].split('>')[0].trim()
+                : row['Product Category'] || '',
+              fullCategory: row['Product Category'] || '',
+              type: row.Type || '',
               vendor: row.Vendor || '',
               status: row.Status?.toLowerCase() || 'active',
               variants: [],
@@ -376,7 +381,8 @@ function Products() {
                           prod.sku?.toLowerCase().includes(searchTerm.toLowerCase()) ||
                           prod.handle?.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesCategory = !filterCategory || prod.category === filterCategory;
-    return matchesSearch && matchesCategory;
+    const matchesStatus = !filterStatus || prod.status === filterStatus;
+    return matchesSearch && matchesCategory && matchesStatus;
   });
 
   // Sort products
@@ -520,6 +526,17 @@ function Products() {
               </select>
               
               <select
+                value={filterStatus}
+                onChange={(e) => setFilterStatus(e.target.value)}
+                className="glass-input px-4 py-2"
+              >
+                <option value="">All Status</option>
+                <option value="active">Active</option>
+                <option value="draft">Draft</option>
+                <option value="discontinued">Discontinued</option>
+              </select>
+              
+              <select
                 value={sortBy}
                 onChange={(e) => setSortBy(e.target.value)}
                 className="glass-input px-4 py-2"
@@ -536,17 +553,18 @@ function Products() {
           <div className="glass-card-large flex flex-col overflow-hidden flex-1 p-2" style={{ minHeight: 0 }}>
             <div className="overflow-x-auto overflow-y-auto custom-scrollbar h-full" style={{ maxHeight: 'calc(100vh - 320px)' }}>
               <table className="w-full" style={{ minWidth: 'max-content' }}>
-                <thead className="sticky top-0 z-10 bg-black/80 backdrop-blur-md">
-                  <tr className="border-b border-white/10">
-                    <th className="text-left p-3 text-white/70 font-medium" style={{ width: '40px', minWidth: '40px' }}></th>
-                    <th className="text-left p-3 text-white/70 font-medium" style={{ width: '35%', minWidth: '250px' }}>Product / Variant</th>
-                    <th className="text-left p-3 text-white/70 font-medium" style={{ width: '120px', minWidth: '120px' }}>SKU</th>
-                    <th className="text-left p-3 text-white/70 font-medium" style={{ width: '120px', minWidth: '120px' }}>Category</th>
-                    <th className="text-right p-3 text-white/70 font-medium" style={{ width: '90px', minWidth: '90px' }}>Price</th>
-                    <th className="text-right p-3 text-white/70 font-medium" style={{ width: '90px', minWidth: '90px' }}>Cost</th>
-                    <th className="text-right p-3 text-white/70 font-medium" style={{ width: '80px', minWidth: '80px' }}>Stock</th>
-                    <th className="text-left p-3 text-white/70 font-medium" style={{ width: '90px', minWidth: '90px' }}>Status</th>
-                    <th className="text-center p-3 text-white/70 font-medium" style={{ width: '90px', minWidth: '90px' }}>Actions</th>
+                <thead className="sticky top-0 z-10">
+                  <tr>
+                    <th className="text-left p-3 text-white/70 font-medium bg-black/60 backdrop-blur-md first:rounded-l-xl" style={{ width: '40px', minWidth: '40px' }}></th>
+                    <th className="text-left p-3 text-white/70 font-medium bg-black/60 backdrop-blur-md" style={{ width: '35%', minWidth: '250px' }}>Product / Variant</th>
+                    <th className="text-left p-3 text-white/70 font-medium bg-black/60 backdrop-blur-md" style={{ width: '120px', minWidth: '120px' }}>SKU</th>
+                    <th className="text-left p-3 text-white/70 font-medium bg-black/60 backdrop-blur-md" style={{ width: '120px', minWidth: '120px' }}>Category</th>
+                    <th className="text-left p-3 text-white/70 font-medium bg-black/60 backdrop-blur-md" style={{ width: '90px', minWidth: '90px' }}>Type</th>
+                    <th className="text-right p-3 text-white/70 font-medium bg-black/60 backdrop-blur-md" style={{ width: '90px', minWidth: '90px' }}>Price</th>
+                    <th className="text-right p-3 text-white/70 font-medium bg-black/60 backdrop-blur-md" style={{ width: '90px', minWidth: '90px' }}>Cost</th>
+                    <th className="text-right p-3 text-white/70 font-medium bg-black/60 backdrop-blur-md" style={{ width: '80px', minWidth: '80px' }}>Stock</th>
+                    <th className="text-left p-3 text-white/70 font-medium bg-black/60 backdrop-blur-md" style={{ width: '90px', minWidth: '90px' }}>Status</th>
+                    <th className="text-center p-3 text-white/70 font-medium bg-black/60 backdrop-blur-md last:rounded-r-xl" style={{ width: '90px', minWidth: '90px' }}>Actions</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -610,8 +628,16 @@ function Products() {
                           </td>
                           <td className="p-3" style={{ width: '120px' }}>
                             {prod.category && (
-                              <span className="px-2 py-1 rounded-lg bg-purple-500/20 text-purple-300 text-xs">
+                              <span className="px-2 py-1 rounded-lg bg-purple-500/20 text-purple-300 text-xs" 
+                                title={prod.fullCategory}>
                                 {prod.category}
+                              </span>
+                            )}
+                          </td>
+                          <td className="p-3" style={{ width: '90px' }}>
+                            {prod.type && (
+                              <span className="text-xs text-white/60">
+                                {prod.type}
                               </span>
                             )}
                           </td>
@@ -704,6 +730,9 @@ function Products() {
                             </td>
                             <td className="p-3" style={{ width: '120px' }}>
                               <span className="text-white/20 text-xs">Inherited</span>
+                            </td>
+                            <td className="p-3" style={{ width: '90px' }}>
+                              <span className="text-white/20 text-xs">-</span>
                             </td>
                             <td className="p-3 text-right w-24">
                               <div className="text-white/80 text-xs">
