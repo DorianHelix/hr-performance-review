@@ -54,10 +54,12 @@ function Products() {
       name: productData.name,
       category: productData.category || '',
       sku: productData.sku || '',
-      division: productData.division || '',
-      squad: productData.squad || '',
-      team: productData.team || '',
-      role: productData.role || '',
+      description: productData.description || '',
+      price: productData.price || 0,
+      stock: productData.stock || 0,
+      minStock: productData.minStock || 10,
+      status: productData.status || 'active',
+      supplier: productData.supplier || '',
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString()
     };

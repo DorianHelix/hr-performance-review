@@ -4238,6 +4238,7 @@ export default function App() {
           presetThisMonth={presetThisMonth}
           presetPrevMonth={presetPrevMonth}
           presetNextMonth={presetNextMonth}
+          isDarkMode={isDarkMode}
         />
       )}
       

@@ -187,7 +187,12 @@ app.get('/api/products', (req, res) => {
       res.status(500).json({ error: err.message });
       return;
     }
-    res.json(rows);
+    // Convert snake_case to camelCase for frontend
+    const products = rows.map(row => ({
+      ...row,
+      minStock: row.min_stock
+    }));
+    res.json(products);
   });
 });
 
@@ -199,13 +204,19 @@ app.get('/api/products/:id', (req, res) => {
       res.status(500).json({ error: err.message });
       return;
     }
-    res.json(row);
+    // Convert snake_case to camelCase for frontend
+    const product = row ? {
+      ...row,
+      minStock: row.min_stock
+    } : null;
+    res.json(product);
   });
 });
 
 // Create product
 app.post('/api/products', (req, res) => {
-  const { id, name, sku, category, description, price, stock, min_stock, status, supplier } = req.body;
+  const { id, name, sku, category, description, price, stock, minStock, status, supplier } = req.body;
+  const min_stock = minStock; // Convert camelCase to snake_case for database
   
   db.run(
     `INSERT INTO products (id, name, sku, category, description, price, stock, min_stock, status, supplier) 
@@ -224,7 +235,8 @@ app.post('/api/products', (req, res) => {
 // Update product
 app.put('/api/products/:id', (req, res) => {
   const { id } = req.params;
-  const { name, sku, category, description, price, stock, min_stock, status, supplier } = req.body;
+  const { name, sku, category, description, price, stock, minStock, status, supplier } = req.body;
+  const min_stock = minStock; // Convert camelCase to snake_case for database
   
   db.run(
     `UPDATE products 

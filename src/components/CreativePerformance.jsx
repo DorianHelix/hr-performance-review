@@ -73,7 +73,8 @@ function CreativePerformance({
   DateRangePicker,
   presetThisMonth,
   presetPrevMonth,
-  presetNextMonth
+  presetNextMonth,
+  isDarkMode = true
 }) {
   
   const scrollRef = useRef(null);
@@ -404,8 +405,8 @@ function CreativePerformance({
                       maxWidth: '20rem',
                       backdropFilter: 'blur(4px)',
                       WebkitBackdropFilter: 'blur(4px)',
-                      background: 'rgba(0, 0, 0, 0.5)',
-                      borderRight: '1px solid rgba(255, 255, 255, 0.2)'
+                      background: isDarkMode ? 'rgba(0, 0, 0, 0.5)' : 'rgba(255, 255, 255, 0.8)',
+                      borderRight: isDarkMode ? '1px solid rgba(255, 255, 255, 0.2)' : '1px solid rgba(0, 0, 0, 0.1)'
                     }}>
                       <div className="flex items-center justify-between">
                         <span className="font-semibold text-white text-sm">Product</span>
@@ -429,7 +430,13 @@ function CreativePerformance({
                         <th 
                           key={week.key}
                           className="sticky top-0 z-5 glass-card text-xs font-semibold text-white rounded-lg"
-                          style={{ minWidth: cellSize, width: cellSize }}
+                          style={{ 
+                            minWidth: cellSize, 
+                            width: cellSize,
+                            backdropFilter: 'blur(4px)',
+                            WebkitBackdropFilter: 'blur(4px)',
+                            background: isDarkMode ? 'rgba(0, 0, 0, 0.5)' : 'rgba(255, 255, 255, 0.8)'
+                          }}
                         >
                           <div className="text-center py-1.5 px-1">
                             <div className="text-sm">{week.monthName} {week.day}</div>
@@ -437,8 +444,18 @@ function CreativePerformance({
                               {week.dayName}
                             </div>
                             {dailyAvg && (
-                              <div className="text-[9px] text-white/30">
-                                Avg: {dailyAvg}
+                              <div className="mt-1 flex justify-center">
+                                <span className={`text-[8px] font-bold px-1.5 py-0.5 rounded-full ${
+                                  parseFloat(dailyAvg) >= 8 
+                                    ? 'bg-green-500/20 text-green-300' 
+                                    : parseFloat(dailyAvg) >= 6 
+                                    ? 'bg-yellow-500/20 text-yellow-300'
+                                    : parseFloat(dailyAvg) >= 4
+                                    ? 'bg-orange-500/20 text-orange-300'
+                                    : 'bg-red-500/20 text-red-300'
+                                }`}>
+                                  {dailyAvg}
+                                </span>
                               </div>
                             )}
                           </div>
@@ -462,8 +479,8 @@ function CreativePerformance({
                             maxWidth: '20rem',
                             backdropFilter: 'blur(4px)',
                             WebkitBackdropFilter: 'blur(4px)',
-                            background: 'rgba(0, 0, 0, 0.5)',
-                            borderRight: '1px solid rgba(255, 255, 255, 0.2)'
+                            background: isDarkMode ? 'rgba(0, 0, 0, 0.5)' : 'rgba(255, 255, 255, 0.8)',
+                            borderRight: isDarkMode ? '1px solid rgba(255, 255, 255, 0.2)' : '1px solid rgba(0, 0, 0, 0.1)'
                           }}>
                             <div className="flex items-center justify-between">
                               <div className="flex items-center gap-2">
@@ -487,12 +504,33 @@ function CreativePerformance({
                                     <Settings size={16} className="text-white/60" />
                                   </button>
                                 )}
-                                <div>
-                                  <div className="font-medium text-white">{emp.name}</div>
-                                  <div className="text-xs text-white/60">
-                                    {emp.sku && <span className="font-mono">{emp.sku} · </span>}
-                                    {[emp.category, `$${emp.price || 0}`, `Stock: ${emp.stock || 0}`].filter(Boolean).join(" · ")}
+                                <div className="min-w-0 flex-1">
+                                  <div className="flex items-start gap-2">
+                                    <div className="font-medium text-white leading-tight min-w-0 flex-1" 
+                                         style={{ 
+                                           display: '-webkit-box',
+                                           WebkitLineClamp: '2',
+                                           WebkitBoxOrient: 'vertical',
+                                           overflow: 'hidden',
+                                           lineHeight: '1.3',
+                                           maxHeight: '2.6em'
+                                         }}
+                                         title={emp.name}>
+                                      {emp.name}
+                                    </div>
+                                    {/* Low Stock Badge */}
+                                    {emp.stock <= (emp.minStock || 10) && (
+                                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-orange-500/20 border border-orange-400/30 text-orange-300 text-xs font-medium flex-shrink-0">
+                                        <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                                          <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                                        </svg>
+                                        Low Stock
+                                      </span>
+                                    )}
                                   </div>
+                                  {emp.sku && (
+                                    <div className="text-xs text-white/50 font-mono truncate" title={emp.sku}>{emp.sku}</div>
+                                  )}
                                   {/* Creative Badge for high scoring products */}
                                   {creativeMode === 'creative' && avgScore && avgScore >= 8 && (
                                     <div className="inline-flex items-center gap-1 mt-1 px-2 py-0.5 rounded-full bg-gradient-to-r from-purple-500 to-pink-500 text-white text-xs">
@@ -807,8 +845,8 @@ function CreativePerformance({
                                 maxWidth: '20rem',
                                 backdropFilter: 'blur(4px)',
                                 WebkitBackdropFilter: 'blur(4px)',
-                                background: 'rgba(0, 0, 0, 0.5)',
-                                borderRight: '1px solid rgba(255, 255, 255, 0.2)'
+                                background: isDarkMode ? 'rgba(0, 0, 0, 0.5)' : 'rgba(255, 255, 255, 0.8)',
+                                borderRight: isDarkMode ? '1px solid rgba(255, 255, 255, 0.2)' : '1px solid rgba(0, 0, 0, 0.1)'
                               }}>
                                 <div className="flex items-center justify-between">
                                   <div className="flex items-center gap-2">
