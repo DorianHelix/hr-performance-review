@@ -3610,7 +3610,9 @@ export default function App() {
       scores.forEach(score => {
         const dateStr = score.date.toString();
         const formattedDate = `${dateStr.slice(0,4)}-${dateStr.slice(4,6)}-${dateStr.slice(6,8)}`;
-        const dbKey = `${score.employee_id}|${formattedDate}|${score.category}`;
+        // Use entity_id if available, fallback to employee_id for backward compatibility
+        const entityId = score.entity_id || score.employee_id;
+        const dbKey = `${entityId}|${formattedDate}|${score.category}`;
         scoreMap[dbKey] = score.score;
       });
       setDbScores(scoreMap);
@@ -3885,9 +3887,12 @@ export default function App() {
 
   const saveCategoryScore = async (employeeId, weekKey, categoryKey, score, reports) => {
     try {
+      // Determine if this is a product or employee
+      const isProduct = employeeId.startsWith('prod-') || employeeId.startsWith('test-prod-');
+      
       // Save to database
       await API.scores.saveScore({
-        employee_id: employeeId,
+        [isProduct ? 'entity_id' : 'employee_id']: employeeId,
         date: weekKey.replace(/-/g, ''),
         category: categoryKey,
         score: score,
@@ -3928,7 +3933,15 @@ export default function App() {
     try {
       // Delete from database - format date properly for API
       const dateForDb = weekKey.replace(/-/g, '');
-      await API.scores.deleteScore(employeeId, dateForDb, categoryKey);
+      
+      // Determine if this is a product or employee and use appropriate API
+      const isProduct = employeeId.startsWith('prod-') || employeeId.startsWith('test-prod-');
+      if (isProduct) {
+        await API.scores.deleteScore(employeeId, dateForDb, categoryKey);
+      } else {
+        await API.scores.deleteEmployeeScore(employeeId, dateForDb, categoryKey);
+      }
+      
       console.log('✅ Score deleted from database');
       
       // Immediately remove from cache

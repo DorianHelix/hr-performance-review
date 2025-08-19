@@ -78,8 +78,14 @@ export const scoreAPI = {
     body: JSON.stringify(scoreData),
   }),
   
-  deleteScore: (employeeId, date, category) => 
-    apiCall(`/scores/${employeeId}/${date}/${category}`, {
+  deleteScore: (entityId, date, category) => 
+    apiCall(`/scores/${entityId}/${date}/${category}`, {
+      method: 'DELETE',
+    }),
+    
+  // Backward compatibility for employees
+  deleteEmployeeScore: (employeeId, date, category) => 
+    apiCall(`/scores/employee/${employeeId}/${date}/${category}`, {
       method: 'DELETE',
     }),
 };

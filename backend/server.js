@@ -62,7 +62,7 @@ db.serialize(() => {
   db.run(`
     CREATE TABLE IF NOT EXISTS scores (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
-      employee_id TEXT NOT NULL,
+      entity_id TEXT NOT NULL,
       date TEXT NOT NULL,
       category TEXT NOT NULL,
       score INTEGER NOT NULL,
@@ -70,8 +70,7 @@ db.serialize(() => {
       media_buyer_review TEXT,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-      FOREIGN KEY (employee_id) REFERENCES employees(id),
-      UNIQUE(employee_id, date, category)
+      UNIQUE(entity_id, date, category)
     )
   `);
 
@@ -162,7 +161,7 @@ app.delete('/api/employees/:id', (req, res) => {
   const { id } = req.params;
   
   // Delete scores first
-  db.run('DELETE FROM scores WHERE employee_id = ?', [id], (err) => {
+  db.run('DELETE FROM scores WHERE entity_id = ?', [id], (err) => {
     if (err) {
       res.status(500).json({ error: err.message });
       return;
@@ -247,7 +246,7 @@ app.delete('/api/products/:id', (req, res) => {
   const { id } = req.params;
   
   // Delete scores first (if product has scores)
-  db.run('DELETE FROM scores WHERE employee_id = ?', [id], (err) => {
+  db.run('DELETE FROM scores WHERE entity_id = ?', [id], (err) => {
     if (err) {
       res.status(500).json({ error: err.message });
       return;
@@ -268,14 +267,16 @@ app.delete('/api/products/:id', (req, res) => {
 
 // Get scores for date range
 app.get('/api/scores', (req, res) => {
-  const { employee_id, start_date, end_date } = req.query;
+  const { entity_id, employee_id, start_date, end_date } = req.query;
   
   let query = 'SELECT * FROM scores WHERE 1=1';
   const params = [];
   
-  if (employee_id) {
-    query += ' AND employee_id = ?';
-    params.push(employee_id);
+  // Support both entity_id and employee_id for backward compatibility
+  const id = entity_id || employee_id;
+  if (id) {
+    query += ' AND entity_id = ?';
+    params.push(id);
   }
   
   if (start_date) {
@@ -301,12 +302,15 @@ app.get('/api/scores', (req, res) => {
 
 // Save score
 app.post('/api/scores', (req, res) => {
-  const { employee_id, date, category, score, performance_report, media_buyer_review } = req.body;
+  const { entity_id, employee_id, date, category, score, performance_report, media_buyer_review } = req.body;
+  
+  // Support both entity_id and employee_id for backward compatibility
+  const id = entity_id || employee_id;
   
   db.run(
-    `INSERT OR REPLACE INTO scores (employee_id, date, category, score, performance_report, media_buyer_review) 
+    `INSERT OR REPLACE INTO scores (entity_id, date, category, score, performance_report, media_buyer_review) 
      VALUES (?, ?, ?, ?, ?, ?)`,
-    [employee_id, date, category, score, performance_report, media_buyer_review],
+    [id, date, category, score, performance_report, media_buyer_review],
     function(err) {
       if (err) {
         res.status(500).json({ error: err.message });
@@ -314,7 +318,7 @@ app.post('/api/scores', (req, res) => {
       }
       res.json({ 
         id: this.lastID,
-        employee_id,
+        entity_id: id,
         date,
         category,
         score
@@ -323,12 +327,29 @@ app.post('/api/scores', (req, res) => {
   );
 });
 
-// Delete score
-app.delete('/api/scores/:employee_id/:date/:category', (req, res) => {
+// Delete score by entity_id (new preferred route)
+app.delete('/api/scores/:entity_id/:date/:category', (req, res) => {
+  const { entity_id, date, category } = req.params;
+  
+  db.run(
+    'DELETE FROM scores WHERE entity_id = ? AND date = ? AND category = ?',
+    [entity_id, date, category],
+    function(err) {
+      if (err) {
+        res.status(500).json({ error: err.message });
+        return;
+      }
+      res.json({ deleted: true });
+    }
+  );
+});
+
+// Backward compatibility route for employee_id
+app.delete('/api/scores/employee/:employee_id/:date/:category', (req, res) => {
   const { employee_id, date, category } = req.params;
   
   db.run(
-    'DELETE FROM scores WHERE employee_id = ? AND date = ? AND category = ?',
+    'DELETE FROM scores WHERE entity_id = ? AND date = ? AND category = ?',
     [employee_id, date, category],
     function(err) {
       if (err) {
@@ -400,7 +421,7 @@ app.post('/api/migrate', (req, res) => {
   // Migrate scores
   if (scores && Object.keys(scores).length > 0) {
     const scoreStmt = db.prepare(
-      `INSERT OR REPLACE INTO scores (employee_id, date, category, score, performance_report, media_buyer_review) 
+      `INSERT OR REPLACE INTO scores (entity_id, date, category, score, performance_report, media_buyer_review) 
        VALUES (?, ?, ?, ?, ?, ?)`
     );
     

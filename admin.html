@@ -446,7 +446,7 @@
         document.getElementById('score-form').addEventListener('submit', async (e) => {
             e.preventDefault();
             
-            const employee_id = document.getElementById('score-product').value;
+            const entity_id = document.getElementById('score-product').value;
             const date = document.getElementById('score-date').value.replace(/-/g, '');
             const category = document.getElementById('score-category').value;
             const score = document.getElementById('score-value').value;
@@ -456,7 +456,7 @@
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
-                        employee_id,
+                        entity_id,
                         date,
                         category,
                         score: parseInt(score),
