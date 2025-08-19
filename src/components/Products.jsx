@@ -2,23 +2,27 @@ import React, { useState, useEffect } from 'react';
 import {
   Package, Plus, Trash2, Settings, Upload, PlusCircle,
   Search, Filter, Tag, DollarSign, Box, BarChart,
-  TrendingUp, ShoppingCart, Archive, AlertTriangle
+  TrendingUp, ShoppingCart, Archive, AlertTriangle,
+  ChevronDown, ChevronRight, Layers, FileDown
 } from 'lucide-react';
 import API from '../api';
 import { TruncatedTooltip } from './LiquidTooltip';
+import Papa from 'papaparse';
 
 // Helper functions
 function uid() { 
   return Date.now().toString(36) + Math.random().toString(36).substr(2); 
 }
 
-// Products Component - Based on Employees but adapted for product management
+// Products Component with Variant Support
 function Products() {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [expandedProducts, setExpandedProducts] = useState({});
   
   const [showAddModal, setShowAddModal] = useState(false);
   const [showBulkImportModal, setShowBulkImportModal] = useState(false);
+  const [showShopifyImportModal, setShowShopifyImportModal] = useState(false);
   const [editingProduct, setEditingProduct] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterCategory, setFilterCategory] = useState('');
@@ -27,14 +31,20 @@ function Products() {
   // Load products from database
   useEffect(() => {
     const loadProducts = async () => {
+      // First check localStorage for imported products
+      const imported = localStorage.getItem('hr_products_imported');
+      if (imported) {
+        setProducts(JSON.parse(imported));
+        setLoading(false);
+        return;
+      }
+      
       try {
         const data = await API.products.getAll();
         setProducts(data);
-        // Also save to localStorage for backup
         localStorage.setItem('hr_products', JSON.stringify(data));
       } catch (error) {
         console.error('Error loading products from database:', error);
-        // Fallback to localStorage
         const saved = localStorage.getItem('hr_products');
         if (saved) setProducts(JSON.parse(saved));
       }
@@ -42,11 +52,99 @@ function Products() {
     };
     
     loadProducts();
-    
-    // Refresh every 5 seconds to sync with other browsers
-    const interval = setInterval(loadProducts, 5000);
-    return () => clearInterval(interval);
+    // Don't refresh if we have imported products
+    const imported = localStorage.getItem('hr_products_imported');
+    if (!imported) {
+      const interval = setInterval(loadProducts, 5000);
+      return () => clearInterval(interval);
+    }
   }, []);
+
+  // Toggle product expansion for variants
+  const toggleExpand = (productId) => {
+    setExpandedProducts(prev => ({
+      ...prev,
+      [productId]: !prev[productId]
+    }));
+  };
+
+  // Import Shopify CSV
+  const handleShopifyImport = (file) => {
+    Papa.parse(file, {
+      header: true,
+      complete: async (results) => {
+        console.log('Parsing CSV...', results.data.length, 'rows');
+        const rows = results.data.filter(row => row.Handle && row.Title);
+        const productMap = new Map();
+        
+        rows.forEach(row => {
+          const handle = row.Handle;
+          
+          if (!productMap.has(handle)) {
+            // New product
+            productMap.set(handle, {
+              id: `prod-${uid()}`,
+              handle: handle,
+              name: row.Title,
+              category: row['Product Category'] || '',
+              vendor: row.Vendor || '',
+              status: row.Status?.toLowerCase() || 'active',
+              variants: [],
+              images: [],
+              hasVariants: false
+            });
+          }
+          
+          const product = productMap.get(handle);
+          
+          // Add variant if Option1 Value exists
+          if (row['Option1 Value']) {
+            product.hasVariants = true;
+            product.variants.push({
+              id: `var-${uid()}`,
+              name: row['Option1 Value'],
+              sku: row['Variant SKU'] || '',
+              price: parseFloat(row['Variant Price']) || 0,
+              cost: parseFloat(row['Cost per item']) || 0,
+              stock: 0 // Set stock to 0 for now since inventory tracking might be off
+            });
+          } else if (!product.hasVariants && row['Variant Price']) {
+            // Single product without variants
+            product.sku = row['Variant SKU'] || '';
+            product.price = parseFloat(row['Variant Price']) || 0;
+            product.cost = parseFloat(row['Cost per item']) || 0;
+            product.stock = 0; // Set stock to 0 for now
+          }
+          
+          // Add image if exists
+          if (row['Image Src'] && !product.images.includes(row['Image Src'])) {
+            product.images.push(row['Image Src']);
+          }
+        });
+        
+        // Convert map to array and calculate total stock
+        const importedProducts = Array.from(productMap.values()).map(product => {
+          if (product.hasVariants) {
+            product.totalStock = product.variants.reduce((sum, v) => sum + v.stock, 0);
+          } else {
+            product.totalStock = product.stock || 0;
+          }
+          return product;
+        });
+        
+        console.log('Imported products:', importedProducts);
+        
+        // Update local state and mark as imported
+        setProducts(importedProducts);
+        localStorage.setItem('hr_products_imported', JSON.stringify(importedProducts));
+        setShowShopifyImportModal(false);
+      },
+      error: (error) => {
+        console.error('CSV parse error:', error);
+        alert('Error parsing CSV file. Please check the format.');
+      }
+    });
+  };
 
   // Add new product
   const handleAddProduct = async (productData) => {
@@ -147,9 +245,24 @@ function Products() {
   const categories = [...new Set(products.map(prod => prod.category))].filter(Boolean);
 
   // Calculate stats
-  const totalValue = products.reduce((sum, prod) => sum + ((prod.price || 0) * (prod.stock || 0)), 0);
-  const lowStockCount = products.filter(prod => prod.stock < 10).length;
   const totalProducts = products.length;
+  const totalVariants = products.reduce((sum, p) => sum + (p.variants?.length || 0), 0);
+  const totalStock = products.reduce((sum, p) => {
+    if (p.hasVariants && p.variants) {
+      return sum + p.variants.reduce((vSum, v) => vSum + (v.stock || 0), 0);
+    }
+    return sum + (p.stock || 0);
+  }, 0);
+  const totalValue = products.reduce((sum, prod) => {
+    if (prod.hasVariants && prod.variants) {
+      return sum + prod.variants.reduce((vSum, v) => vSum + ((v.price || 0) * (v.stock || 0)), 0);
+    }
+    return sum + ((prod.price || 0) * (prod.stock || 0));
+  }, 0);
+  const lowStockCount = products.filter(prod => {
+    const stock = prod.totalStock || prod.stock || 0;
+    return stock < 10;
+  }).length;
 
   return (
     <div className="flex h-full overflow-hidden">
@@ -172,16 +285,22 @@ function Products() {
               <div className="flex gap-4">
                 <div className="glass-card p-4 rounded-xl">
                   <div className="text-2xl font-bold text-white">{totalProducts}</div>
-                  <div className="text-xs text-white/60">Total Products</div>
+                  <div className="text-xs text-white/60">Products</div>
                 </div>
+                {totalVariants > 0 && (
+                  <div className="glass-card p-4 rounded-xl">
+                    <div className="text-2xl font-bold text-purple-400">{totalVariants}</div>
+                    <div className="text-xs text-white/60">Variants</div>
+                  </div>
+                )}
                 <div className="glass-card p-4 rounded-xl">
-                  <div className="text-2xl font-bold text-green-400">${totalValue.toLocaleString()}</div>
-                  <div className="text-xs text-white/60">Total Inventory Value</div>
+                  <div className="text-2xl font-bold text-blue-400">{totalStock}</div>
+                  <div className="text-xs text-white/60">Total Stock</div>
                 </div>
                 {lowStockCount > 0 && (
                   <div className="glass-card p-4 rounded-xl border-orange-500/30">
                     <div className="text-2xl font-bold text-orange-400">{lowStockCount}</div>
-                    <div className="text-xs text-white/60">Low Stock Items</div>
+                    <div className="text-xs text-white/60">Low Stock</div>
                   </div>
                 )}
               </div>
@@ -230,12 +349,13 @@ function Products() {
               <table className="w-max">
                 <thead>
                   <tr className="border-b border-white/10">
-                    <th className="text-left p-4 text-white/70 font-medium min-w-[100px]">SKU</th>
-                    <th className="text-left p-4 text-white/70 font-medium min-w-[200px] max-w-[300px]">Product Name</th>
+                    <th className="text-left p-4 text-white/70 font-medium w-10"></th>
+                    <th className="text-left p-4 text-white/70 font-medium min-w-[250px]">Product / Variant</th>
+                    <th className="text-left p-4 text-white/70 font-medium min-w-[120px]">SKU</th>
                     <th className="text-left p-4 text-white/70 font-medium min-w-[120px]">Category</th>
                     <th className="text-right p-4 text-white/70 font-medium min-w-[100px]">Price</th>
+                    <th className="text-right p-4 text-white/70 font-medium min-w-[100px]">Cost</th>
                     <th className="text-right p-4 text-white/70 font-medium min-w-[100px]">Stock</th>
-                    <th className="text-right p-4 text-white/70 font-medium min-w-[120px]">Value</th>
                     <th className="text-left p-4 text-white/70 font-medium min-w-[100px]">Status</th>
                     <th className="text-center p-4 text-white/70 font-medium min-w-[100px]">Actions</th>
                   </tr>
@@ -243,80 +363,187 @@ function Products() {
                 <tbody>
                   {sortedProducts.length === 0 ? (
                     <tr>
-                      <td colSpan="8" className="text-center p-8 text-white/50">
+                      <td colSpan="9" className="text-center p-8 text-white/50">
                         No products found. Add your first product to get started.
                       </td>
                     </tr>
                   ) : (
                     sortedProducts.map(prod => (
-                      <tr key={prod.id} className="border-b border-white/5 hover:bg-white/5 transition-colors">
-                        <td className="p-4">
-                          <div className="font-mono text-sm text-blue-300">{prod.sku || 'N/A'}</div>
-                        </td>
-                        <td className="p-4" style={{ minWidth: '200px', maxWidth: '300px' }}>
-                          <TruncatedTooltip content={prod.name} variant="default">
-                            <div className="font-medium text-white truncate">{prod.name}</div>
-                          </TruncatedTooltip>
-                          {prod.description && (
-                            <TruncatedTooltip content={prod.description} variant="default">
-                              <div className="text-xs text-white/50 mt-1 truncate">{prod.description}</div>
-                            </TruncatedTooltip>
-                          )}
-                        </td>
-                        <td className="p-4">
-                          <span className="px-2 py-1 rounded-lg bg-purple-500/20 text-purple-300 text-xs">
-                            {prod.category || 'Uncategorized'}
-                          </span>
-                        </td>
-                        <td className="p-4 text-right">
-                          <div className="text-white font-medium">
-                            ${(prod.price || 0).toLocaleString()}
-                          </div>
-                        </td>
-                        <td className="p-4 text-right">
-                          <div className={`font-medium ${prod.stock < 10 ? 'text-orange-400' : 'text-white'}`}>
-                            {prod.stock || 0}
-                            {prod.stock < 10 && prod.stock > 0 && (
-                              <AlertTriangle size={14} className="inline ml-1 text-orange-400" />
+                      <React.Fragment key={prod.id}>
+                        {/* Main Product Row */}
+                        <tr className="border-b border-white/5 hover:bg-white/5 transition-colors group">
+                          <td className="p-4">
+                            {prod.hasVariants && (
+                              <button
+                                onClick={() => toggleExpand(prod.id)}
+                                className="p-1 rounded hover:bg-white/10 transition-colors"
+                              >
+                                {expandedProducts[prod.id] ? (
+                                  <ChevronDown size={16} className="text-white/60" />
+                                ) : (
+                                  <ChevronRight size={16} className="text-white/60" />
+                                )}
+                              </button>
                             )}
-                            {prod.stock === 0 && (
-                              <span className="ml-2 text-red-400 text-xs">Out of Stock</span>
+                          </td>
+                          <td className="p-4">
+                            <div className="flex items-start gap-2">
+                              {prod.hasVariants && (
+                                <Layers size={16} className="text-purple-400 mt-1" />
+                              )}
+                              <div className="min-w-0 flex-1">
+                                <TruncatedTooltip content={prod.name} variant="default">
+                                  <div className="font-medium text-white truncate max-w-[250px]">
+                                    {prod.name}
+                                  </div>
+                                </TruncatedTooltip>
+                                {prod.handle && (
+                                  <div className="text-xs text-white/40 mt-1">Handle: {prod.handle}</div>
+                                )}
+                                {prod.hasVariants && prod.variants && (
+                                  <div className="text-xs text-purple-400 mt-1">
+                                    {prod.variants.length} variants
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          </td>
+                          <td className="p-4">
+                            <div className="text-sm text-white/60 font-mono">
+                              {prod.hasVariants ? (
+                                <span className="text-white/30">Multiple</span>
+                              ) : (
+                                prod.sku || 'N/A'
+                              )}
+                            </div>
+                          </td>
+                          <td className="p-4">
+                            {prod.category && (
+                              <span className="px-2 py-1 rounded-lg bg-purple-500/20 text-purple-300 text-xs">
+                                {prod.category}
+                              </span>
                             )}
-                          </div>
-                        </td>
-                        <td className="p-4 text-right">
-                          <div className="text-green-400 font-medium">
-                            ${((prod.price || 0) * (prod.stock || 0)).toLocaleString()}
-                          </div>
-                        </td>
-                        <td className="p-4">
-                          <span className={`px-2 py-1 rounded-lg text-xs ${
-                            prod.status === 'active' 
-                              ? 'bg-green-500/20 text-green-300'
-                              : prod.status === 'discontinued'
-                              ? 'bg-red-500/20 text-red-300'
-                              : 'bg-yellow-500/20 text-yellow-300'
-                          }`}>
-                            {prod.status || 'Active'}
-                          </span>
-                        </td>
-                        <td className="p-4">
-                          <div className="flex items-center justify-center gap-2">
-                            <button
-                              onClick={() => setEditingProduct(prod)}
-                              className="p-2 rounded-lg hover:bg-white/10 transition-colors"
-                            >
-                              <Settings size={16} className="text-white/70" />
-                            </button>
-                            <button
-                              onClick={() => handleDeleteProduct(prod.id)}
-                              className="p-2 rounded-lg hover:bg-red-500/20 transition-colors"
-                            >
-                              <Trash2 size={16} className="text-red-400" />
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
+                          </td>
+                          <td className="p-4 text-right">
+                            <div className="text-white font-medium">
+                              {prod.hasVariants ? (
+                                <span className="text-white/50">Various</span>
+                              ) : (
+                                `$${(prod.price || 0).toLocaleString()}`
+                              )}
+                            </div>
+                          </td>
+                          <td className="p-4 text-right">
+                            <div className="text-white/60">
+                              {prod.hasVariants ? (
+                                <span className="text-white/30">Various</span>
+                              ) : (
+                                `$${(prod.cost || 0).toLocaleString()}`
+                              )}
+                            </div>
+                          </td>
+                          <td className="p-4 text-right">
+                            <div className={`font-medium flex items-center justify-end gap-2 ${
+                              (prod.totalStock || prod.stock || 0) < 10 ? 'text-orange-400' : 'text-white'
+                            }`}>
+                              <span>{prod.totalStock || prod.stock || 0}</span>
+                              {(prod.totalStock || prod.stock || 0) < 10 && (prod.totalStock || prod.stock || 0) > 0 && (
+                                <AlertTriangle size={14} className="text-orange-400" />
+                              )}
+                              {(prod.totalStock || prod.stock || 0) === 0 && (
+                                <span className="text-red-400 text-xs">Out</span>
+                              )}
+                            </div>
+                          </td>
+                          <td className="p-4">
+                            <span className={`px-2 py-1 rounded-lg text-xs ${
+                              prod.status === 'active' 
+                                ? 'bg-green-500/20 text-green-300'
+                                : prod.status === 'draft'
+                                ? 'bg-yellow-500/20 text-yellow-300'
+                                : 'bg-red-500/20 text-red-300'
+                            }`}>
+                              {prod.status || 'Active'}
+                            </span>
+                          </td>
+                          <td className="p-4">
+                            <div className="flex items-center justify-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                              <button
+                                onClick={() => setEditingProduct(prod)}
+                                className="p-1.5 rounded hover:bg-white/10 transition-colors"
+                              >
+                                <Settings size={14} className="text-white/70" />
+                              </button>
+                              <button
+                                onClick={() => handleDeleteProduct(prod.id)}
+                                className="p-1.5 rounded hover:bg-red-500/20 transition-colors"
+                              >
+                                <Trash2 size={14} className="text-red-400" />
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+
+                        {/* Variant Rows (when expanded) */}
+                        {expandedProducts[prod.id] && prod.variants && prod.variants.map((variant, idx) => (
+                          <tr 
+                            key={variant.id} 
+                            className={`border-b border-white/5 bg-black/20 hover:bg-white/5 transition-colors ${
+                              idx === prod.variants.length - 1 ? 'border-b-2 border-white/10' : ''
+                            }`}
+                          >
+                            <td className="p-4"></td>
+                            <td className="p-4 pl-14">
+                              <div className="flex items-center gap-3">
+                                <div className="w-1.5 h-1.5 rounded-full bg-purple-400/60"></div>
+                                <div>
+                                  <div className="text-sm text-white/80">
+                                    {variant.name}
+                                  </div>
+                                </div>
+                              </div>
+                            </td>
+                            <td className="p-4">
+                              <div className="text-xs text-white/50 font-mono">
+                                {variant.sku || '-'}
+                              </div>
+                            </td>
+                            <td className="p-4">
+                              <span className="text-white/20 text-xs">Inherited</span>
+                            </td>
+                            <td className="p-4 text-right">
+                              <div className="text-white/80 text-sm">
+                                ${(variant.price || 0).toLocaleString()}
+                              </div>
+                            </td>
+                            <td className="p-4 text-right">
+                              <div className="text-white/60 text-sm">
+                                ${(variant.cost || 0).toLocaleString()}
+                              </div>
+                            </td>
+                            <td className="p-4 text-right">
+                              <div className={`text-sm font-medium ${
+                                variant.stock < 10 ? 'text-orange-400' : 'text-white/80'
+                              }`}>
+                                {variant.stock || 0}
+                                {variant.stock === 0 && (
+                                  <span className="ml-2 text-red-400 text-xs">Out</span>
+                                )}
+                              </div>
+                            </td>
+                            <td className="p-4">
+                              <span className="text-white/20 text-xs">-</span>
+                            </td>
+                            <td className="p-4">
+                              <div className="flex items-center justify-center">
+                                <button className="p-1 rounded hover:bg-white/10 opacity-50 hover:opacity-100 transition-all">
+                                  <Settings size={12} className="text-white/50" />
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        ))}
+                      </React.Fragment>
                     ))
                   )}
                 </tbody>
@@ -352,6 +579,14 @@ function Products() {
             </button>
             
             <button
+              onClick={() => setShowShopifyImportModal(true)}
+              className="w-full glass-button py-3 font-medium hover:scale-105 transition-transform flex items-center justify-center gap-2 bg-gradient-to-r from-purple-500/20 to-pink-500/20 border-purple-400/30"
+            >
+              <FileDown size={20} />
+              Import Shopify CSV
+            </button>
+            
+            <button
               onClick={() => {
                 const data = JSON.stringify(products, null, 2);
                 const blob = new Blob([data], { type: 'application/json' });
@@ -368,17 +603,34 @@ function Products() {
             </button>
             
             {products.length > 0 && (
-              <button
-                onClick={() => {
-                  if (window.confirm('Are you sure you want to delete ALL products? This action cannot be undone.')) {
-                    setProducts([]);
-                  }
-                }}
-                className="w-full py-3 font-medium transition-all flex items-center justify-center gap-2 rounded-2xl border bg-red-900/80 hover:bg-red-800 border-red-700/50 text-white hover:scale-105"
-              >
-                <Trash2 size={20} />
-                Delete All Products
-              </button>
+              <>
+                <button
+                  onClick={() => {
+                    if (window.confirm('Are you sure you want to delete ALL products? This action cannot be undone.')) {
+                      setProducts([]);
+                      localStorage.removeItem('hr_products_imported');
+                      localStorage.removeItem('hr_products');
+                    }
+                  }}
+                  className="w-full py-3 font-medium transition-all flex items-center justify-center gap-2 rounded-2xl border bg-red-900/80 hover:bg-red-800 border-red-700/50 text-white hover:scale-105"
+                >
+                  <Trash2 size={20} />
+                  Delete All Products
+                </button>
+                
+                {localStorage.getItem('hr_products_imported') && (
+                  <button
+                    onClick={() => {
+                      localStorage.removeItem('hr_products_imported');
+                      window.location.reload();
+                    }}
+                    className="w-full py-3 font-medium transition-all flex items-center justify-center gap-2 rounded-2xl border bg-yellow-900/50 hover:bg-yellow-800/50 border-yellow-700/30 text-yellow-400 hover:scale-105"
+                  >
+                    <Archive size={20} />
+                    Clear Imported Data
+                  </button>
+                )}
+              </>
             )}
           </div>
 
@@ -486,6 +738,69 @@ function Products() {
           }}
           onClose={() => setShowBulkImportModal(false)}
         />
+      )}
+
+      {/* Shopify Import Modal */}
+      {showShopifyImportModal && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="glass-card-large w-full max-w-2xl">
+            <div className="p-6 border-b border-white/20">
+              <h2 className="text-xl font-bold text-white">Import Shopify CSV</h2>
+              <p className="text-sm text-white/60 mt-2">Import products with variants from Shopify export</p>
+            </div>
+            
+            <div className="p-6">
+              <div className="border-2 border-dashed border-purple-400/30 rounded-xl p-8 text-center bg-gradient-to-br from-purple-500/5 to-pink-500/5">
+                <Upload size={48} className="mx-auto mb-4 text-purple-400" />
+                <p className="text-white/60 mb-4">
+                  Drag and drop your Shopify CSV file here, or click to browse
+                </p>
+                <input
+                  type="file"
+                  accept=".csv"
+                  onChange={(e) => {
+                    if (e.target.files[0]) {
+                      handleShopifyImport(e.target.files[0]);
+                      setShowShopifyImportModal(false);
+                    }
+                  }}
+                  className="hidden"
+                  id="shopify-csv-upload"
+                />
+                <label
+                  htmlFor="shopify-csv-upload"
+                  className="glass-button px-6 py-2 cursor-pointer inline-block bg-gradient-to-r from-purple-500/20 to-pink-500/20 border-purple-400/30"
+                >
+                  Choose CSV File
+                </label>
+              </div>
+              
+              <div className="mt-6 space-y-2 text-sm text-white/50">
+                <p className="flex items-center gap-2">
+                  <Layers size={14} className="text-purple-400" />
+                  Products with the same Handle will be grouped as variants
+                </p>
+                <p className="flex items-center gap-2">
+                  <Package size={14} className="text-purple-400" />
+                  Variant options (like "1 darab", "2 darab") will be imported
+                </p>
+                <p className="flex items-center gap-2">
+                  <DollarSign size={14} className="text-purple-400" />
+                  Price and cost per item will be preserved for each variant
+                </p>
+              </div>
+            </div>
+            
+            <div className="p-6 border-t border-white/20 flex justify-end gap-3">
+              <button
+                onClick={() => setShowShopifyImportModal(false)}
+                className="px-6 py-2 glass-button rounded-xl"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

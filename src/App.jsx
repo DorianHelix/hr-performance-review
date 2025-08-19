@@ -11,6 +11,7 @@ import {
 // Import components
 import CreativePerformance from "./components/CreativePerformance";
 import Products from "./components/Products";
+import ProductVariantsDemo from "./components/ProductVariantsDemo";
 import DatePicker from "./components/DatePicker";
 import DateRangePicker from "./components/DateRangePicker";
 import API from "./api";
