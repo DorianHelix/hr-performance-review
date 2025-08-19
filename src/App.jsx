@@ -4274,13 +4274,13 @@ export default function App() {
 
                 <div className="flex gap-2">
                   <button onClick={presetPrevMonth} className="glass-button px-4 py-2 text-sm">
-                    ◀ Month
+                    ◀
                   </button>
                   <button onClick={presetThisMonth} className="glass-button px-4 py-2 text-sm">
                     This Month
                   </button>
                   <button onClick={presetNextMonth} className="glass-button px-4 py-2 text-sm">
-                    Month ▶
+                    ▶
                   </button>
                 </div>
 

@@ -337,13 +337,13 @@ function CreativePerformance({
                 {presetPrevMonth && (
                   <div className="flex gap-2">
                     <button onClick={presetPrevMonth} className="glass-button px-3 py-2 text-sm">
-                      ◀ Month
+                      ◀
                     </button>
                     <button onClick={presetThisMonth} className="glass-button px-3 py-2 text-sm">
                       This Month
                     </button>
                     <button onClick={presetNextMonth} className="glass-button px-3 py-2 text-sm">
-                      Month ▶
+                      ▶
                     </button>
                   </div>
                 )}
@@ -399,12 +399,12 @@ function CreativePerformance({
               <table className="w-max" style={{ borderCollapse: "separate", borderSpacing: "8px" }}>
                 <thead>
                   <tr>
-                    <th className="sticky top-0 left-0 z-20 glass-card p-2 text-left rounded-xl" style={{ 
+                    <th id="product-header-column" className="sticky top-0 left-0 z-20 glass-card p-2 text-left rounded-xl" style={{ 
                       minWidth: '20rem', 
                       maxWidth: '20rem',
-                      backdropFilter: 'blur(40px)',
-                      WebkitBackdropFilter: 'blur(40px)',
-                      background: 'rgba(255, 255, 255, 0.15)',
+                      backdropFilter: 'blur(4px)',
+                      WebkitBackdropFilter: 'blur(4px)',
+                      background: 'rgba(0, 0, 0, 0.5)',
                       borderRight: '1px solid rgba(255, 255, 255, 0.2)'
                     }}>
                       <div className="flex items-center justify-between">
@@ -457,12 +457,12 @@ function CreativePerformance({
                       <React.Fragment key={emp.id}>
                         {/* Main employee row */}
                         <tr className="group hover:bg-white/5">
-                          <td className="sticky left-0 z-10 glass-card border-r border-white/10 border-b border-white/10 p-2" style={{ 
+                          <td className="product-row-column sticky left-0 z-10 glass-card border-r border-white/10 border-b border-white/10 p-2" style={{ 
                             minWidth: '20rem', 
                             maxWidth: '20rem',
-                            backdropFilter: 'blur(40px)',
-                            WebkitBackdropFilter: 'blur(40px)',
-                            background: 'rgba(255, 255, 255, 0.15)',
+                            backdropFilter: 'blur(4px)',
+                            WebkitBackdropFilter: 'blur(4px)',
+                            background: 'rgba(0, 0, 0, 0.5)',
                             borderRight: '1px solid rgba(255, 255, 255, 0.2)'
                           }}>
                             <div className="flex items-center justify-between">
@@ -802,12 +802,12 @@ function CreativePerformance({
                           
                           return (
                             <tr key={cat.key} className="bg-white/5">
-                              <td className={`sticky left-0 z-10 glass-card border-r border-white/10 border-b border-white/10 p-2 pl-12 border-l-4 ${cat.accent}`} style={{ 
+                              <td className={`product-category-column sticky left-0 z-10 glass-card border-r border-white/10 border-b border-white/10 p-2 pl-12 border-l-4 ${cat.accent}`} style={{ 
                                 minWidth: '20rem', 
                                 maxWidth: '20rem',
-                                backdropFilter: 'blur(40px)',
-                                WebkitBackdropFilter: 'blur(40px)',
-                                background: 'rgba(255, 255, 255, 0.15)',
+                                backdropFilter: 'blur(4px)',
+                                WebkitBackdropFilter: 'blur(4px)',
+                                background: 'rgba(0, 0, 0, 0.5)',
                                 borderRight: '1px solid rgba(255, 255, 255, 0.2)'
                               }}>
                                 <div className="flex items-center justify-between">
