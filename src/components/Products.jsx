@@ -3,7 +3,7 @@ import {
   Package, Plus, Trash2, Settings, Upload, PlusCircle,
   Search, Filter, Tag, DollarSign, Box, BarChart,
   TrendingUp, ShoppingCart, Archive, AlertTriangle,
-  ChevronDown, ChevronRight, Layers, FileDown
+  ChevronDown, ChevronRight, Layers, FileDown, Menu
 } from 'lucide-react';
 import API from '../api';
 import { TruncatedTooltip } from './LiquidTooltip';
@@ -425,6 +425,15 @@ function Products() {
             style={{ maxHeight: isHeaderExpanded ? '300px' : '70px' }}>
             <div className="flex items-center justify-between p-4">
               <div className="flex items-center gap-3">
+                {/* Sidebar Toggle */}
+                <button
+                  onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
+                  className="p-2 rounded-lg hover:bg-white/10 transition-colors"
+                  title={isSidebarCollapsed ? "Show sidebar" : "Hide sidebar"}
+                >
+                  <Menu size={20} className="text-white/60" />
+                </button>
+                
                 <div className="glass-card p-2 rounded-2xl bg-gradient-to-br from-purple-400/20 to-pink-600/20 border-purple-400/30">
                   <Package size={20} className="text-purple-300" />
                 </div>
@@ -441,6 +450,7 @@ function Products() {
               <button
                 onClick={() => setIsHeaderExpanded(!isHeaderExpanded)}
                 className="p-2 rounded-lg hover:bg-white/10 transition-colors"
+                title={isHeaderExpanded ? "Collapse header" : "Expand header"}
               >
                 <ChevronDown 
                   size={20} 
@@ -739,18 +749,7 @@ function Products() {
       </div>
 
       {/* Right Sidebar - Collapsible */}
-      <div className={`${isSidebarCollapsed ? 'w-20' : 'w-96'} flex-shrink-0 p-4 md:p-6 space-y-6 h-full overflow-y-auto transition-all duration-500 relative`}>
-        {/* Sidebar Toggle Button */}
-        <button
-          onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
-          className="absolute -left-3 top-1/2 -translate-y-1/2 z-10 w-6 h-12 bg-gradient-to-r from-purple-500/20 to-pink-500/20 border border-purple-400/30 rounded-l-lg flex items-center justify-center hover:from-purple-500/30 hover:to-pink-500/30 transition-all"
-        >
-          <ChevronRight 
-            size={16} 
-            className={`text-white/60 transform transition-transform ${isSidebarCollapsed ? '' : 'rotate-180'}`}
-          />
-        </button>
-        
+      <div className={`${isSidebarCollapsed ? 'w-0 p-0' : 'w-96 p-4 md:p-6'} flex-shrink-0 space-y-6 h-full overflow-y-auto transition-all duration-500 relative`}>
         {/* Sidebar Content - Hidden when collapsed */}
         <div className={`${isSidebarCollapsed ? 'hidden' : 'block'} space-y-6`}>
         {/* Data Source Toggle */}
