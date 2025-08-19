@@ -23,8 +23,10 @@ function Products() {
   const [showAddModal, setShowAddModal] = useState(false);
   const [showBulkImportModal, setShowBulkImportModal] = useState(false);
   const [showShopifyImportModal, setShowShopifyImportModal] = useState(false);
+  const [showStockImportModal, setShowStockImportModal] = useState(false);
   const [editingProduct, setEditingProduct] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
+  const [showStockDetails, setShowStockDetails] = useState(null);
   const [filterCategory, setFilterCategory] = useState('');
   const [sortBy, setSortBy] = useState('name'); // name, price, stock, created
 
@@ -66,6 +68,98 @@ function Products() {
       ...prev,
       [productId]: !prev[productId]
     }));
+  };
+
+  // Import Stock Levels CSV
+  const handleStockImport = (file) => {
+    Papa.parse(file, {
+      header: true,
+      complete: (results) => {
+        console.log('Parsing stock CSV...', results.data.length, 'rows');
+        
+        // Get location columns (all columns except Handle, Title, Option names/values, SKU, HS Code, COO)
+        const excludeColumns = ['Handle', 'Title', 'Option1 Name', 'Option1 Value', 'Option2 Name', 'Option2 Value', 'Option3 Name', 'Option3 Value', 'SKU', 'HS Code', 'COO', 'HS Code / AU', 'HS Code / HU'];
+        const locationColumns = Object.keys(results.data[0] || {}).filter(col => !excludeColumns.includes(col));
+        
+        console.log('Found locations:', locationColumns);
+        
+        // Update products with stock data
+        const updatedProducts = products.map(product => {
+          const updatedProduct = { ...product };
+          
+          if (product.hasVariants && product.variants) {
+            // Update variant stocks
+            updatedProduct.variants = product.variants.map(variant => {
+              // Find matching row by handle and variant name
+              const stockRow = results.data.find(row => 
+                row.Handle === product.handle && 
+                row['Option1 Value'] === variant.name
+              );
+              
+              if (stockRow) {
+                // Calculate total stock and store location details
+                let totalStock = 0;
+                const locationStock = {};
+                
+                locationColumns.forEach(location => {
+                  const qty = parseInt(stockRow[location]) || 0;
+                  if (qty > 0) {
+                    locationStock[location] = qty;
+                    totalStock += qty;
+                  }
+                });
+                
+                return {
+                  ...variant,
+                  stock: totalStock,
+                  locationStock: locationStock
+                };
+              }
+              
+              return variant;
+            });
+            
+            // Update product total stock
+            updatedProduct.totalStock = updatedProduct.variants.reduce((sum, v) => sum + (v.stock || 0), 0);
+          } else {
+            // Single product without variants
+            const stockRow = results.data.find(row => row.Handle === product.handle);
+            
+            if (stockRow) {
+              let totalStock = 0;
+              const locationStock = {};
+              
+              locationColumns.forEach(location => {
+                const qty = parseInt(stockRow[location]) || 0;
+                if (qty > 0) {
+                  locationStock[location] = qty;
+                  totalStock += qty;
+                }
+              });
+              
+              updatedProduct.stock = totalStock;
+              updatedProduct.totalStock = totalStock;
+              updatedProduct.locationStock = locationStock;
+            }
+          }
+          
+          return updatedProduct;
+        });
+        
+        console.log('Updated products with stock:', updatedProducts);
+        
+        // Update state
+        setProducts(updatedProducts);
+        localStorage.setItem('hr_products_imported', JSON.stringify(updatedProducts));
+        setShowStockImportModal(false);
+        
+        alert('Stock levels imported successfully!');
+      },
+      error: (error) => {
+        console.error('Stock CSV parse error:', error);
+        alert('Error parsing stock CSV file. Please check the format.');
+      }
+    });
   };
 
   // Import Shopify CSV
@@ -463,9 +557,12 @@ function Products() {
                             </div>
                           </td>
                           <td className="p-4 text-right">
-                            <div className={`font-medium flex items-center justify-end gap-2 ${
-                              (prod.totalStock || prod.stock || 0) < 10 ? 'text-orange-400' : 'text-white'
-                            }`}>
+                            <button
+                              onClick={() => setShowStockDetails(prod)}
+                              className={`font-medium flex items-center justify-end gap-2 hover:underline ${
+                                (prod.totalStock || prod.stock || 0) < 10 ? 'text-orange-400' : 'text-white'
+                              }`}
+                            >
                               <span>{prod.totalStock || prod.stock || 0}</span>
                               {(prod.totalStock || prod.stock || 0) < 10 && (prod.totalStock || prod.stock || 0) > 0 && (
                                 <AlertTriangle size={14} className="text-orange-400" />
@@ -473,7 +570,7 @@ function Products() {
                               {(prod.totalStock || prod.stock || 0) === 0 && (
                                 <span className="text-red-400 text-xs">Out</span>
                               )}
-                            </div>
+                            </button>
                           </td>
                           <td className="p-4">
                             <span className={`px-2 py-1 rounded-lg text-xs ${
@@ -542,14 +639,17 @@ function Products() {
                               </div>
                             </td>
                             <td className="p-4 text-right">
-                              <div className={`text-sm font-medium ${
-                                variant.stock < 10 ? 'text-orange-400' : 'text-white/80'
-                              }`}>
+                              <button
+                                onClick={() => setShowStockDetails(variant)}
+                                className={`text-sm font-medium hover:underline ${
+                                  variant.stock < 10 ? 'text-orange-400' : 'text-white/80'
+                                }`}
+                              >
                                 {variant.stock || 0}
                                 {variant.stock === 0 && (
                                   <span className="ml-2 text-red-400 text-xs">Out</span>
                                 )}
-                              </div>
+                              </button>
                             </td>
                             <td className="p-4">
                               <span className="text-white/20 text-xs">-</span>
@@ -605,6 +705,16 @@ function Products() {
               <FileDown size={20} />
               Import Shopify CSV
             </button>
+            
+            {products.length > 0 && (
+              <button
+                onClick={() => setShowStockImportModal(true)}
+                className="w-full glass-button py-3 font-medium hover:scale-105 transition-transform flex items-center justify-center gap-2 bg-gradient-to-r from-blue-500/20 to-cyan-500/20 border-blue-400/30"
+              >
+                <Package size={20} />
+                Import Stock Levels
+              </button>
+            )}
             
             <button
               onClick={() => {
@@ -758,6 +868,118 @@ function Products() {
           }}
           onClose={() => setShowBulkImportModal(false)}
         />
+      )}
+
+      {/* Stock Import Modal */}
+      {showStockImportModal && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="glass-card-large w-full max-w-2xl">
+            <div className="p-6 border-b border-white/20">
+              <h2 className="text-xl font-bold text-white">Import Stock Levels</h2>
+              <p className="text-sm text-white/60 mt-2">Import inventory levels from Shopify inventory export</p>
+            </div>
+            
+            <div className="p-6">
+              <div className="border-2 border-dashed border-blue-400/30 rounded-xl p-8 text-center bg-gradient-to-br from-blue-500/5 to-cyan-500/5">
+                <Package size={48} className="mx-auto mb-4 text-blue-400" />
+                <p className="text-white/60 mb-4">
+                  Drag and drop your inventory CSV file here, or click to browse
+                </p>
+                <input
+                  type="file"
+                  accept=".csv"
+                  onChange={(e) => {
+                    if (e.target.files[0]) {
+                      handleStockImport(e.target.files[0]);
+                    }
+                  }}
+                  className="hidden"
+                  id="stock-csv-upload"
+                />
+                <label
+                  htmlFor="stock-csv-upload"
+                  className="glass-button px-6 py-2 cursor-pointer inline-block bg-gradient-to-r from-blue-500/20 to-cyan-500/20 border-blue-400/30"
+                >
+                  Choose Inventory CSV
+                </label>
+              </div>
+              
+              <div className="mt-6 space-y-2 text-sm text-white/50">
+                <p className="flex items-center gap-2">
+                  <Box size={14} className="text-blue-400" />
+                  Stock levels will be matched by Handle and Option1 Value
+                </p>
+                <p className="flex items-center gap-2">
+                  <TrendingUp size={14} className="text-blue-400" />
+                  Location-specific stock will be aggregated
+                </p>
+                <p className="flex items-center gap-2">
+                  <BarChart size={14} className="text-blue-400" />
+                  Click on stock numbers to see location breakdown
+                </p>
+              </div>
+            </div>
+            
+            <div className="p-6 border-t border-white/20 flex justify-end gap-3">
+              <button
+                onClick={() => setShowStockImportModal(false)}
+                className="px-6 py-2 glass-button rounded-xl"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Stock Details Modal */}
+      {showStockDetails && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="glass-card-large w-full max-w-md">
+            <div className="p-6 border-b border-white/20">
+              <h2 className="text-xl font-bold text-white">Stock Details</h2>
+              <p className="text-sm text-white/60 mt-1">
+                {showStockDetails.name || showStockDetails.handle}
+              </p>
+            </div>
+            
+            <div className="p-6">
+              <div className="space-y-3">
+                <div className="flex justify-between items-center p-3 rounded-lg bg-white/5">
+                  <span className="text-white font-medium">Total Stock</span>
+                  <span className="text-xl font-bold text-blue-400">
+                    {showStockDetails.stock || showStockDetails.totalStock || 0}
+                  </span>
+                </div>
+                
+                {showStockDetails.locationStock && Object.keys(showStockDetails.locationStock).length > 0 ? (
+                  <div className="space-y-2">
+                    <div className="text-sm text-white/60 mb-2">Location Breakdown:</div>
+                    {Object.entries(showStockDetails.locationStock).map(([location, qty]) => (
+                      <div key={location} className="flex justify-between items-center p-2 rounded bg-white/5">
+                        <span className="text-white/80 text-sm">{location}</span>
+                        <span className="text-white font-medium">{qty}</span>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center text-white/50 py-4">
+                    No location data available. Import stock levels to see breakdown.
+                  </div>
+                )}
+              </div>
+            </div>
+            
+            <div className="p-6 border-t border-white/20 flex justify-end">
+              <button
+                onClick={() => setShowStockDetails(null)}
+                className="px-6 py-2 glass-button rounded-xl"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
       )}
 
       {/* Shopify Import Modal */}
