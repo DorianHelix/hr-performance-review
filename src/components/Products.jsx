@@ -29,18 +29,21 @@ function Products() {
   const [showStockDetails, setShowStockDetails] = useState(null);
   const [filterCategory, setFilterCategory] = useState('');
   const [sortBy, setSortBy] = useState('name'); // name, price, stock, created
+  const [showImportedProducts, setShowImportedProducts] = useState(false);
 
   // Load products from database
   useEffect(() => {
     const loadProducts = async () => {
-      // First check localStorage for imported products
+      // Check if we have imported products
       const imported = localStorage.getItem('hr_products_imported');
       if (imported) {
         setProducts(JSON.parse(imported));
+        setShowImportedProducts(true);
         setLoading(false);
         return;
       }
       
+      // Otherwise load from database/localStorage
       try {
         const data = await API.products.getAll();
         setProducts(data);
@@ -283,12 +286,15 @@ function Products() {
       console.log('✅ Product added to database');
       
       // Update local state
-      setProducts([...products, newProduct]);
-      localStorage.setItem('hr_products', JSON.stringify([...products, newProduct]));
+      const updated = [...products, newProduct];
+      setProducts(updated);
+      localStorage.setItem('hr_products', JSON.stringify(updated));
     } catch (error) {
       console.error('Error saving to database:', error);
       // Still update local state even if database fails
-      setProducts([...products, newProduct]);
+      const updated = [...products, newProduct];
+      setProducts(updated);
+      localStorage.setItem('hr_products', JSON.stringify(updated));
     }
     
     setShowAddModal(false);
@@ -309,7 +315,13 @@ function Products() {
       prod.id === id ? { ...prod, ...updates, updatedAt: new Date().toISOString() } : prod
     );
     setProducts(updated);
-    localStorage.setItem('hr_products', JSON.stringify(updated));
+    
+    // Save to appropriate storage
+    if (showImportedProducts) {
+      localStorage.setItem('hr_products_imported', JSON.stringify(updated));
+    } else {
+      localStorage.setItem('hr_products', JSON.stringify(updated));
+    }
     setEditingProduct(null);
   };
 
@@ -328,13 +340,20 @@ function Products() {
     // Update local state
     const updated = products.filter(prod => prod.id !== id);
     setProducts(updated);
-    localStorage.setItem('hr_products', JSON.stringify(updated));
+    
+    // Save to appropriate storage
+    if (showImportedProducts) {
+      localStorage.setItem('hr_products_imported', JSON.stringify(updated));
+    } else {
+      localStorage.setItem('hr_products', JSON.stringify(updated));
+    }
   };
 
   // Filter products
   const filteredProducts = products.filter(prod => {
     const matchesSearch = prod.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                          prod.sku?.toLowerCase().includes(searchTerm.toLowerCase());
+                          prod.sku?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                          prod.handle?.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesCategory = !filterCategory || prod.category === filterCategory;
     return matchesSearch && matchesCategory;
   });
@@ -347,18 +366,16 @@ function Products() {
       case 'price':
         return (b.price || 0) - (a.price || 0);
       case 'stock':
-        return (b.stock || 0) - (a.stock || 0);
+        return (b.totalStock || b.stock || 0) - (a.totalStock || a.stock || 0);
       case 'created':
-        return new Date(b.createdAt) - new Date(a.createdAt);
+        return new Date(b.createdAt || b.created_at || 0) - new Date(a.createdAt || a.created_at || 0);
       default:
         return 0;
     }
   });
-
+  
   // Get unique categories
   const categories = [...new Set(products.map(prod => prod.category))].filter(Boolean);
-
-  // Calculate stats
   const totalProducts = products.length;
   const totalVariants = products.reduce((sum, p) => sum + (p.variants?.length || 0), 0);
   const totalStock = products.reduce((sum, p) => {
@@ -410,6 +427,12 @@ function Products() {
                 <div className="glass-card p-4 rounded-xl">
                   <div className="text-2xl font-bold text-blue-400">{totalStock}</div>
                   <div className="text-xs text-white/60">Total Stock</div>
+                </div>
+                <div className="glass-card p-4 rounded-xl">
+                  <div className="text-2xl font-bold text-green-400">
+                    ${totalValue.toLocaleString()}
+                  </div>
+                  <div className="text-xs text-white/60">Inventory Value</div>
                 </div>
                 {lowStockCount > 0 && (
                   <div className="glass-card p-4 rounded-xl border-orange-500/30">
@@ -675,6 +698,68 @@ function Products() {
 
       {/* Right Sidebar - Fixed position */}
       <div className="w-96 flex-shrink-0 p-4 md:p-6 space-y-6 h-full overflow-y-auto">
+        {/* Data Source Toggle */}
+        <div className="glass-card-large p-4">
+          <div className="flex items-center justify-between">
+            <span className="text-sm font-medium text-white/70">Data Source</span>
+            <button
+              onClick={() => setShowImportedProducts(!showImportedProducts)}
+              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                showImportedProducts ? 'bg-purple-600' : 'bg-gray-600'
+              }`}
+            >
+              <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                showImportedProducts ? 'translate-x-6' : 'translate-x-1'
+              }`} />
+            </button>
+          </div>
+          <div className="mt-2 text-xs text-white/50">
+            {showImportedProducts ? 'Showing Shopify Imported' : 'Showing Manual Products'}
+          </div>
+        </div>
+
+        {/* Shopify Import Widget */}
+        <div className="glass-card-large p-6 bg-gradient-to-br from-purple-500/10 to-pink-500/10 border-purple-400/20">
+          <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+            <FileDown size={20} className="text-purple-400" />
+            Shopify Import
+          </h3>
+          
+          <div className="space-y-3">
+            <button
+              onClick={() => setShowShopifyImportModal(true)}
+              className="w-full glass-button py-3 font-medium hover:scale-105 transition-transform flex items-center justify-center gap-2 bg-gradient-to-r from-purple-500/20 to-pink-500/20 border-purple-400/30"
+            >
+              <Package size={18} />
+              Import Products CSV
+            </button>
+            
+            {products.length > 0 && (
+              <button
+                onClick={() => setShowStockImportModal(true)}
+                className="w-full glass-button py-3 font-medium hover:scale-105 transition-transform flex items-center justify-center gap-2 bg-gradient-to-r from-blue-500/20 to-cyan-500/20 border-blue-400/30"
+              >
+                <Box size={18} />
+                Import Stock Levels
+              </button>
+            )}
+            
+            {localStorage.getItem('hr_products_imported') && (
+              <button
+                onClick={() => {
+                  localStorage.removeItem('hr_products_imported');
+                  window.location.reload();
+                }}
+                className="w-full py-3 font-medium transition-all flex items-center justify-center gap-2 rounded-2xl border bg-yellow-900/50 hover:bg-yellow-800/50 border-yellow-700/30 text-yellow-400"
+              >
+                <Archive size={18} />
+                Clear Imported Data
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* Product Actions */}
         <div className="glass-card-large p-6">
           <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
             <PlusCircle size={20} className="text-purple-400" />
@@ -699,24 +784,6 @@ function Products() {
             </button>
             
             <button
-              onClick={() => setShowShopifyImportModal(true)}
-              className="w-full glass-button py-3 font-medium hover:scale-105 transition-transform flex items-center justify-center gap-2 bg-gradient-to-r from-purple-500/20 to-pink-500/20 border-purple-400/30"
-            >
-              <FileDown size={20} />
-              Import Shopify CSV
-            </button>
-            
-            {products.length > 0 && (
-              <button
-                onClick={() => setShowStockImportModal(true)}
-                className="w-full glass-button py-3 font-medium hover:scale-105 transition-transform flex items-center justify-center gap-2 bg-gradient-to-r from-blue-500/20 to-cyan-500/20 border-blue-400/30"
-              >
-                <Package size={20} />
-                Import Stock Levels
-              </button>
-            )}
-            
-            <button
               onClick={() => {
                 const data = JSON.stringify(products, null, 2);
                 const blob = new Blob([data], { type: 'application/json' });
@@ -733,34 +800,22 @@ function Products() {
             </button>
             
             {products.length > 0 && (
-              <>
-                <button
-                  onClick={() => {
-                    if (window.confirm('Are you sure you want to delete ALL products? This action cannot be undone.')) {
-                      setProducts([]);
+              <button
+                onClick={() => {
+                  if (window.confirm('Are you sure you want to delete ALL products? This action cannot be undone.')) {
+                    setProducts([]);
+                    if (showImportedProducts) {
                       localStorage.removeItem('hr_products_imported');
+                    } else {
                       localStorage.removeItem('hr_products');
                     }
-                  }}
-                  className="w-full py-3 font-medium transition-all flex items-center justify-center gap-2 rounded-2xl border bg-red-900/80 hover:bg-red-800 border-red-700/50 text-white hover:scale-105"
-                >
-                  <Trash2 size={20} />
-                  Delete All Products
-                </button>
-                
-                {localStorage.getItem('hr_products_imported') && (
-                  <button
-                    onClick={() => {
-                      localStorage.removeItem('hr_products_imported');
-                      window.location.reload();
-                    }}
-                    className="w-full py-3 font-medium transition-all flex items-center justify-center gap-2 rounded-2xl border bg-yellow-900/50 hover:bg-yellow-800/50 border-yellow-700/30 text-yellow-400 hover:scale-105"
-                  >
-                    <Archive size={20} />
-                    Clear Imported Data
-                  </button>
-                )}
-              </>
+                  }
+                }}
+                className="w-full py-3 font-medium transition-all flex items-center justify-center gap-2 rounded-2xl border bg-red-900/80 hover:bg-red-800 border-red-700/50 text-white hover:scale-105"
+              >
+                <Trash2 size={20} />
+                Delete All Products
+              </button>
             )}
           </div>
 
@@ -880,7 +935,27 @@ function Products() {
             </div>
             
             <div className="p-6">
-              <div className="border-2 border-dashed border-blue-400/30 rounded-xl p-8 text-center bg-gradient-to-br from-blue-500/5 to-cyan-500/5">
+              <div 
+                className="border-2 border-dashed border-blue-400/30 rounded-xl p-8 text-center bg-gradient-to-br from-blue-500/5 to-cyan-500/5 transition-all hover:border-blue-400/50 hover:bg-blue-500/10"
+                onDragOver={(e) => {
+                  e.preventDefault();
+                  e.currentTarget.classList.add('border-blue-400', 'bg-blue-500/20');
+                }}
+                onDragLeave={(e) => {
+                  e.preventDefault();
+                  e.currentTarget.classList.remove('border-blue-400', 'bg-blue-500/20');
+                }}
+                onDrop={(e) => {
+                  e.preventDefault();
+                  e.currentTarget.classList.remove('border-blue-400', 'bg-blue-500/20');
+                  const file = e.dataTransfer.files[0];
+                  if (file && file.type === 'text/csv') {
+                    handleStockImport(file);
+                  } else {
+                    alert('Please drop a CSV file');
+                  }
+                }}
+              >
                 <Package size={48} className="mx-auto mb-4 text-blue-400" />
                 <p className="text-white/60 mb-4">
                   Drag and drop your inventory CSV file here, or click to browse
@@ -898,7 +973,7 @@ function Products() {
                 />
                 <label
                   htmlFor="stock-csv-upload"
-                  className="glass-button px-6 py-2 cursor-pointer inline-block bg-gradient-to-r from-blue-500/20 to-cyan-500/20 border-blue-400/30"
+                  className="glass-button px-6 py-2 cursor-pointer inline-block bg-gradient-to-r from-blue-500/20 to-cyan-500/20 border-blue-400/30 hover:scale-105 transition-transform"
                 >
                   Choose Inventory CSV
                 </label>
@@ -992,7 +1067,28 @@ function Products() {
             </div>
             
             <div className="p-6">
-              <div className="border-2 border-dashed border-purple-400/30 rounded-xl p-8 text-center bg-gradient-to-br from-purple-500/5 to-pink-500/5">
+              <div 
+                className="border-2 border-dashed border-purple-400/30 rounded-xl p-8 text-center bg-gradient-to-br from-purple-500/5 to-pink-500/5 transition-all hover:border-purple-400/50 hover:bg-purple-500/10"
+                onDragOver={(e) => {
+                  e.preventDefault();
+                  e.currentTarget.classList.add('border-purple-400', 'bg-purple-500/20');
+                }}
+                onDragLeave={(e) => {
+                  e.preventDefault();
+                  e.currentTarget.classList.remove('border-purple-400', 'bg-purple-500/20');
+                }}
+                onDrop={(e) => {
+                  e.preventDefault();
+                  e.currentTarget.classList.remove('border-purple-400', 'bg-purple-500/20');
+                  const file = e.dataTransfer.files[0];
+                  if (file && file.type === 'text/csv') {
+                    handleShopifyImport(file);
+                    setShowShopifyImportModal(false);
+                  } else {
+                    alert('Please drop a CSV file');
+                  }
+                }}
+              >
                 <Upload size={48} className="mx-auto mb-4 text-purple-400" />
                 <p className="text-white/60 mb-4">
                   Drag and drop your Shopify CSV file here, or click to browse
@@ -1011,7 +1107,7 @@ function Products() {
                 />
                 <label
                   htmlFor="shopify-csv-upload"
-                  className="glass-button px-6 py-2 cursor-pointer inline-block bg-gradient-to-r from-purple-500/20 to-pink-500/20 border-purple-400/30"
+                  className="glass-button px-6 py-2 cursor-pointer inline-block bg-gradient-to-r from-purple-500/20 to-pink-500/20 border-purple-400/30 hover:scale-105 transition-transform"
                 >
                   Choose CSV File
                 </label>
