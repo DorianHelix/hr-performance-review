@@ -3856,13 +3856,19 @@ export default function App() {
   };
 
   const getCategoryScore = (employeeId, weekKey, categoryKey) => {
-    // First check database scores
+    // Only use database scores for products
+    if (employeeId.startsWith('prod-') || employeeId.startsWith('test-prod-')) {
+      const dbKey = `${employeeId}|${weekKey}|${categoryKey}`;
+      return dbScores[dbKey] || null;
+    }
+    
+    // For employees, check database first, then localStorage
     const dbKey = `${employeeId}|${weekKey}|${categoryKey}`;
     if (dbScores[dbKey] !== undefined) {
       return dbScores[dbKey];
     }
     
-    // Fallback to localStorage
+    // Fallback to localStorage for employees only
     const evaluations = lsRead(LS_EVALUATIONS, {});
     const evalKey = `${employeeId}|${weekKey}`;
     const scores = evaluations[evalKey];
@@ -3925,7 +3931,13 @@ export default function App() {
       await API.scores.deleteScore(employeeId, dateForDb, categoryKey);
       console.log('✅ Score deleted from database');
       
-      // Reload scores from database
+      // Immediately remove from cache
+      const dbKey = `${employeeId}|${weekKey}|${categoryKey}`;
+      const newScores = {...dbScores};
+      delete newScores[dbKey];
+      setDbScores(newScores);
+      
+      // Then reload all scores from database to ensure consistency
       await loadScoresFromDatabase();
     } catch (error) {
       console.error('Error deleting from database:', error);
