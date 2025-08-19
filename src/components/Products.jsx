@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import API from '../api';
 import { TruncatedTooltip } from './LiquidTooltip';
+import { useToast } from './Toast';
 import Papa from 'papaparse';
 
 // Helper functions
@@ -16,6 +17,7 @@ function uid() {
 
 // Products Component with Variant Support
 function Products() {
+  const { showSuccess, showError, showWarning, showInfo } = useToast();
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [expandedProducts, setExpandedProducts] = useState({});
@@ -165,11 +167,11 @@ function Products() {
         localStorage.setItem('hr_products_imported', JSON.stringify(updatedProducts));
         setShowStockImportModal(false);
         
-        alert('Stock levels imported successfully!');
+        showSuccess(`Stock levels imported successfully! Updated ${updatedProducts.filter(p => p.locationStock || (p.variants && p.variants.some(v => v.locationStock))).length} products.`);
       },
       error: (error) => {
         console.error('Stock CSV parse error:', error);
-        alert('Error parsing stock CSV file. Please check the format.');
+        showError('Error parsing stock CSV file. Please check the format.');
       }
     });
   };
@@ -267,14 +269,14 @@ function Products() {
         setShowImportedProducts(true);
         
         // Show success message
-        alert(`Successfully imported ${importedProducts.length} products with ${importedProducts.reduce((sum, p) => sum + (p.variants?.length || 0), 0)} variants!`);
+        showSuccess(`Successfully imported ${importedProducts.length} products with ${importedProducts.reduce((sum, p) => sum + (p.variants?.length || 0), 0)} variants!`);
         
         // Don't close modal yet - allow inventory import
         // setShowShopifyImportModal(false);
       },
       error: (error) => {
         console.error('CSV parse error:', error);
-        alert('Error parsing CSV file. Please check the format.');
+        showError('Error parsing CSV file. Please check the format.');
       }
     });
   };
@@ -1026,7 +1028,7 @@ function Products() {
                       handleShopifyImport(file);
                       // Don't close modal yet, allow inventory import
                     } else {
-                      alert('Please drop a CSV file');
+                      showWarning('Please drop a CSV file');
                     }
                   }}
                 >
@@ -1078,7 +1080,7 @@ function Products() {
                       handleStockImport(file);
                       setTimeout(() => setShowShopifyImportModal(false), 1000);
                     } else {
-                      alert('Please drop a CSV file');
+                      showWarning('Please drop a CSV file');
                     }
                   }}
                 >
@@ -1154,7 +1156,6 @@ function ProductModal({ product, onSave, onClose }) {
   const handleSubmit = (e) => {
     e.preventDefault();
     if (!formData.name) {
-      alert('Product name is required');
       return;
     }
     onSave(formData);

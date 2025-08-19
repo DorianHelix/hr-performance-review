@@ -14,6 +14,7 @@ import Products from "./components/Products";
 import ProductVariantsDemo from "./components/ProductVariantsDemo";
 import DatePicker from "./components/DatePicker";
 import DateRangePicker from "./components/DateRangePicker";
+import { ToastProvider } from "./components/Toast";
 import API from "./api";
 
 
@@ -4180,16 +4181,17 @@ export default function App() {
   );
 
   return (
-    <div className="h-full w-full flex relative overflow-hidden" style={{ color: 'var(--text-primary)' }}>
-      {/* Sidebar */}
-      <Sidebar 
-        isCollapsed={sidebarCollapsed}
-        onToggle={() => setSidebarCollapsed(!sidebarCollapsed)}
-        currentView={currentView}
-        onViewChange={setCurrentView}
-        isDarkMode={isDarkMode}
-        onThemeToggle={() => setIsDarkMode(!isDarkMode)}
-      />
+    <ToastProvider>
+      <div className="h-full w-full flex relative overflow-hidden" style={{ color: 'var(--text-primary)' }}>
+        {/* Sidebar */}
+        <Sidebar 
+          isCollapsed={sidebarCollapsed}
+          onToggle={() => setSidebarCollapsed(!sidebarCollapsed)}
+          currentView={currentView}
+          onViewChange={setCurrentView}
+          isDarkMode={isDarkMode}
+          onThemeToggle={() => setIsDarkMode(!isDarkMode)}
+        />
 
       {/* Main Content */}
       <div 
@@ -4707,5 +4709,6 @@ export default function App() {
       )}
       </div>
     </div>
+    </ToastProvider>
   );
 }
