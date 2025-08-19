@@ -96,6 +96,11 @@ function CreativePerformance({
   const [searchTerm, setSearchTerm] = useState('');
   const [chartModal, setChartModal] = useState(null);
   const [showTestTypesModal, setShowTestTypesModal] = useState(false);
+  const [showSettingsModal, setShowSettingsModal] = useState(false);
+  const [scoringDesign, setScoringDesign] = useState(() => {
+    const saved = localStorage.getItem('hr_creative_scoring_design');
+    return saved !== null ? saved : 'liquid'; // 'minimal' or 'liquid'
+  });
   const [showSidebar, setShowSidebar] = useState(() => {
     // Check localStorage first, then default based on screen size
     const saved = localStorage.getItem('hr_creative_sidebar_visible');
@@ -120,6 +125,11 @@ function CreativePerformance({
   useEffect(() => {
     localStorage.setItem('hr_creative_kpi_visible', JSON.stringify(showKPICards));
   }, [showKPICards]);
+  
+  // Save scoring design to localStorage when it changes
+  useEffect(() => {
+    localStorage.setItem('hr_creative_scoring_design', scoringDesign);
+  }, [scoringDesign]);
   
   // Filter products based on search
   const filteredEmployees = employees.filter(emp => {
@@ -370,23 +380,8 @@ function CreativePerformance({
                 </div>
               </div>
 
-              <div className="flex flex-wrap gap-3 items-center">
-                {setCellSize && (
-                  <div className="flex items-center gap-2">
-                    <label className="text-xs text-white/70">Cell size</label>
-                    <input 
-                      type="range" 
-                      min={80} 
-                      max={150} 
-                      step={10} 
-                      value={cellSize}
-                      onChange={e => setCellSize(Number(e.target.value))}
-                      className="w-20"
-                    />
-                    <span className="text-xs text-white/50 w-8">{cellSize}</span>
-                  </div>
-                )}
-
+              <div className="flex flex-wrap gap-2 items-center">
+                {/* Export Button */}
                 {exportData && (
                   <button
                     onClick={exportData}
@@ -395,6 +390,15 @@ function CreativePerformance({
                     <Download size={14} /> Export
                   </button>
                 )}
+                
+                {/* Settings Button */}
+                <button
+                  onClick={() => setShowSettingsModal(true)}
+                  className="glass-button inline-flex items-center gap-2 px-3 py-2 text-sm font-medium hover:scale-105"
+                  title="Table Settings"
+                >
+                  <Settings size={14} /> Settings
+                </button>
               </div>
             </div>
           </div>
@@ -407,7 +411,14 @@ function CreativePerformance({
               <table className="w-max" style={{ borderCollapse: "separate", borderSpacing: "8px" }}>
                 <thead>
                   <tr>
-                    <th className="sticky top-0 left-0 z-20 glass-card p-2 text-left rounded-xl" style={{ minWidth: '20rem', maxWidth: '20rem' }}>
+                    <th className="sticky top-0 left-0 z-20 glass-card p-2 text-left rounded-xl" style={{ 
+                      minWidth: '20rem', 
+                      maxWidth: '20rem',
+                      backdropFilter: 'blur(40px)',
+                      WebkitBackdropFilter: 'blur(40px)',
+                      background: 'rgba(255, 255, 255, 0.15)',
+                      borderRight: '1px solid rgba(255, 255, 255, 0.2)'
+                    }}>
                       <div className="flex items-center justify-between">
                         <span className="font-semibold text-white text-sm">Product</span>
                         <span className="text-xs text-white/60">Average</span>
@@ -458,7 +469,14 @@ function CreativePerformance({
                       <React.Fragment key={emp.id}>
                         {/* Main employee row */}
                         <tr className="group hover:bg-white/5">
-                          <td className="sticky left-0 z-10 glass-card border-r border-white/10 border-b border-white/10 p-2" style={{ minWidth: '20rem', maxWidth: '20rem' }}>
+                          <td className="sticky left-0 z-10 glass-card border-r border-white/10 border-b border-white/10 p-2" style={{ 
+                            minWidth: '20rem', 
+                            maxWidth: '20rem',
+                            backdropFilter: 'blur(40px)',
+                            WebkitBackdropFilter: 'blur(40px)',
+                            background: 'rgba(255, 255, 255, 0.15)',
+                            borderRight: '1px solid rgba(255, 255, 255, 0.2)'
+                          }}>
                             <div className="flex items-center justify-between">
                               <div className="flex items-center gap-2">
                                 {toggleExpand && (
@@ -541,32 +559,135 @@ function CreativePerformance({
                                 className="border-b border-white/10 hover:bg-white/5"
                                 style={{ minWidth: cellSize, width: cellSize }}
                               >
-                                <div className="flex flex-col items-center justify-center p-2 gap-0.5">
+                                <div className="flex flex-col items-center justify-center p-1 gap-1">
                                   {categoryScores.length > 0 ? (
-                                    <div className="glass-card p-1.5 rounded-lg w-full">
-                                      {categoryScores.map((item, idx) => {
-                                        // Get score-based colors
-                                        const getBarColor = () => {
+                                    scoringDesign === 'minimal' ? (
+                                      // Minimal Design (Original)
+                                      <div className="glass-card p-1.5 rounded-lg w-full">
+                                        {categoryScores.map((item, idx) => {
+                                          // Get score-based colors
+                                          const getBarColor = () => {
+                                            const score = item.score;
+                                            if (score >= 9) return 'bg-gradient-to-r from-green-400 to-green-500';
+                                            if (score >= 7) return 'bg-gradient-to-r from-green-300 to-green-400';
+                                            if (score >= 5) return 'bg-gradient-to-r from-yellow-300 to-yellow-400';
+                                            if (score >= 3) return 'bg-gradient-to-r from-orange-400 to-orange-500';
+                                            return 'bg-gradient-to-r from-red-400 to-red-500';
+                                          };
+                                          
+                                          // Get test type color for label
+                                          const getLabelColor = () => {
+                                            if (item.key === 'VCT') return 'text-purple-300';
+                                            if (item.key === 'SCT') return 'text-blue-300';
+                                            if (item.key === 'ACT') return 'text-green-300';
+                                            return 'text-gray-300';
+                                          };
+                                          
+                                          return (
+                                            <div 
+                                              key={item.key}
+                                              className={`group cursor-pointer hover:scale-[1.02] transition-all ${idx > 0 ? 'mt-1' : ''}`}
+                                              onClick={(e) => {
+                                                e.stopPropagation();
+                                                const category = categories.find(c => c.key === item.key);
+                                                if (category && setQuickScoreModal) {
+                                                  setQuickScoreModal({
+                                                    employee: emp,
+                                                    week: week,
+                                                    category: category,
+                                                    currentScore: item.score
+                                                  });
+                                                }
+                                              }}
+                                            >
+                                              <div className="flex items-center justify-between mb-0.5">
+                                                <span className={`text-[9px] font-bold ${getLabelColor()} tracking-wide`}>
+                                                  {item.label}
+                                                </span>
+                                                <span className="text-[10px] text-white font-bold">
+                                                  {item.score}
+                                                </span>
+                                              </div>
+                                              <div className="w-full bg-white/5 rounded-full h-1 overflow-hidden">
+                                                <div 
+                                                  className={`h-full ${getBarColor()} transition-all duration-500 rounded-full shadow-sm`}
+                                                  style={{ width: `${item.score * 10}%` }}
+                                                />
+                                              </div>
+                                            </div>
+                                          );
+                                        })}
+                                      </div>
+                                    ) : (
+                                      // Liquid Glass Design
+                                      <div className="w-full space-y-1">
+                                        {categoryScores.map((item, idx) => {
+                                        // Get score-based gradient colors and backgrounds
+                                        const getScoreStyle = () => {
                                           const score = item.score;
-                                          if (score >= 9) return 'bg-gradient-to-r from-green-400 to-green-500';
-                                          if (score >= 7) return 'bg-gradient-to-r from-green-300 to-green-400';
-                                          if (score >= 5) return 'bg-gradient-to-r from-yellow-300 to-yellow-400';
-                                          if (score >= 3) return 'bg-gradient-to-r from-orange-400 to-orange-500';
-                                          return 'bg-gradient-to-r from-red-400 to-red-500';
+                                          if (score >= 9) return {
+                                            background: 'linear-gradient(135deg, rgba(34, 197, 94, 0.25) 0%, rgba(21, 128, 61, 0.35) 100%)',
+                                            border: '1px solid rgba(34, 197, 94, 0.4)',
+                                            glow: 'drop-shadow(0 0 8px rgba(34, 197, 94, 0.3))',
+                                            textColor: 'text-green-200'
+                                          };
+                                          if (score >= 7) return {
+                                            background: 'linear-gradient(135deg, rgba(34, 197, 94, 0.2) 0%, rgba(22, 163, 74, 0.3) 100%)',
+                                            border: '1px solid rgba(34, 197, 94, 0.35)',
+                                            glow: 'drop-shadow(0 0 6px rgba(34, 197, 94, 0.25))',
+                                            textColor: 'text-green-300'
+                                          };
+                                          if (score >= 5) return {
+                                            background: 'linear-gradient(135deg, rgba(251, 191, 36, 0.2) 0%, rgba(245, 158, 11, 0.3) 100%)',
+                                            border: '1px solid rgba(251, 191, 36, 0.35)',
+                                            glow: 'drop-shadow(0 0 6px rgba(251, 191, 36, 0.25))',
+                                            textColor: 'text-yellow-200'
+                                          };
+                                          if (score >= 3) return {
+                                            background: 'linear-gradient(135deg, rgba(249, 115, 22, 0.2) 0%, rgba(234, 88, 12, 0.3) 100%)',
+                                            border: '1px solid rgba(249, 115, 22, 0.35)',
+                                            glow: 'drop-shadow(0 0 6px rgba(249, 115, 22, 0.25))',
+                                            textColor: 'text-orange-200'
+                                          };
+                                          return {
+                                            background: 'linear-gradient(135deg, rgba(239, 68, 68, 0.2) 0%, rgba(220, 38, 38, 0.3) 100%)',
+                                            border: '1px solid rgba(239, 68, 68, 0.35)',
+                                            glow: 'drop-shadow(0 0 6px rgba(239, 68, 68, 0.25))',
+                                            textColor: 'text-red-200'
+                                          };
                                         };
                                         
-                                        // Get test type color for label
-                                        const getLabelColor = () => {
-                                          if (item.key === 'VCT') return 'text-purple-300';
-                                          if (item.key === 'SCT') return 'text-blue-300';
-                                          if (item.key === 'ACT') return 'text-green-300';
-                                          return 'text-gray-300';
+                                        // Get test type specific styling
+                                        const getTestTypeStyle = () => {
+                                          if (item.key === 'VCT') return {
+                                            accent: 'rgba(147, 51, 234, 0.3)',
+                                            textColor: 'text-purple-200',
+                                            iconBg: 'bg-gradient-to-br from-purple-500/20 to-purple-600/30'
+                                          };
+                                          if (item.key === 'SCT') return {
+                                            accent: 'rgba(59, 130, 246, 0.3)',
+                                            textColor: 'text-blue-200',
+                                            iconBg: 'bg-gradient-to-br from-blue-500/20 to-blue-600/30'
+                                          };
+                                          if (item.key === 'ACT') return {
+                                            accent: 'rgba(34, 197, 94, 0.3)',
+                                            textColor: 'text-green-200',
+                                            iconBg: 'bg-gradient-to-br from-green-500/20 to-green-600/30'
+                                          };
+                                          return {
+                                            accent: 'rgba(156, 163, 175, 0.3)',
+                                            textColor: 'text-gray-200',
+                                            iconBg: 'bg-gradient-to-br from-gray-500/20 to-gray-600/30'
+                                          };
                                         };
+                                        
+                                        const scoreStyle = getScoreStyle();
+                                        const testStyle = getTestTypeStyle();
                                         
                                         return (
                                           <div 
                                             key={item.key}
-                                            className={`group cursor-pointer hover:scale-[1.02] transition-all ${idx > 0 ? 'mt-1' : ''}`}
+                                            className="group cursor-pointer transition-all duration-300 hover:scale-[1.03] active:scale-[0.98]"
                                             onClick={(e) => {
                                               e.stopPropagation();
                                               const category = categories.find(c => c.key === item.key);
@@ -579,27 +700,97 @@ function CreativePerformance({
                                                 });
                                               }
                                             }}
+                                            style={{ 
+                                              background: scoreStyle.background,
+                                              border: scoreStyle.border,
+                                              borderRadius: '12px',
+                                              backdropFilter: 'blur(12px)',
+                                              WebkitBackdropFilter: 'blur(12px)',
+                                              boxShadow: '0 4px 16px rgba(0, 0, 0, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.1)',
+                                              filter: scoreStyle.glow
+                                            }}
                                           >
-                                            <div className="flex items-center justify-between mb-0.5">
-                                              <span className={`text-[9px] font-bold ${getLabelColor()} tracking-wide`}>
-                                                {item.label}
-                                              </span>
-                                              <span className="text-[10px] text-white font-bold">
-                                                {item.score}
-                                              </span>
+                                            <div className="flex items-center justify-between p-2">
+                                              {/* Test Type Badge */}
+                                              <div className="flex items-center gap-1.5">
+                                                <div 
+                                                  className={`w-4 h-4 rounded-full ${testStyle.iconBg} flex items-center justify-center`}
+                                                  style={{
+                                                    boxShadow: `0 0 6px ${testStyle.accent}`
+                                                  }}
+                                                >
+                                                  <span className={`text-[8px] font-bold ${testStyle.textColor}`}>
+                                                    {item.key[0]}
+                                                  </span>
+                                                </div>
+                                                <span className={`text-[9px] font-bold ${testStyle.textColor} tracking-wide`}>
+                                                  {item.label}
+                                                </span>
+                                              </div>
+                                              
+                                              {/* Score Display */}
+                                              <div className="flex items-center gap-1">
+                                                <div 
+                                                  className={`px-2 py-0.5 rounded-full ${scoreStyle.textColor} font-bold text-[10px]`}
+                                                  style={{
+                                                    background: 'rgba(255, 255, 255, 0.15)',
+                                                    backdropFilter: 'blur(8px)',
+                                                    WebkitBackdropFilter: 'blur(8px)',
+                                                    border: '1px solid rgba(255, 255, 255, 0.2)',
+                                                    boxShadow: 'inset 0 1px 0 rgba(255, 255, 255, 0.2)'
+                                                  }}
+                                                >
+                                                  {item.score}
+                                                </div>
+                                              </div>
                                             </div>
-                                            <div className="w-full bg-white/5 rounded-full h-1 overflow-hidden">
+                                            
+                                            {/* Animated Progress Line */}
+                                            <div className="px-2 pb-2">
                                               <div 
-                                                className={`h-full ${getBarColor()} transition-all duration-500 rounded-full shadow-sm`}
-                                                style={{ width: `${item.score * 10}%` }}
-                                              />
+                                                className="w-full h-1 rounded-full overflow-hidden"
+                                                style={{
+                                                  background: 'rgba(255, 255, 255, 0.1)',
+                                                  backdropFilter: 'blur(4px)'
+                                                }}
+                                              >
+                                                <div 
+                                                  className="h-full rounded-full transition-all duration-1000 ease-out"
+                                                  style={{ 
+                                                    width: `${item.score * 10}%`,
+                                                    background: `linear-gradient(90deg, ${testStyle.accent}, rgba(255, 255, 255, 0.4))`,
+                                                    boxShadow: `0 0 4px ${testStyle.accent}`
+                                                  }}
+                                                />
+                                              </div>
                                             </div>
                                           </div>
                                         );
-                                      })}
-                                    </div>
+                                        })}
+                                      </div>
+                                    )
                                   ) : (
-                                    <div className="text-white/20 text-[10px]">-</div>
+                                    <div 
+                                      className="w-full h-12 flex items-center justify-center rounded-xl transition-all duration-300 hover:scale-105 cursor-pointer border border-dashed border-white/20 hover:border-white/30"
+                                      style={{
+                                        background: 'rgba(255, 255, 255, 0.03)',
+                                        backdropFilter: 'blur(8px)',
+                                        WebkitBackdropFilter: 'blur(8px)'
+                                      }}
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        if (setQuickScoreModal && categories.length > 0) {
+                                          setQuickScoreModal({
+                                            employee: emp,
+                                            week: week,
+                                            category: categories[0],
+                                            currentScore: null
+                                          });
+                                        }
+                                      }}
+                                    >
+                                      <span className="text-white/30 text-xs font-medium">+</span>
+                                    </div>
                                   )}
                                 </div>
                               </td>
@@ -623,7 +814,14 @@ function CreativePerformance({
                           
                           return (
                             <tr key={cat.key} className="bg-white/5">
-                              <td className={`sticky left-0 z-10 glass-card border-r border-white/10 border-b border-white/10 p-2 pl-12 border-l-4 ${cat.accent}`} style={{ minWidth: '20rem', maxWidth: '20rem' }}>
+                              <td className={`sticky left-0 z-10 glass-card border-r border-white/10 border-b border-white/10 p-2 pl-12 border-l-4 ${cat.accent}`} style={{ 
+                                minWidth: '20rem', 
+                                maxWidth: '20rem',
+                                backdropFilter: 'blur(40px)',
+                                WebkitBackdropFilter: 'blur(40px)',
+                                background: 'rgba(255, 255, 255, 0.15)',
+                                borderRight: '1px solid rgba(255, 255, 255, 0.2)'
+                              }}>
                                 <div className="flex items-center justify-between">
                                   <div className="flex items-center gap-2">
                                     <div className={`p-1 rounded ${cat.tag}`}>
@@ -815,6 +1013,17 @@ function CreativePerformance({
           getCategoryScore={getCategoryScore}
           onClose={() => setChartModal(null)}
           DateRangePicker={DateRangePicker}
+        />
+      )}
+      
+      {/* Settings Modal */}
+      {showSettingsModal && (
+        <SettingsModal 
+          scoringDesign={scoringDesign}
+          setScoringDesign={setScoringDesign}
+          cellSize={cellSize}
+          setCellSize={setCellSize}
+          onClose={() => setShowSettingsModal(false)}
         />
       )}
     </div>
@@ -1371,6 +1580,208 @@ function ScoreChartModal({ data, getCategoryScore, onClose, DateRangePicker }) {
               </div>
             )}
           </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Settings Modal Component
+function SettingsModal({ scoringDesign, setScoringDesign, cellSize, setCellSize, onClose }) {
+  return (
+    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={onClose}>
+      <div className="glass-card-large w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col" onClick={e => e.stopPropagation()}>
+        <div className="p-6 border-b border-white/20">
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-xl font-bold text-white flex items-center gap-2">
+                <Settings size={20} className="text-blue-400" />
+                Table Settings
+              </h2>
+              <p className="text-sm text-white/60 mt-1">Customize table appearance and behavior</p>
+            </div>
+            <button onClick={onClose} className="glass-button p-2 rounded-lg hover:scale-110">
+              <X size={18} className="text-white/80" />
+            </button>
+          </div>
+        </div>
+        
+        <div className="p-6 space-y-6 overflow-y-auto">
+          {/* Scoring Design Section */}
+          <div className="space-y-4">
+            <h3 className="text-lg font-semibold text-white flex items-center gap-2">
+              <Sparkles size={18} className="text-purple-400" />
+              Scoring Display Style
+            </h3>
+            <p className="text-sm text-white/60">Choose how scoring information is displayed in the table cells</p>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* Minimal Design Option */}
+              <div 
+                className={`glass-card p-4 rounded-xl cursor-pointer transition-all duration-300 hover:scale-[1.02] ${
+                  scoringDesign === 'minimal' 
+                    ? 'ring-2 ring-blue-400 bg-blue-500/10' 
+                    : 'hover:bg-white/5'
+                }`}
+                onClick={() => setScoringDesign('minimal')}
+              >
+                <div className="flex items-center gap-3 mb-3">
+                  <div className={`w-4 h-4 rounded-full border-2 ${
+                    scoringDesign === 'minimal' 
+                      ? 'border-blue-400 bg-blue-400' 
+                      : 'border-white/30'
+                  }`}>
+                    {scoringDesign === 'minimal' && (
+                      <div className="w-full h-full rounded-full bg-white"></div>
+                    )}
+                  </div>
+                  <h4 className="font-semibold text-white">Minimal</h4>
+                </div>
+                
+                {/* Preview */}
+                <div className="glass-card p-2 rounded-lg mb-3">
+                  <div className="space-y-1">
+                    <div className="flex items-center justify-between mb-0.5">
+                      <span className="text-[9px] font-bold text-purple-300 tracking-wide">VCT</span>
+                      <span className="text-[10px] text-white font-bold">8</span>
+                    </div>
+                    <div className="w-full bg-white/5 rounded-full h-1">
+                      <div className="h-full bg-gradient-to-r from-green-300 to-green-400 rounded-full" style={{width: '80%'}}></div>
+                    </div>
+                  </div>
+                </div>
+                
+                <p className="text-xs text-white/60">Clean and simple progress bars with category labels</p>
+              </div>
+              
+              {/* Liquid Glass Design Option */}
+              <div 
+                className={`glass-card p-4 rounded-xl cursor-pointer transition-all duration-300 hover:scale-[1.02] ${
+                  scoringDesign === 'liquid' 
+                    ? 'ring-2 ring-purple-400 bg-purple-500/10' 
+                    : 'hover:bg-white/5'
+                }`}
+                onClick={() => setScoringDesign('liquid')}
+              >
+                <div className="flex items-center gap-3 mb-3">
+                  <div className={`w-4 h-4 rounded-full border-2 ${
+                    scoringDesign === 'liquid' 
+                      ? 'border-purple-400 bg-purple-400' 
+                      : 'border-white/30'
+                  }`}>
+                    {scoringDesign === 'liquid' && (
+                      <div className="w-full h-full rounded-full bg-white"></div>
+                    )}
+                  </div>
+                  <h4 className="font-semibold text-white">Liquid Glass</h4>
+                </div>
+                
+                {/* Preview */}
+                <div 
+                  className="p-2 rounded-lg mb-3 border"
+                  style={{
+                    background: 'linear-gradient(135deg, rgba(34, 197, 94, 0.2) 0%, rgba(22, 163, 74, 0.3) 100%)',
+                    border: '1px solid rgba(34, 197, 94, 0.35)',
+                    backdropFilter: 'blur(8px)'
+                  }}
+                >
+                  <div className="flex items-center justify-between mb-1">
+                    <div className="flex items-center gap-1">
+                      <div className="w-3 h-3 rounded-full bg-gradient-to-br from-purple-500/20 to-purple-600/30 flex items-center justify-center">
+                        <span className="text-[7px] font-bold text-purple-200">V</span>
+                      </div>
+                      <span className="text-[8px] font-bold text-purple-200">VCT</span>
+                    </div>
+                    <div className="px-1.5 py-0.5 rounded-full bg-white/15 text-green-200 font-bold text-[8px]">8</div>
+                  </div>
+                  <div className="w-full h-0.5 rounded-full bg-white/10">
+                    <div className="h-full rounded-full bg-gradient-to-r from-purple-300/50 to-white/30" style={{width: '80%'}}></div>
+                  </div>
+                </div>
+                
+                <p className="text-xs text-white/60">Glass morphism cards with blur effects and glowing elements</p>
+              </div>
+            </div>
+          </div>
+          
+          {/* Cell Size Section */}
+          <div className="space-y-4">
+            <h3 className="text-lg font-semibold text-white flex items-center gap-2">
+              <BarChart3 size={18} className="text-green-400" />
+              Table Cell Size
+            </h3>
+            <p className="text-sm text-white/60">Adjust the width of date columns in the scoring table</p>
+            
+            <div className="glass-card p-4 rounded-xl">
+              <div className="flex items-center gap-4">
+                <label className="text-sm text-white/70 min-w-[60px]">Size:</label>
+                <div className="flex-1">
+                  <input 
+                    type="range" 
+                    min={80} 
+                    max={150} 
+                    step={10} 
+                    value={cellSize}
+                    onChange={e => setCellSize(Number(e.target.value))}
+                    className="w-full"
+                  />
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-white/80 font-mono w-12">{cellSize}px</span>
+                  <button 
+                    onClick={() => setCellSize(100)}
+                    className="glass-button px-2 py-1 text-xs hover:scale-105"
+                  >
+                    Reset
+                  </button>
+                </div>
+              </div>
+              
+              <div className="mt-3 flex items-center gap-2 text-xs text-white/50">
+                <span>Narrow (80px)</span>
+                <div className="flex-1 h-px bg-white/10"></div>
+                <span>Wide (150px)</span>
+              </div>
+            </div>
+          </div>
+          
+          {/* Quick Actions */}
+          <div className="space-y-4">
+            <h3 className="text-lg font-semibold text-white flex items-center gap-2">
+              <Zap size={18} className="text-yellow-400" />
+              Quick Actions
+            </h3>
+            
+            <div className="grid grid-cols-2 gap-3">
+              <button 
+                onClick={() => {
+                  setScoringDesign('minimal');
+                  setCellSize(100);
+                }}
+                className="glass-button flex items-center gap-2 px-3 py-2 text-sm hover:scale-105"
+              >
+                <RefreshCw size={14} />
+                Reset to Defaults
+              </button>
+              
+              <button 
+                onClick={() => setScoringDesign('liquid')}
+                className="glass-button flex items-center gap-2 px-3 py-2 text-sm hover:scale-105 bg-gradient-to-r from-purple-500/20 to-pink-500/20"
+              >
+                <Sparkles size={14} />
+                Enable Liquid Mode
+              </button>
+            </div>
+          </div>
+        </div>
+        
+        <div className="p-6 border-t border-white/20 flex justify-end gap-3">
+          <button
+            onClick={onClose}
+            className="px-6 py-2 rounded-xl bg-gradient-to-r from-blue-500 to-purple-500 text-white font-medium hover:scale-105 transition-transform"
+          >
+            Done
+          </button>
         </div>
       </div>
     </div>
