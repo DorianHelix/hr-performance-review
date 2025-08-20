@@ -5,8 +5,7 @@ import {
   Download, Plus, ChevronRight, Settings,
   Trash2, X, Clock, FileText, Briefcase,
   RefreshCw, MessageSquare, Users, Menu, Eye, EyeOff,
-  PanelRightClose, PanelRightOpen, BarChart3, BarChartHorizontal,
-  LineChart
+  BarChart3, LineChart
 } from 'lucide-react';
 
 
@@ -39,6 +38,7 @@ import ScoreChartModal from './CreativePerformance/ScoreChartModal';
 import TestTypesModal from './CreativePerformance/TestTypesModal';
 import SettingsModal from './CreativePerformance/SettingsModal';
 import { getIcon } from './CreativePerformance/utils';
+import SectionHeader from './SectionHeader';
 
 // Helper functions (copied from main App)
 function scoreToTier(score) {
@@ -224,58 +224,24 @@ function CreativePerformance({
   
   return (
     <div className="flex flex-col h-full w-full overflow-hidden" style={{ maxWidth: '100vw' }}>
-      <header className="glass-card-large px-4 py-3 mx-3 lg:mx-6 mb-2 lg:mb-3">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="glass-card p-1.5 rounded-xl bg-gradient-to-br from-purple-400/20 to-pink-600/20 border-purple-400/30">
-              <Sparkles size={18} className="text-purple-300" />
-            </div>
-            <div>
-              <h1 className="text-lg lg:text-xl font-bold text-white">
-                Creative Product Scoring Matrix
-              </h1>
-              <p className="text-white/50 text-xs hidden lg:block">
-                Enhanced product evaluation with creative metrics
-              </p>
-            </div>
-          </div>
-
-          {/* View Mode Toggle - Analytics vs Configuration */}
-          <div className="flex items-center gap-2">
-            <div className="glass-card p-1 rounded-xl flex items-center gap-1">
-              <button
-                onClick={() => setCreativeMode('analytics')}
-                className={`px-2.5 py-1 rounded-lg text-xs ${creativeMode === 'analytics' ? 'bg-pink-500 text-white' : 'text-white/60'}`}
-              >
-                Analytics
-              </button>
-              <button
-                onClick={() => setCreativeMode('configuration')}
-                className={`px-2.5 py-1 rounded-lg text-xs ${creativeMode === 'configuration' ? 'bg-purple-500 text-white' : 'text-white/60'}`}
-              >
-                Configuration
-              </button>
-            </div>
-            
-            {/* Toggle buttons */}
-            <div className="flex items-center gap-1">
-              <button 
-                onClick={() => setShowKPICards(!showKPICards)}
-                className="glass-card p-1.5 rounded-xl hover:bg-white/10 transition-all"
-              >
-                {showKPICards ? <BarChartHorizontal size={16} className="rotate-180" /> : <BarChartHorizontal size={16} />}
-              </button>
-              
-              <button 
-                onClick={() => setShowSidebar(!showSidebar)}
-                className="glass-card p-1.5 rounded-xl hover:bg-white/10 transition-all"
-              >
-                {showSidebar ? <PanelRightClose size={16} /> : <PanelRightOpen size={16} />}
-              </button>
-            </div>
-          </div>
-        </div>
-      </header>
+      <SectionHeader 
+        icon={Sparkles}
+        iconColorClass="from-purple-400/20 to-pink-600/20"
+        iconBorderClass="border-purple-400/30"
+        iconColor="text-purple-300"
+        title="Creative Product Scoring Matrix"
+        subtitle="Enhanced product evaluation with creative metrics"
+        mode={creativeMode}
+        onModeChange={setCreativeMode}
+        modes={[
+          { value: 'analytics', label: 'Analytics', color: 'pink' },
+          { value: 'configuration', label: 'Configuration', color: 'purple' }
+        ]}
+        showKPICards={showKPICards}
+        onToggleKPICards={() => setShowKPICards(prev => !prev)}
+        showSidebar={showSidebar}
+        onToggleSidebar={() => setShowSidebar(prev => !prev)}
+      />
 
       {/* Test Metrics Cards - Only show in analytics mode and when enabled */}
       {creativeMode === 'analytics' && showCreativeMetrics && showKPICards && (
