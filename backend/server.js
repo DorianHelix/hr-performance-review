@@ -3,6 +3,7 @@ const sqlite3 = require('sqlite3').verbose();
 const cors = require('cors');
 const bodyParser = require('body-parser');
 const path = require('path');
+const fetch = require('node-fetch');
 
 const app = express();
 const PORT = 3001;
@@ -509,6 +510,193 @@ app.get('/api/test-categories', (req, res) => {
     }
   ];
   res.json(testCategories);
+});
+
+// === SHOPIFY API ROUTES ===
+
+// Test Shopify connection
+app.post('/api/shopify/test', async (req, res) => {
+  const { storeDomain, accessToken } = req.body;
+  
+  if (!storeDomain || !accessToken) {
+    return res.status(400).json({ error: 'Store domain and access token are required' });
+  }
+  
+  try {
+    const shopifyUrl = `https://${storeDomain}.myshopify.com/admin/api/2024-01/shop.json`;
+    const response = await fetch(shopifyUrl, {
+      headers: {
+        'X-Shopify-Access-Token': accessToken,
+        'Content-Type': 'application/json'
+      }
+    });
+    
+    if (!response.ok) {
+      const error = await response.text();
+      return res.status(response.status).json({ 
+        error: 'Failed to connect to Shopify', 
+        details: error,
+        status: response.status 
+      });
+    }
+    
+    const data = await response.json();
+    res.json({ 
+      success: true, 
+      shop: {
+        name: data.shop.name,
+        domain: data.shop.domain,
+        email: data.shop.email,
+        currency: data.shop.currency,
+        timezone: data.shop.timezone
+      }
+    });
+  } catch (error) {
+    console.error('Shopify connection test error:', error);
+    res.status(500).json({ error: 'Failed to connect to Shopify', details: error.message });
+  }
+});
+
+// Fetch products from Shopify
+app.post('/api/shopify/products', async (req, res) => {
+  const { storeDomain, accessToken, limit = 250, since_id = null } = req.body;
+  
+  if (!storeDomain || !accessToken) {
+    return res.status(400).json({ error: 'Store domain and access token are required' });
+  }
+  
+  try {
+    // Include fields that contain category information
+    let url = `https://${storeDomain}.myshopify.com/admin/api/2024-01/products.json?limit=${limit}&fields=id,title,body_html,vendor,product_type,handle,tags,status,created_at,updated_at,images,variants,product_category,metafields`;
+    if (since_id) {
+      url += `&since_id=${since_id}`;
+    }
+    
+    const response = await fetch(url, {
+      headers: {
+        'X-Shopify-Access-Token': accessToken,
+        'Content-Type': 'application/json'
+      }
+    });
+    
+    if (!response.ok) {
+      const error = await response.text();
+      return res.status(response.status).json({ 
+        error: 'Failed to fetch products from Shopify', 
+        details: error,
+        status: response.status 
+      });
+    }
+    
+    const data = await response.json();
+    const products = data.products;
+    
+    // Fetch inventory item costs for all variants
+    // Collect all inventory item IDs
+    const inventoryItemIds = [];
+    products.forEach(product => {
+      if (product.variants) {
+        product.variants.forEach(variant => {
+          if (variant.inventory_item_id) {
+            inventoryItemIds.push(variant.inventory_item_id);
+          }
+        });
+      }
+    });
+    
+    // Fetch inventory items in batches (Shopify allows up to 100 at a time)
+    const inventoryCosts = {};
+    for (let i = 0; i < inventoryItemIds.length; i += 100) {
+      const batch = inventoryItemIds.slice(i, i + 100);
+      const inventoryUrl = `https://${storeDomain}.myshopify.com/admin/api/2024-01/inventory_items.json?ids=${batch.join(',')}`;
+      
+      try {
+        const invResponse = await fetch(inventoryUrl, {
+          headers: {
+            'X-Shopify-Access-Token': accessToken,
+            'Content-Type': 'application/json'
+          }
+        });
+        
+        if (invResponse.ok) {
+          const invData = await invResponse.json();
+          invData.inventory_items.forEach(item => {
+            inventoryCosts[item.id] = item.cost || 0;
+          });
+        }
+      } catch (invError) {
+        console.error('Error fetching inventory costs:', invError);
+        // Continue without costs if this fails
+      }
+    }
+    
+    // Add costs to variants
+    products.forEach(product => {
+      if (product.variants) {
+        product.variants.forEach(variant => {
+          if (variant.inventory_item_id && inventoryCosts[variant.inventory_item_id]) {
+            variant.cost = inventoryCosts[variant.inventory_item_id];
+          }
+        });
+      }
+    });
+    
+    res.json({ 
+      success: true, 
+      products: products,
+      count: products.length
+    });
+  } catch (error) {
+    console.error('Shopify products fetch error:', error);
+    res.status(500).json({ error: 'Failed to fetch products', details: error.message });
+  }
+});
+
+// Fetch inventory levels from Shopify
+app.post('/api/shopify/inventory', async (req, res) => {
+  const { storeDomain, accessToken, location_ids = [], inventory_item_ids = [] } = req.body;
+  
+  if (!storeDomain || !accessToken) {
+    return res.status(400).json({ error: 'Store domain and access token are required' });
+  }
+  
+  try {
+    let url = `https://${storeDomain}.myshopify.com/admin/api/2024-01/inventory_levels.json?limit=250`;
+    
+    if (location_ids.length > 0) {
+      url += `&location_ids=${location_ids.join(',')}`;
+    }
+    
+    if (inventory_item_ids.length > 0) {
+      url += `&inventory_item_ids=${inventory_item_ids.join(',')}`;
+    }
+    
+    const response = await fetch(url, {
+      headers: {
+        'X-Shopify-Access-Token': accessToken,
+        'Content-Type': 'application/json'
+      }
+    });
+    
+    if (!response.ok) {
+      const error = await response.text();
+      return res.status(response.status).json({ 
+        error: 'Failed to fetch inventory from Shopify', 
+        details: error,
+        status: response.status 
+      });
+    }
+    
+    const data = await response.json();
+    res.json({ 
+      success: true, 
+      inventory_levels: data.inventory_levels,
+      count: data.inventory_levels.length
+    });
+  } catch (error) {
+    console.error('Shopify inventory fetch error:', error);
+    res.status(500).json({ error: 'Failed to fetch inventory', details: error.message });
+  }
 });
 
 // Health check

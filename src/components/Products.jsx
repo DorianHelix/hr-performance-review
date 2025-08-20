@@ -11,6 +11,7 @@ import { TruncatedTooltip } from './LiquidTooltip';
 import { useToast } from './Toast';
 import Papa from 'papaparse';
 import emailService from '../services/emailService';
+import shopifyService from '../services/shopifyService';
 
 // Helper functions
 function uid() { 
@@ -37,9 +38,15 @@ function Products() {
   const [filterStatus, setFilterStatus] = useState('');
   const [filterType, setFilterType] = useState('');
   const [sortBy, setSortBy] = useState('name'); // name, price, stock, created
+  const [dataSource, setDataSource] = useState(() => {
+    // Check data source: 'manual', 'imported', or 'shopify'
+    if (localStorage.getItem('shopify_products_active')) return 'shopify';
+    if (localStorage.getItem('hr_products_imported')) return 'imported';
+    return 'manual';
+  });
   const [showImportedProducts, setShowImportedProducts] = useState(() => {
-    // Check if we have imported products
-    return !!localStorage.getItem('hr_products_imported');
+    // Legacy support
+    return dataSource === 'imported';
   });
   
   // Confirmation modal state
@@ -58,19 +65,47 @@ function Products() {
   const [emailRecipient, setEmailRecipient] = useState('manager@company.com');
   const [sendingEmail, setSendingEmail] = useState(false);
   const [sentEmails, setSentEmails] = useState([]);
+  
+  // Shopify API state
+  const [showShopifySetupModal, setShowShopifySetupModal] = useState(false);
+  const [shopifyCredentials, setShopifyCredentials] = useState({
+    storeDomain: '',
+    accessToken: ''
+  });
+  const [syncingShopify, setSyncingShopify] = useState(false);
+  const [lastShopifySync, setLastShopifySync] = useState(null);
 
   // Load products from database
   useEffect(() => {
     const loadProducts = async () => {
-      // Check if we have imported products and should show them
-      const imported = localStorage.getItem('hr_products_imported');
-      if (imported && showImportedProducts) {
-        console.log('Loading imported products from localStorage');
-        const importedData = JSON.parse(imported);
-        console.log('Imported products:', importedData.length, 'items');
-        setProducts(importedData);
-        setLoading(false);
+      // Check data source
+      if (dataSource === 'shopify') {
+        // Load from Shopify API cache
+        const cached = shopifyService.getCachedProducts();
+        if (cached) {
+          console.log('Loading Shopify products from cache');
+          setProducts(cached.products);
+          setLastShopifySync(cached.fetchedAt);
+          setLoading(false);
+        } else if (shopifyService.hasCredentials()) {
+          // If no cache but has credentials, trigger sync
+          await syncShopifyProducts();
+        } else {
+          setProducts([]);
+          setLoading(false);
+        }
         return;
+      } else if (dataSource === 'imported') {
+        // Check if we have imported products and should show them
+        const imported = localStorage.getItem('hr_products_imported');
+        if (imported) {
+          console.log('Loading imported products from localStorage');
+          const importedData = JSON.parse(imported);
+          console.log('Imported products:', importedData.length, 'items');
+          setProducts(importedData);
+          setLoading(false);
+          return;
+        }
       }
       
       // Otherwise load manual products from database/localStorage
@@ -93,12 +128,12 @@ function Products() {
     };
     
     loadProducts();
-    // Don't refresh if we're showing imported products
-    if (!showImportedProducts) {
+    // Don't refresh if we're showing imported products or Shopify products
+    if (dataSource === 'manual') {
       const interval = setInterval(loadProducts, 5000);
       return () => clearInterval(interval);
     }
-  }, [showImportedProducts]);
+  }, [dataSource]);
 
   // Toggle product expansion for variants
   const toggleExpand = (productId) => {
@@ -106,6 +141,69 @@ function Products() {
       ...prev,
       [productId]: !prev[productId]
     }));
+  };
+  
+  // Sync products from Shopify API
+  const syncShopifyProducts = async () => {
+    setSyncingShopify(true);
+    try {
+      const shopifyProducts = await shopifyService.fetchProducts();
+      setProducts(shopifyProducts);
+      localStorage.setItem('shopify_products_active', 'true');
+      setLastShopifySync(new Date().toISOString());
+      showSuccess(`Synced ${shopifyProducts.length} products from Shopify`);
+    } catch (error) {
+      console.error('Error syncing Shopify products:', error);
+      showError('Failed to sync products from Shopify. Check your credentials.');
+    } finally {
+      setSyncingShopify(false);
+    }
+  };
+  
+  // Save Shopify credentials and test connection
+  const saveShopifyCredentials = async () => {
+    if (!shopifyCredentials.storeDomain || !shopifyCredentials.accessToken) {
+      showError('Please enter both store domain and access token');
+      return;
+    }
+    
+    try {
+      // Save credentials
+      shopifyService.saveCredentials(shopifyCredentials.storeDomain, shopifyCredentials.accessToken);
+      
+      // Test connection
+      const testResult = await shopifyService.testConnection();
+      if (testResult.success) {
+        showSuccess(`Connected to ${testResult.shop.name}!`);
+        setShowShopifySetupModal(false);
+        
+        // Automatically sync products
+        await syncShopifyProducts();
+        setDataSource('shopify');
+      }
+    } catch (error) {
+      console.error('Error testing Shopify connection:', error);
+      showError('Failed to connect to Shopify. Please check your credentials.');
+    }
+  };
+  
+  // Handle data source change
+  const handleDataSourceChange = (newSource) => {
+    setDataSource(newSource);
+    
+    // Update localStorage flags
+    if (newSource === 'shopify') {
+      localStorage.setItem('shopify_products_active', 'true');
+      localStorage.removeItem('hr_products_imported');
+      setShowImportedProducts(false);
+    } else if (newSource === 'imported') {
+      localStorage.removeItem('shopify_products_active');
+      setShowImportedProducts(true);
+    } else {
+      localStorage.removeItem('shopify_products_active');
+      localStorage.removeItem('hr_products_imported');
+      setShowImportedProducts(false);
+    }
   };
 
   // Show confirmation dialog
@@ -484,24 +582,26 @@ function Products() {
     }
   });
   
-  // Get unique categories and types
+  // Get unique categories and types from ALL products
   const categories = [...new Set(products.map(prod => prod.category))].filter(Boolean);
   const types = [...new Set(products.map(prod => prod.type))].filter(Boolean);
-  const totalProducts = products.length;
-  const totalVariants = products.reduce((sum, p) => sum + (p.variants?.length || 0), 0);
-  const totalStock = products.reduce((sum, p) => {
+  
+  // Calculate stats based on FILTERED products (dynamic)
+  const totalProducts = sortedProducts.length;
+  const totalVariants = sortedProducts.reduce((sum, p) => sum + (p.variants?.length || 0), 0);
+  const totalStock = sortedProducts.reduce((sum, p) => {
     if (p.hasVariants && p.variants) {
       return sum + p.variants.reduce((vSum, v) => vSum + (v.stock || 0), 0);
     }
     return sum + (p.stock || 0);
   }, 0);
-  const totalValue = products.reduce((sum, prod) => {
+  const totalValue = sortedProducts.reduce((sum, prod) => {
     if (prod.hasVariants && prod.variants) {
       return sum + prod.variants.reduce((vSum, v) => vSum + ((v.cost || 0) * (v.stock || 0)), 0);
     }
     return sum + ((prod.cost || 0) * (prod.stock || 0));
   }, 0);
-  const lowStockCount = products.filter(prod => {
+  const lowStockCount = sortedProducts.filter(prod => {
     const stock = prod.totalStock || prod.stock || 0;
     return stock < 10;
   }).length;
@@ -738,8 +838,13 @@ function Products() {
                           </td>
                           <td className="p-3 text-right" style={{ width: '90px' }}>
                             <div className="text-white font-medium text-sm">
-                              {prod.hasVariants ? (
-                                <span className="text-white/50">Various</span>
+                              {prod.hasVariants && prod.variants ? (
+                                <div className="flex flex-col items-end">
+                                  <span className="text-white">
+                                    {Math.round(prod.variants.reduce((sum, v) => sum + v.price, 0) / prod.variants.length).toLocaleString()} Ft
+                                  </span>
+                                  <span className="text-[10px] text-white/40">avg</span>
+                                </div>
                               ) : (
                                 `${(prod.price || 0).toLocaleString()} Ft`
                               )}
@@ -747,8 +852,13 @@ function Products() {
                           </td>
                           <td className="p-3 text-right" style={{ width: '90px' }}>
                             <div className="text-white/60 text-sm">
-                              {prod.hasVariants ? (
-                                <span className="text-white/30">Various</span>
+                              {prod.hasVariants && prod.variants ? (
+                                <div className="flex flex-col items-end">
+                                  <span className="text-white/60">
+                                    {Math.round(prod.variants.reduce((sum, v) => sum + v.cost, 0) / prod.variants.length).toLocaleString()} Ft
+                                  </span>
+                                  <span className="text-[10px] text-white/40">avg</span>
+                                </div>
                               ) : (
                                 `${(prod.cost || 0).toLocaleString()} Ft`
                               )}
@@ -771,7 +881,7 @@ function Products() {
                             </button>
                           </td>
                           <td className="p-3" style={{ width: '90px' }}>
-                            <span className={`px-1.5 py-0.5 rounded-lg text-xs ${
+                            <span className={`px-2 py-1 rounded-lg text-xs font-medium ${
                               prod.status === 'active' 
                                 ? 'bg-green-500/20 text-green-300'
                                 : prod.status === 'draft'
@@ -883,33 +993,141 @@ function Products() {
           <Settings size={20} className="text-white/60 hover:text-white cursor-pointer transition-colors" />
         </div>
         
-        {/* Data Source Toggle */}
+        {/* Data Source Selection */}
         <div className="p-5 rounded-2xl bg-white/5 backdrop-blur-sm border border-white/10 hover:bg-white/10 transition-all">
-          <div className="flex items-center justify-between mb-2">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center">
-                <Layers size={20} className="text-white" />
-              </div>
-              <span className="text-sm font-medium text-white">Data Source</span>
+          <div className="flex items-center gap-3 mb-4">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center">
+              <Layers size={20} className="text-white" />
             </div>
+            <span className="text-sm font-medium text-white">Data Source</span>
+          </div>
+          
+          <div className="space-y-2">
             <button
-              onClick={() => setShowImportedProducts(!showImportedProducts)}
-              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors cursor-pointer z-10 ${
-                showImportedProducts ? 'bg-purple-600' : 'bg-gray-600'
+              onClick={() => handleDataSourceChange('manual')}
+              className={`w-full p-3 rounded-xl transition-all flex items-center gap-3 ${
+                dataSource === 'manual' 
+                  ? 'bg-gradient-to-r from-blue-500/20 to-cyan-500/20 border border-blue-400/30' 
+                  : 'bg-white/5 border border-white/10 hover:bg-white/10'
               }`}
             >
-              <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform pointer-events-none ${
-                showImportedProducts ? 'translate-x-6' : 'translate-x-1'
-              }`} />
+              <Plus size={16} className="text-white/60" />
+              <div className="text-left flex-1">
+                <div className="text-sm font-medium text-white">Manual Products</div>
+                <div className="text-xs text-white/50">Create & manage locally</div>
+              </div>
             </button>
-          </div>
-          <div className="mt-2 text-xs text-white/50">
-            {showImportedProducts ? 'Showing Shopify Imported' : 'Showing Manual Products'}
+            
+            <button
+              onClick={() => handleDataSourceChange('imported')}
+              className={`w-full p-3 rounded-xl transition-all flex items-center gap-3 ${
+                dataSource === 'imported' 
+                  ? 'bg-gradient-to-r from-purple-500/20 to-pink-500/20 border border-purple-400/30' 
+                  : 'bg-white/5 border border-white/10 hover:bg-white/10'
+              }`}
+            >
+              <Upload size={16} className="text-white/60" />
+              <div className="text-left flex-1">
+                <div className="text-sm font-medium text-white">CSV Import</div>
+                <div className="text-xs text-white/50">From Shopify export</div>
+              </div>
+            </button>
+            
+            <button
+              onClick={() => {
+                if (shopifyService.hasCredentials()) {
+                  handleDataSourceChange('shopify');
+                } else {
+                  setShowShopifySetupModal(true);
+                }
+              }}
+              className={`w-full p-3 rounded-xl transition-all flex items-center gap-3 ${
+                dataSource === 'shopify' 
+                  ? 'bg-gradient-to-r from-green-500/20 to-emerald-500/20 border border-green-400/30' 
+                  : 'bg-white/5 border border-white/10 hover:bg-white/10'
+              }`}
+            >
+              <ShoppingCart size={16} className="text-white/60" />
+              <div className="text-left flex-1">
+                <div className="text-sm font-medium text-white">Shopify API</div>
+                <div className="text-xs text-white/50">
+                  {shopifyService.hasCredentials() ? 'Connected' : 'Setup required'}
+                </div>
+              </div>
+            </button>
           </div>
         </div>
 
+        {/* Shopify API Controls - Only show when using Shopify API */}
+        {dataSource === 'shopify' && (
+        <div className="p-6 rounded-2xl bg-gradient-to-br from-green-500/10 to-emerald-500/10 backdrop-blur-sm border border-green-400/20 hover:from-green-500/15 hover:to-emerald-500/15 transition-all">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-green-500 to-emerald-500 flex items-center justify-center">
+              <ShoppingCart size={20} className="text-white" />
+            </div>
+            <h3 className="text-lg font-semibold text-white">Shopify API</h3>
+          </div>
+          
+          <div className="space-y-3">
+            <button
+              onClick={syncShopifyProducts}
+              disabled={syncingShopify}
+              className="w-full glass-button py-3 font-medium hover:scale-105 transition-transform flex items-center justify-center gap-2 bg-gradient-to-r from-green-500/20 to-emerald-500/20 border-green-400/30 disabled:opacity-50"
+            >
+              {syncingShopify ? (
+                <>
+                  <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  Syncing...
+                </>
+              ) : (
+                <>
+                  <TrendingUp size={18} />
+                  Sync Products
+                </>
+              )}
+            </button>
+            
+            <button
+              onClick={() => setShowShopifySetupModal(true)}
+              className="w-full glass-button py-3 font-medium hover:scale-105 transition-transform flex items-center justify-center gap-2"
+            >
+              <Settings size={18} />
+              Configure API
+            </button>
+            
+            {lastShopifySync && (
+              <div className="text-xs text-white/50 text-center mt-2">
+                Last sync: {new Date(lastShopifySync).toLocaleString()}
+              </div>
+            )}
+            
+            <button
+              onClick={() => {
+                showConfirm(
+                  'Disconnect Shopify',
+                  'Are you sure you want to disconnect from Shopify? This will clear your API credentials.',
+                  () => {
+                    shopifyService.clearCredentials();
+                    setDataSource('manual');
+                    showInfo('Disconnected from Shopify');
+                    window.location.reload();
+                  },
+                  'warning',
+                  'Disconnect',
+                  'Cancel'
+                );
+              }}
+              className="w-full py-3 font-medium transition-all flex items-center justify-center gap-2 rounded-2xl border bg-red-900/50 hover:bg-red-800/50 border-red-700/30 text-red-400"
+            >
+              <Archive size={18} />
+              Disconnect
+            </button>
+          </div>
+        </div>
+        )}
+        
         {/* Shopify Import Widget - Only show when viewing imported products */}
-        {showImportedProducts && (
+        {dataSource === 'imported' && (
         <div className="p-6 rounded-2xl bg-gradient-to-br from-purple-500/10 to-pink-500/10 backdrop-blur-sm border border-purple-400/20 hover:from-purple-500/15 hover:to-pink-500/15 transition-all">
           <div className="flex items-center gap-3 mb-4">
             <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center">
@@ -956,7 +1174,7 @@ function Products() {
         )}
 
         {/* Product Actions - Only show when viewing manual products */}
-        {!showImportedProducts && (
+        {dataSource === 'manual' && (
         <div className="p-6 rounded-2xl bg-white/5 backdrop-blur-sm border border-white/10 hover:bg-white/10 transition-all">
           <div className="flex items-center gap-3 mb-4">
             <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-green-500 to-emerald-500 flex items-center justify-center">
@@ -1398,6 +1616,106 @@ function Products() {
         </div>
       )}
 
+      {/* Shopify API Setup Modal */}
+      {showShopifySetupModal && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="glass-card-large w-full max-w-2xl">
+            <div className="p-6 border-b border-white/20 bg-gradient-to-r from-green-500/10 to-emerald-500/10">
+              <h2 className="text-xl font-bold text-white flex items-center gap-3">
+                <ShoppingCart size={24} className="text-green-400" />
+                Connect to Shopify API
+              </h2>
+              <p className="text-sm text-white/60 mt-2">
+                Connect your Shopify store to sync products directly via API
+              </p>
+            </div>
+            
+            <div className="p-6 space-y-6">
+              {/* Instructions */}
+              <div className="p-4 rounded-xl bg-blue-500/10 border border-blue-400/20">
+                <h3 className="text-sm font-medium text-white mb-3">How to get your API credentials:</h3>
+                <ol className="text-xs text-white/70 space-y-2">
+                  <li>1. Go to your Shopify Admin → Settings → Apps and sales channels</li>
+                  <li>2. Click "Develop apps" (you may need to enable this first)</li>
+                  <li>3. Create a new app or use an existing one</li>
+                  <li>4. In Configuration, set these API scopes:
+                    <ul className="ml-4 mt-1">
+                      <li>• read_products</li>
+                      <li>• read_inventory</li>
+                    </ul>
+                  </li>
+                  <li>5. Install the app and copy the Admin API access token</li>
+                </ol>
+              </div>
+              
+              {/* Store Domain Input */}
+              <div>
+                <label className="block text-sm font-medium text-white/70 mb-2">
+                  Store Domain
+                </label>
+                <input
+                  type="text"
+                  value={shopifyCredentials.storeDomain}
+                  onChange={(e) => setShopifyCredentials({...shopifyCredentials, storeDomain: e.target.value})}
+                  placeholder="your-store-name (without .myshopify.com)"
+                  className="w-full glass-input px-4 py-2"
+                />
+                <p className="text-xs text-white/50 mt-1">
+                  Example: if your store is my-store.myshopify.com, enter "my-store"
+                </p>
+              </div>
+              
+              {/* Access Token Input */}
+              <div>
+                <label className="block text-sm font-medium text-white/70 mb-2">
+                  Admin API Access Token
+                </label>
+                <input
+                  type="password"
+                  value={shopifyCredentials.accessToken}
+                  onChange={(e) => setShopifyCredentials({...shopifyCredentials, accessToken: e.target.value})}
+                  placeholder="shpat_xxxxxxxxxxxxx"
+                  className="w-full glass-input px-4 py-2 font-mono"
+                />
+                <p className="text-xs text-white/50 mt-1">
+                  This will be stored securely in your browser's local storage
+                </p>
+              </div>
+              
+              {/* Security Note */}
+              <div className="p-4 rounded-xl bg-yellow-500/10 border border-yellow-400/20">
+                <div className="flex items-start gap-3">
+                  <AlertTriangle size={16} className="text-yellow-400 mt-0.5" />
+                  <div className="text-xs text-white/70">
+                    <p className="font-medium text-yellow-400 mb-1">Security Note:</p>
+                    <p>Your API credentials are stored locally in your browser and sent only to your backend server. They are never sent to any external services.</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            <div className="p-6 border-t border-white/20 flex justify-end gap-3">
+              <button
+                onClick={() => {
+                  setShowShopifySetupModal(false);
+                  setShopifyCredentials({ storeDomain: '', accessToken: '' });
+                }}
+                className="px-6 py-2 glass-button rounded-xl"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={saveShopifyCredentials}
+                disabled={!shopifyCredentials.storeDomain || !shopifyCredentials.accessToken}
+                className="px-6 py-2 rounded-xl bg-gradient-to-r from-green-500 to-emerald-500 text-white font-medium hover:scale-105 transition-transform disabled:opacity-50"
+              >
+                Connect to Shopify
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      
       {showShopifyImportModal && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
           <div className="glass-card-large w-full max-w-3xl max-h-[90vh] overflow-y-auto">
