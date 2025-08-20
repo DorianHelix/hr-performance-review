@@ -3,6 +3,9 @@ import {
   Users, Plus, Upload, Trash2, Settings, PlusCircle, Edit2, Network
 } from 'lucide-react';
 import SectionHeader from './SectionHeader';
+import BulkImportModal from './BulkImportModal';
+import { useConfirm } from './ConfirmDialog';
+import { useToast } from './Toast';
 
 // Utility functions
 function uid() { 
@@ -38,6 +41,8 @@ function Employees({ isDarkMode }) {
   const [filterDepartment, setFilterDepartment] = useState('');
   const [showSidebar, setShowSidebar] = useState(true);
   const [showKPICards, setShowKPICards] = useState(true);
+  const { confirm } = useConfirm();
+  const { showSuccess, showError } = useToast();
 
   // Add new employee
   const handleAddEmployee = (employeeData) => {
@@ -64,12 +69,22 @@ function Employees({ isDarkMode }) {
   };
 
   // Delete employee
-  const handleDeleteEmployee = (id) => {
-    if (!confirm("Are you sure you want to delete this employee?")) return;
+  const handleDeleteEmployee = async (id) => {
+    const employee = employees.find(emp => emp.id === id);
+    const confirmed = await confirm({
+      title: 'Delete Employee',
+      message: `Are you sure you want to delete ${employee?.name || 'this employee'}? This action cannot be undone.`,
+      confirmText: 'Delete',
+      cancelText: 'Cancel',
+      variant: 'danger'
+    });
+    
+    if (!confirmed) return;
     
     const updated = employees.filter(emp => emp.id !== id);
     setEmployees(updated);
     lsWrite(LS_EMPLOYEES, updated);
+    showSuccess('Employee deleted successfully');
   };
 
   // Filter employees
@@ -166,40 +181,74 @@ function Employees({ isDarkMode }) {
                 <table className="w-full">
                   <thead>
                     <tr className="border-b border-white/10">
-                      <th className="text-left p-4 text-white/70 font-medium">ID</th>
-                      <th className="text-left p-4 text-white/70 font-medium">Name</th>
-                      <th className="text-left p-4 text-white/70 font-medium">Division</th>
-                      <th className="text-left p-4 text-white/70 font-medium">Role</th>
-                      <th className="text-left p-4 text-white/70 font-medium">Manager</th>
-                      <th className="text-left p-4 text-white/70 font-medium">Start Date</th>
-                      <th className="text-center p-4 text-white/70 font-medium">Actions</th>
+                      <th className="text-left p-4 text-white/70 font-medium w-20">ID</th>
+                      <th className="text-left p-4 text-white/70 font-medium w-40">Name</th>
+                      <th className="text-left p-4 text-white/70 font-medium w-32">Division</th>
+                      <th className="text-left p-4 text-white/70 font-medium w-28">Squad</th>
+                      <th className="text-left p-4 text-white/70 font-medium w-28">Team</th>
+                      <th className="text-left p-4 text-white/70 font-medium w-32">Role</th>
+                      <th className="text-left p-4 text-white/70 font-medium w-28">Seniority</th>
+                      <th className="text-left p-4 text-white/70 font-medium w-32">Manager</th>
+                      <th className="text-left p-4 text-white/70 font-medium w-32">Birthday</th>
+                      <th className="text-left p-4 text-white/70 font-medium w-32">Start Date</th>
+                      <th className="text-left p-4 text-white/70 font-medium w-32">Exit Date</th>
+                      <th className="text-right p-4 text-white/70 font-medium w-32">Net Salary</th>
+                      <th className="text-right p-4 text-white/70 font-medium w-32">Gross Salary</th>
+                      <th className="text-right p-4 text-white/70 font-medium w-32">Total Salary</th>
+                      <th className="text-center p-4 text-white/70 font-medium w-28">Actions</th>
                     </tr>
                   </thead>
                   <tbody>
                     {filteredEmployees.length === 0 ? (
                       <tr>
-                        <td colSpan="7" className="text-center p-8 text-white/50">
+                        <td colSpan="15" className="text-center p-8 text-white/50">
                           No employees found. Add your first employee to get started.
                         </td>
                       </tr>
                     ) : (
                       filteredEmployees.map(emp => (
                         <tr key={emp.id} className="border-b border-white/5 hover:bg-white/5 transition-colors">
-                          <td className="p-4">
-                            <div className="font-medium text-blue-300">{emp.employeeId || '-'}</div>
+                          <td className="p-4 w-20">
+                            <div className="font-medium text-blue-300 truncate">{emp.employeeId || '-'}</div>
                           </td>
-                          <td className="p-4">
-                            <div className="font-medium text-white">{emp.name}</div>
+                          <td className="p-4 w-40">
+                            <div className="font-medium text-white truncate" title={emp.name}>{emp.name}</div>
                           </td>
-                          <td className="p-4 text-white/70">{emp.division || '-'}</td>
-                          <td className="p-4 text-white/70">{emp.role || '-'}</td>
-                          <td className="p-4 text-white/70">
-                            {emp.managerId ? employees.find(m => m.id === emp.managerId)?.name || 'Unknown' : '-'}
+                          <td className="p-4 text-white/70 w-32 truncate" title={emp.division || '-'}>{emp.division || '-'}</td>
+                          <td className="p-4 text-white/70 w-28 truncate" title={emp.squad || '-'}>{emp.squad || '-'}</td>
+                          <td className="p-4 text-white/70 w-28 truncate" title={emp.team || '-'}>{emp.team || '-'}</td>
+                          <td className="p-4 text-white/70 w-32 truncate" title={emp.role || '-'}>{emp.role || '-'}</td>
+                          <td className="p-4 text-white/70 w-28 truncate" title={emp.seniority || '-'}>{emp.seniority || '-'}</td>
+                          <td className="p-4 text-white/70 w-32">
+                            <div className="truncate" title={emp.managerId ? employees.find(m => m.id === emp.managerId)?.name || 'Unknown' : '-'}>
+                              {emp.managerId ? employees.find(m => m.id === emp.managerId)?.name || 'Unknown' : '-'}
+                            </div>
                           </td>
-                          <td className="p-4 text-white/70">
+                          <td className="p-4 text-white/70 w-32">
+                            {emp.birthday ? new Date(emp.birthday).toLocaleDateString() : '-'}
+                          </td>
+                          <td className="p-4 text-white/70 w-32">
                             {emp.startDate ? new Date(emp.startDate).toLocaleDateString() : '-'}
                           </td>
-                          <td className="p-4">
+                          <td className="p-4 text-white/70 w-32">
+                            {emp.exitDate ? new Date(emp.exitDate).toLocaleDateString() : '-'}
+                          </td>
+                          <td className="p-4 text-white/70 text-right w-32">
+                            <div className="truncate" title={emp.netSalary ? new Intl.NumberFormat().format(emp.netSalary) : '-'}>
+                              {emp.netSalary ? new Intl.NumberFormat().format(emp.netSalary) : '-'}
+                            </div>
+                          </td>
+                          <td className="p-4 text-white/70 text-right w-32">
+                            <div className="truncate" title={emp.grossSalary ? new Intl.NumberFormat().format(emp.grossSalary) : '-'}>
+                              {emp.grossSalary ? new Intl.NumberFormat().format(emp.grossSalary) : '-'}
+                            </div>
+                          </td>
+                          <td className="p-4 text-white/70 text-right w-32">
+                            <div className="truncate" title={emp.totalSalary ? new Intl.NumberFormat().format(emp.totalSalary) : '-'}>
+                              {emp.totalSalary ? new Intl.NumberFormat().format(emp.totalSalary) : '-'}
+                            </div>
+                          </td>
+                          <td className="p-4 w-28">
                             <div className="flex items-center justify-center gap-2">
                               <button
                                 onClick={() => setEditingEmployee(emp)}
@@ -254,10 +303,19 @@ function Employees({ isDarkMode }) {
                 
                 {employees.length > 0 && (
                   <button
-                    onClick={() => {
-                      if (window.confirm('Are you sure you want to delete ALL employees? This action cannot be undone.')) {
+                    onClick={async () => {
+                      const confirmed = await confirm({
+                        title: 'Delete All Employees',
+                        message: `Are you sure you want to delete ALL ${employees.length} employees? This action cannot be undone.`,
+                        confirmText: 'Delete All',
+                        cancelText: 'Cancel',
+                        variant: 'danger'
+                      });
+                      
+                      if (confirmed) {
                         setEmployees([]);
                         lsWrite(LS_EMPLOYEES, []);
+                        showSuccess('All employees deleted successfully');
                       }
                     }}
                     className="w-full py-3 font-medium transition-all flex items-center justify-center gap-2 rounded-2xl border bg-red-900/80 hover:bg-red-800 border-red-700/50 text-white hover:scale-105"
@@ -566,180 +624,5 @@ function AddEmployeeModal({ employee, employees, onSave, onClose }) {
   );
 }
 
-
-function BulkImportModal({ onSave, onClose }) {
-  const [csvData, setCsvData] = useState('');
-  const [previewData, setPreviewData] = useState(null);
-
-  const expectedHeaders = [
-    'Employee ID', 'Name', 'Division', 'Squad', 'Team', 'Role', 'Seniority', 
-    'Manager', 'Birthday', 'Start Date', 'Exit Date', 
-    'Net Salary', 'Gross Salary', 'Total Salary'
-  ];
-
-  const sampleCSV = expectedHeaders.join(',') + '\n' +
-    'EMP001,John Doe,Engineering,Platform,Backend,Software Engineer,Senior,,1990-01-15,2020-03-01,,50000,65000,75000\n' +
-    'EMP002,Jane Smith,Product,Growth,Analytics,Product Manager,Lead,John Doe,1988-06-22,2019-07-15,,60000,78000,90000';
-
-  const processCsvData = (csvText) => {
-    const lines = csvText.trim().split('\n');
-    if (lines.length < 2) {
-      alert('Please provide at least one row of data');
-      return;
-    }
-
-    const headers = lines[0].split(',').map(h => h.trim());
-    const employees = [];
-
-    for (let i = 1; i < lines.length; i++) {
-      const values = lines[i].split(',').map(v => v.trim());
-      const emp = {
-        id: `emp-${uid()}`,
-        employeeId: values[0] || '',
-        name: values[1] || '',
-        division: values[2] || '',
-        squad: values[3] || '',
-        team: values[4] || '',
-        role: values[5] || '',
-        seniority: values[6] || '',
-        managerId: '', // Will be resolved later
-        managerName: values[7] || '',
-        birthday: values[8] || '',
-        startDate: values[9] || '',
-        exitDate: values[10] || '',
-        netSalary: values[11] || '',
-        grossSalary: values[12] || '',
-        totalSalary: values[13] || ''
-      };
-      
-      if (emp.name) {
-        employees.push(emp);
-      }
-    }
-
-    setPreviewData(employees);
-  };
-
-  const handleImport = () => {
-    if (!previewData || previewData.length === 0) {
-      alert('No valid data to import');
-      return;
-    }
-
-    // Resolve manager relationships
-    const employeeMap = {};
-    previewData.forEach(emp => {
-      employeeMap[emp.name] = emp.id;
-    });
-
-    const finalEmployees = previewData.map(emp => {
-      const { managerName, ...employeeData } = emp;
-      if (managerName && employeeMap[managerName]) {
-        employeeData.managerId = employeeMap[managerName];
-      }
-      return employeeData;
-    });
-
-    onSave(finalEmployees);
-  };
-
-  return (
-    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={onClose}>
-      <div className="glass-card-large w-full max-w-4xl max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
-        <div className="p-6 border-b border-white/20">
-          <h2 className="text-xl font-bold text-white flex items-center gap-3">
-            <Upload size={24} />
-            Bulk Import Employees
-          </h2>
-        </div>
-        
-        <div className="p-6">
-          <div className="mb-4">
-            <h3 className="text-sm font-medium text-white/80 mb-2">Expected CSV Format:</h3>
-            <div className="p-3 rounded-lg bg-white/5 border border-white/10 text-xs text-white/60 font-mono overflow-x-auto">
-              {expectedHeaders.join(', ')}
-            </div>
-          </div>
-
-          <div className="mb-4">
-            <label className="block text-sm font-medium text-white/70 mb-2">Paste CSV Data:</label>
-            <textarea
-              value={csvData}
-              onChange={(e) => setCsvData(e.target.value)}
-              className="w-full h-48 glass-input px-4 py-2 font-mono text-sm"
-              placeholder={sampleCSV}
-            />
-          </div>
-
-          <div className="flex gap-3 mb-6">
-            <button
-              onClick={() => processCsvData(csvData)}
-              className="glass-button px-4 py-2 font-medium hover:scale-105 transition-transform"
-            >
-              Preview Import
-            </button>
-            <button
-              onClick={() => setCsvData(sampleCSV)}
-              className="glass-button px-4 py-2 font-medium hover:scale-105 transition-transform"
-            >
-              Load Sample Data
-            </button>
-          </div>
-
-          {previewData && (
-            <div>
-              <h3 className="text-sm font-medium text-white/80 mb-2">
-                Preview ({previewData.length} employees):
-              </h3>
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="border-b border-white/10">
-                      <th className="text-left p-2 text-white/70">Name</th>
-                      <th className="text-left p-2 text-white/70">Division</th>
-                      <th className="text-left p-2 text-white/70">Role</th>
-                      <th className="text-left p-2 text-white/70">Manager</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {previewData.slice(0, 10).map((emp, idx) => (
-                      <tr key={idx} className="border-b border-white/5">
-                        <td className="p-2 text-white">{emp.name}</td>
-                        <td className="p-2 text-white/70">{emp.division || '-'}</td>
-                        <td className="p-2 text-white/70">{emp.role || '-'}</td>
-                        <td className="p-2 text-white/70">{emp.managerName || '-'}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-                {previewData.length > 10 && (
-                  <p className="text-xs text-white/50 mt-2">
-                    ... and {previewData.length - 10} more employees
-                  </p>
-                )}
-              </div>
-            </div>
-          )}
-        </div>
-        
-        <div className="p-6 border-t border-white/20 flex justify-end gap-3">
-          <button
-            onClick={onClose}
-            className="px-6 py-2 rounded-xl border bg-red-900/80 hover:bg-red-800 border-red-700/50 text-white font-medium hover:scale-105 transition-all"
-          >
-            Cancel
-          </button>
-          <button
-            onClick={handleImport}
-            disabled={!previewData || previewData.length === 0}
-            className="px-6 py-2 rounded-xl bg-gradient-to-r from-blue-500 to-blue-600 text-white font-medium hover:scale-105 transition-transform disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            Import {previewData ? previewData.length : 0} Employees
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}
 
 export default Employees;

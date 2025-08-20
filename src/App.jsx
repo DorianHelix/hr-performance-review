@@ -19,6 +19,7 @@ import Employees from "./components/Employees";
 import DatePicker from "./components/DatePicker";
 import DateRangePicker from "./components/DateRangePicker";
 import { ToastProvider } from "./components/Toast";
+import { ConfirmProvider } from "./components/ConfirmDialog";
 import ThemeSwitcher from "./components/ThemeSwitcher";
 import { applyTheme } from "./config/themes";
 import API from "./api";
@@ -2045,10 +2046,11 @@ export default function App() {
 
   return (
     <ToastProvider>
-      <div className="h-full w-full flex relative overflow-hidden" style={{ 
-        color: 'var(--text-primary)',
-        background: 'var(--color-bgGradient, var(--color-bgPrimary))' 
-      }}>
+      <ConfirmProvider>
+        <div className="h-full w-full flex relative overflow-hidden" style={{ 
+          color: 'var(--text-primary)',
+          background: 'var(--color-bgGradient, var(--color-bgPrimary))' 
+        }}>
         {/* Sidebar */}
         <Sidebar 
           isCollapsed={sidebarCollapsed}
@@ -2579,6 +2581,7 @@ export default function App() {
       )}
       </div>
     </div>
+      </ConfirmProvider>
     </ToastProvider>
   );
 }
