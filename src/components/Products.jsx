@@ -582,24 +582,26 @@ function Products() {
     }
   });
   
-  // Get unique categories and types
+  // Get unique categories and types from ALL products
   const categories = [...new Set(products.map(prod => prod.category))].filter(Boolean);
   const types = [...new Set(products.map(prod => prod.type))].filter(Boolean);
-  const totalProducts = products.length;
-  const totalVariants = products.reduce((sum, p) => sum + (p.variants?.length || 0), 0);
-  const totalStock = products.reduce((sum, p) => {
+  
+  // Calculate stats based on FILTERED products (dynamic)
+  const totalProducts = sortedProducts.length;
+  const totalVariants = sortedProducts.reduce((sum, p) => sum + (p.variants?.length || 0), 0);
+  const totalStock = sortedProducts.reduce((sum, p) => {
     if (p.hasVariants && p.variants) {
       return sum + p.variants.reduce((vSum, v) => vSum + (v.stock || 0), 0);
     }
     return sum + (p.stock || 0);
   }, 0);
-  const totalValue = products.reduce((sum, prod) => {
+  const totalValue = sortedProducts.reduce((sum, prod) => {
     if (prod.hasVariants && prod.variants) {
       return sum + prod.variants.reduce((vSum, v) => vSum + ((v.cost || 0) * (v.stock || 0)), 0);
     }
     return sum + ((prod.cost || 0) * (prod.stock || 0));
   }, 0);
-  const lowStockCount = products.filter(prod => {
+  const lowStockCount = sortedProducts.filter(prod => {
     const stock = prod.totalStock || prod.stock || 0;
     return stock < 10;
   }).length;
@@ -836,8 +838,13 @@ function Products() {
                           </td>
                           <td className="p-3 text-right" style={{ width: '90px' }}>
                             <div className="text-white font-medium text-sm">
-                              {prod.hasVariants ? (
-                                <span className="text-white/50">Various</span>
+                              {prod.hasVariants && prod.variants ? (
+                                <div className="flex flex-col items-end">
+                                  <span className="text-white">
+                                    {Math.round(prod.variants.reduce((sum, v) => sum + v.price, 0) / prod.variants.length).toLocaleString()} Ft
+                                  </span>
+                                  <span className="text-[10px] text-white/40">avg</span>
+                                </div>
                               ) : (
                                 `${(prod.price || 0).toLocaleString()} Ft`
                               )}
@@ -845,8 +852,13 @@ function Products() {
                           </td>
                           <td className="p-3 text-right" style={{ width: '90px' }}>
                             <div className="text-white/60 text-sm">
-                              {prod.hasVariants ? (
-                                <span className="text-white/30">Various</span>
+                              {prod.hasVariants && prod.variants ? (
+                                <div className="flex flex-col items-end">
+                                  <span className="text-white/60">
+                                    {Math.round(prod.variants.reduce((sum, v) => sum + v.cost, 0) / prod.variants.length).toLocaleString()} Ft
+                                  </span>
+                                  <span className="text-[10px] text-white/40">avg</span>
+                                </div>
                               ) : (
                                 `${(prod.cost || 0).toLocaleString()} Ft`
                               )}
@@ -869,7 +881,7 @@ function Products() {
                             </button>
                           </td>
                           <td className="p-3" style={{ width: '90px' }}>
-                            <span className={`px-1.5 py-0.5 rounded-lg text-xs ${
+                            <span className={`px-2 py-1 rounded-lg text-xs font-medium ${
                               prod.status === 'active' 
                                 ? 'bg-green-500/20 text-green-300'
                                 : prod.status === 'draft'

@@ -166,26 +166,38 @@ class ShopifyService {
         }
       }
 
-      // Parse category from tags or collections
-      // Look for tags that might indicate category (e.g., "category:Electronics")
+      // Use Shopify's product_category field if available
+      // This is the standard Google product category taxonomy field
       let category = 'Uncategorized';
       
-      // Check if any tag starts with "category:" or "collection:"
-      if (product.tags) {
+      // First priority: Use product_category if it exists
+      if (product.product_category) {
+        // Product category often comes as a path like "Apparel & Accessories > Clothing > Shirts"
+        // Take the last part for simplicity, or the first main category
+        const categoryParts = product.product_category.split('>').map(c => c.trim());
+        category = categoryParts[0]; // Use the main category
+      }
+      // Second priority: Check custom metafields for category
+      else if (product.metafields && Array.isArray(product.metafields)) {
+        const categoryField = product.metafields.find(m => 
+          m.key === 'category' || m.key === 'product_category'
+        );
+        if (categoryField && categoryField.value) {
+          category = categoryField.value;
+        }
+      }
+      // Third priority: Parse from tags
+      else if (product.tags) {
         const categoryTag = product.tags.split(', ').find(tag => 
-          tag.toLowerCase().startsWith('category:') || 
-          tag.toLowerCase().startsWith('collection:')
+          tag.toLowerCase().startsWith('category:')
         );
         if (categoryTag) {
           category = categoryTag.split(':')[1].trim();
         }
       }
-      
-      // If no category tag found, try to use vendor as category if it's not generic
-      if (category === 'Uncategorized' && product.vendor && 
-          product.vendor.toLowerCase() !== 'vendor' && 
-          product.vendor.toLowerCase() !== 'default vendor') {
-        category = product.vendor;
+      // Fourth priority: Use product type if it seems like a category
+      else if (product.product_type && product.product_type !== '') {
+        category = product.product_type;
       }
       
       transformed.category = category;

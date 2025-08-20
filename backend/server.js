@@ -566,7 +566,8 @@ app.post('/api/shopify/products', async (req, res) => {
   }
   
   try {
-    let url = `https://${storeDomain}.myshopify.com/admin/api/2024-01/products.json?limit=${limit}`;
+    // Include fields that contain category information
+    let url = `https://${storeDomain}.myshopify.com/admin/api/2024-01/products.json?limit=${limit}&fields=id,title,body_html,vendor,product_type,handle,tags,status,created_at,updated_at,images,variants,product_category,metafields`;
     if (since_id) {
       url += `&since_id=${since_id}`;
     }
