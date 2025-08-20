@@ -22,7 +22,7 @@ const themes = {
       accentDark: '#d97706',
       
       // Background colors
-      bgPrimary: '#1a1a1a',
+      bgPrimary: '#0a0a0a',
       bgSecondary: '#2a2a2a',
       bgTertiary: '#3a3a3a',
       
@@ -72,9 +72,10 @@ const themes = {
       accentDark: '#ea580c',
       
       // Background colors
-      bgPrimary: '#0f172a',
+      bgPrimary: '#111827',
       bgSecondary: '#1e293b',
       bgTertiary: '#334155',
+      bgGradient: 'linear-gradient(to bottom right, #111827, #000000, #111827)',
       
       // Glass effect colors
       glassBg: 'rgba(148, 163, 184, 0.05)',

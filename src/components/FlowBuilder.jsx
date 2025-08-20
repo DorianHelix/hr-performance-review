@@ -640,7 +640,7 @@ function FlowBuilder() {
   };
 
   return (
-    <div className="h-full flex flex-col bg-gradient-to-br from-gray-900 via-black to-gray-900">
+    <div className="h-full flex flex-col">
       {/* Header */}
       <div className="glass-card-large m-4 mb-2 p-4">
         <div className="flex items-center justify-between">

@@ -4178,7 +4178,10 @@ export default function App() {
 
   return (
     <ToastProvider>
-      <div className="h-full w-full flex relative overflow-hidden" style={{ color: 'var(--text-primary)' }}>
+      <div className="h-full w-full flex relative overflow-hidden" style={{ 
+        color: 'var(--text-primary)',
+        background: 'var(--color-bgGradient, var(--color-bgPrimary))' 
+      }}>
         {/* Sidebar */}
         <Sidebar 
           isCollapsed={sidebarCollapsed}

@@ -531,7 +531,7 @@ function Analytics() {
   }, [revenueSplit]);
 
   return (
-    <div className="h-full flex flex-col bg-gradient-to-br from-gray-900 via-black to-gray-900 p-4 md:p-6 overflow-auto">
+    <div className="h-full flex flex-col p-4 md:p-6 overflow-auto">
       {/* Header */}
       <div className="glass-card-large p-6 mb-6">
         <div className="flex items-center justify-between">
