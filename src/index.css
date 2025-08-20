@@ -4,6 +4,43 @@
 
 /* Apple Design System - Theme Variables */
 :root {
+  /* Theme Colors - Will be overridden by theme system */
+  --color-primary: #a855f7;
+  --color-primaryLight: #c084fc;
+  --color-primaryDark: #9333ea;
+  
+  --color-secondary: #06b6d4;
+  --color-secondaryLight: #22d3ee;
+  --color-secondaryDark: #0891b2;
+  
+  --color-accent: #f59e0b;
+  --color-accentLight: #fbbf24;
+  --color-accentDark: #d97706;
+  
+  --color-bgPrimary: #1a1a1a;
+  --color-bgSecondary: #2a2a2a;
+  --color-bgTertiary: #3a3a3a;
+  
+  --color-glassBg: rgba(255, 255, 255, 0.05);
+  --color-glassBorder: rgba(255, 255, 255, 0.1);
+  --color-glassHover: rgba(255, 255, 255, 0.1);
+  
+  --color-textPrimary: #ffffff;
+  --color-textSecondary: rgba(255, 255, 255, 0.8);
+  --color-textTertiary: rgba(255, 255, 255, 0.6);
+  
+  --color-success: #10b981;
+  --color-warning: #f59e0b;
+  --color-error: #ef4444;
+  --color-info: #3b82f6;
+  
+  --color-chart1: #a855f7;
+  --color-chart2: #06b6d4;
+  --color-chart3: #10b981;
+  --color-chart4: #f59e0b;
+  --color-chart5: #ef4444;
+  --color-chart6: #3b82f6;
+
   /* Dark Mode Variables (Default) */
   --glass-bg: rgba(255, 255, 255, 0.05);
   --glass-bg-hover: rgba(255, 255, 255, 0.08);

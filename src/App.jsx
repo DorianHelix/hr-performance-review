@@ -17,6 +17,8 @@ import Analytics from "./components/Analytics";
 import DatePicker from "./components/DatePicker";
 import DateRangePicker from "./components/DateRangePicker";
 import { ToastProvider } from "./components/Toast";
+import ThemeSwitcher from "./components/ThemeSwitcher";
+import { applyTheme } from "./config/themes";
 import API from "./api";
 
 
@@ -165,22 +167,12 @@ function Sidebar({ isCollapsed, onToggle, currentView, onViewChange, isDarkMode,
         </ul>
       </nav>
 
-      {/* Theme Toggle at Bottom */}
-      <div className={`p-6 ${isCollapsed ? 'flex justify-center' : ''}`} style={{ borderTop: '1px solid var(--glass-border)' }}>
-        <button 
-          onClick={onThemeToggle}
-          className={`${isCollapsed ? 'flex-none min-w-[56px] max-w-[56px] h-14 justify-center p-0' : 'w-full flex gap-4 p-4'} flex items-center rounded-2xl transition-all duration-300 group text-white/70 hover:text-white hover:glass-card hover:bg-white/5`}
-          title={isCollapsed ? (isDarkMode ? 'Switch to Light Mode' : 'Switch to Dark Mode') : ''}
-        >
-          <div className="p-3 w-14 h-14 rounded-xl bg-white/10 group-hover:bg-white/20 transition-all duration-300 flex items-center justify-center">
-            {isDarkMode ? <Sun size={20} className="flex-shrink-0" /> : <Moon size={20} className="flex-shrink-0" />}
-          </div>
-          {!isCollapsed && (
-            <span className="font-semibold text-lg tracking-wide">
-              {isDarkMode ? 'Light Mode' : 'Dark Mode'}
-            </span>
-          )}
-        </button>
+      {/* Theme Switcher at Bottom */}
+      <div className={`p-4 ${isCollapsed ? 'flex justify-center' : ''}`} style={{ borderTop: '1px solid var(--glass-border)' }}>
+        <ThemeSwitcher 
+          isDarkMode={isDarkMode}
+          onThemeToggle={onThemeToggle}
+        />
       </div>
     </div>
   );
@@ -1430,23 +1422,6 @@ function EmployeesContent() {
   const [quickAddModal, setQuickAddModal] = useState(null); // For quick employee creation
   const [zoom, setZoom] = useState(2.5); // Zoom state for org chart - default 250%
   const [isFullscreen, setIsFullscreen] = useState(false); // Fullscreen state for org chart
-  const [isDarkMode, setIsDarkMode] = useState(() => document.documentElement.getAttribute('data-theme') !== 'light');
-
-  // Listen for theme changes and update isDarkMode
-  useEffect(() => {
-    const handleThemeChange = () => {
-      setIsDarkMode(document.documentElement.getAttribute('data-theme') !== 'light');
-    };
-
-    // Create a MutationObserver to watch for attribute changes on documentElement
-    const observer = new MutationObserver(handleThemeChange);
-    observer.observe(document.documentElement, {
-      attributes: true,
-      attributeFilter: ['data-theme']
-    });
-
-    return () => observer.disconnect();
-  }, []);
 
   // Handle fullscreen toggle
   const toggleFullscreen = () => {
@@ -3665,6 +3640,12 @@ export default function App() {
     const saved = localStorage.getItem('theme');
     return saved ? saved === 'dark' : true; // Default to dark mode
   });
+  
+  // Initialize theme on mount
+  useEffect(() => {
+    const savedTheme = localStorage.getItem('selectedTheme') || 'default';
+    applyTheme(savedTheme);
+  }, []);
   
   // Save theme preference
   useEffect(() => {
