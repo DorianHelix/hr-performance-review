@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Palette, Check, Sun, Moon } from 'lucide-react';
 import { getAvailableThemes, applyTheme, getCurrentTheme } from '../config/themes';
 
-function ThemeSwitcher({ isDarkMode, onThemeToggle }) {
+function ThemeSwitcher({ isDarkMode, onThemeToggle, isCollapsed }) {
   const [showThemes, setShowThemes] = useState(false);
   const [currentTheme, setCurrentTheme] = useState(() => {
     const saved = localStorage.getItem('selectedTheme') || 'default';
@@ -29,17 +29,20 @@ function ThemeSwitcher({ isDarkMode, onThemeToggle }) {
       {/* Theme Switcher Button */}
       <button
         onClick={() => setShowThemes(!showThemes)}
-        className="glass-button p-3 rounded-2xl flex items-center gap-2 hover:scale-105 transition-all duration-300 w-full"
+        className={`glass-button p-3 rounded-2xl flex items-center ${isCollapsed ? 'justify-center' : 'gap-2'} hover:scale-105 transition-all duration-300 w-full`}
         style={{ 
           background: 'var(--color-glassBg)',
           borderColor: 'var(--color-glassBorder)',
           border: '1px solid var(--color-glassBorder)'
         }}
+        title={isCollapsed ? themes.find(t => t.id === currentTheme)?.name || 'Theme' : ''}
       >
         <Palette size={20} style={{ color: 'var(--color-primary)' }} />
-        <span className="text-sm font-medium" style={{ color: 'var(--color-textSecondary)' }}>
-          {themes.find(t => t.id === currentTheme)?.name || 'Theme'}
-        </span>
+        {!isCollapsed && (
+          <span className="text-sm font-medium" style={{ color: 'var(--color-textSecondary)' }}>
+            {themes.find(t => t.id === currentTheme)?.name || 'Theme'}
+          </span>
+        )}
       </button>
       
       {/* Theme Dropdown */}

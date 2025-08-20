@@ -173,6 +173,7 @@ function Sidebar({ isCollapsed, onToggle, currentView, onViewChange, isDarkMode,
         <ThemeSwitcher 
           isDarkMode={isDarkMode}
           onThemeToggle={onThemeToggle}
+          isCollapsed={isCollapsed}
         />
       </div>
     </div>

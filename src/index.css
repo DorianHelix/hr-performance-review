@@ -52,12 +52,12 @@
   --text-secondary: rgba(255, 255, 255, 0.7);
   --text-tertiary: rgba(255, 255, 255, 0.5);
   --bg-main: #0a0a0a;
-  --bg-sidebar: rgba(18, 18, 18, 0.8);
+  --bg-sidebar: rgba(18, 18, 18, 0.4);
   --blur-amount: 20px;
   --border-radius: 16px;
   --border-radius-large: 20px;
   --transition: all 0.3s cubic-bezier(0.25, 1, 0.5, 1);
-  --backdrop-blur: blur(20px);
+  --backdrop-blur: blur(30px);
 }
 
 /* Light Mode Variables */
@@ -341,10 +341,11 @@ html, body, #root {
 }
 
 .glass-sidebar {
-  background: var(--bg-sidebar);
-  backdrop-filter: var(--backdrop-blur);
-  -webkit-backdrop-filter: var(--backdrop-blur);
-  border: 1px solid var(--glass-border);
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.05) 0%, rgba(255, 255, 255, 0.02) 100%);
+  backdrop-filter: blur(40px) saturate(180%);
+  -webkit-backdrop-filter: blur(40px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
   color: var(--text-primary);
 }
 
