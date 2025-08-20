@@ -14,6 +14,7 @@ import Products from "./components/Products";
 import ProductVariantsDemo from "./components/ProductVariantsDemo";
 import FlowBuilder from "./components/FlowBuilder";
 import Analytics from "./components/Analytics";
+import Dashboard from "./components/Dashboard";
 import DatePicker from "./components/DatePicker";
 import DateRangePicker from "./components/DateRangePicker";
 import { ToastProvider } from "./components/Toast";
@@ -4194,7 +4195,7 @@ export default function App() {
         style={{ marginLeft: '0px' }}
       >
       {/* Conditional Content Based on Current View */}
-      {currentView === 'dashboard' && <DashboardContent />}
+      {currentView === 'dashboard' && <Dashboard />}
       
       {currentView === 'employees' && <EmployeesContent />}
       
