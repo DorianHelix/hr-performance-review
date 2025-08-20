@@ -180,47 +180,32 @@ function Dashboard() {
     }
   ];
 
-  // Funnel data (Revenue breakdown by channel)
-  const funnelData = [
+  // Revenue breakdown funnel data
+  const revenueFunnelData = [
     {
-      id: "Revenue",
-      value: 3197708.04,
-      label: "REVENUE"
+      id: 'Revenue',
+      value: 3197708,
+      label: 'Revenue'
     },
     {
-      id: "Cost of Goods",
-      value: 406615.56,
-      label: "COST OF GOODS"
+      id: 'After COGS',
+      value: 2791092, 
+      label: 'After COGS'
     },
     {
-      id: "Facebook",
-      value: 448329.00,
-      label: "FACEBOOK"
+      id: 'After Ad Spend',
+      value: 1996896,
+      label: 'After Ad Spend'
     },
     {
-      id: "Google",
-      value: 307929.91,
-      label: "GOOGLE"
+      id: 'After Tax',
+      value: 1361175,
+      label: 'After Tax'
     },
     {
-      id: "TikTok",
-      value: 37937.00,
-      label: "TIKTOK"
-    },
-    {
-      id: "Tax",
-      value: 635720.89,
-      label: "TAX"
-    },
-    {
-      id: "Custom Costs",
-      value: 290610.00,
-      label: "CUSTOM COSTS"
-    },
-    {
-      id: "Profit",
-      value: 1070565.69,
-      label: "PROFIT"
+      id: 'Net Profit',
+      value: 1070565,
+      label: 'Net Profit'
     }
   ];
 
@@ -234,30 +219,28 @@ function Dashboard() {
   ];
 
   return (
-    <div className="flex h-full flex-col p-6 overflow-auto">
+    <div className="flex h-full w-full flex-col p-6 overflow-auto bg-transparent min-h-screen">
       {/* Header Section with KPIs */}
       <div className="mb-6">
         <div className="flex items-center justify-between mb-6">
-          <div>
-            <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold text-white mb-2">
-              Dashboard
-            </h1>
-            <div className="flex items-center gap-4">
-              <div className="text-white/60">
-                <span className="text-sm">Total Profit</span>
-                <div className="flex items-center gap-2">
-                  <span className="text-3xl font-bold text-white">1.07M Ft</span>
-                  <span className="text-sm text-white/40">from 222 orders</span>
-                </div>
+          {/* Profit Metrics Card */}
+          <div className="glass-card-large p-4 flex items-center gap-8">
+            <div>
+              <span className="text-xs text-white/50 uppercase tracking-wider">Total Profit</span>
+              <div className="flex items-center gap-2 mt-1">
+                <span className="text-3xl font-bold text-white">1.07M Ft</span>
+                <span className="text-sm text-white/40">from 222 orders</span>
               </div>
-              <div className="text-white/60 ml-8">
-                <span className="text-sm">eROAS</span>
-                <div className="text-2xl font-bold text-white">4.03</div>
-              </div>
-              <div className="text-white/60 ml-8">
-                <span className="text-sm">Profit Margin</span>
-                <div className="text-2xl font-bold text-white">33.48%</div>
-              </div>
+            </div>
+            <div className="h-12 w-px bg-white/10"></div>
+            <div>
+              <span className="text-xs text-white/50 uppercase tracking-wider">eROAS</span>
+              <div className="text-2xl font-bold text-green-400 mt-1">4.03</div>
+            </div>
+            <div className="h-12 w-px bg-white/10"></div>
+            <div>
+              <span className="text-xs text-white/50 uppercase tracking-wider">Profit Margin</span>
+              <div className="text-2xl font-bold text-purple-400 mt-1">33.48%</div>
             </div>
           </div>
           <DatePicker value={selectedPeriod} onChange={setSelectedPeriod} />
@@ -358,6 +341,279 @@ function Dashboard() {
         </div>
       </div>
 
+      {/* Daily Product Sales Section */}
+      <div className="glass-card-large p-6 mb-6">
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-4">
+            <h2 className="text-lg font-semibold text-white">Daily Product Sales</h2>
+            <div className="flex items-center gap-2">
+              <button className="glass-button px-3 py-1 text-xs hover:scale-105">
+                <TrendingUp className="w-3 h-3" />
+              </button>
+              <button className="glass-button px-3 py-1 text-xs hover:scale-105">
+                <Activity className="w-3 h-3" />
+              </button>
+            </div>
+          </div>
+          <div className="flex items-center gap-3">
+            <input
+              type="text"
+              placeholder="Search by name..."
+              className="glass-input px-3 py-1 text-sm w-64"
+            />
+            <select className="glass-input px-3 py-1 text-sm">
+              <option>Most Profitable</option>
+              <option>Best ROAS</option>
+              <option>Highest Revenue</option>
+              <option>Lowest CPA</option>
+            </select>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Chart Section */}
+          <div>
+            <div className="flex items-center gap-4 mb-4">
+              {['Revenue', 'Cogs', 'Profit'].map((metric) => (
+                <label key={metric} className="flex items-center gap-2 cursor-pointer">
+                  <input type="checkbox" defaultChecked className="rounded" />
+                  <span className="text-xs text-white/60">{metric}</span>
+                </label>
+              ))}
+            </div>
+            <div style={{ height: '350px', minHeight: '350px', width: '100%' }}>
+              <ResponsiveLine
+                data={areaChartData.slice(0, 3)}
+                theme={glassTheme}
+                margin={{ top: 10, right: 10, bottom: 40, left: 60 }}
+                xScale={{ type: 'point' }}
+                yScale={{
+                  type: 'linear',
+                  min: 0,
+                  max: 'auto',
+                  stacked: false,
+                  reverse: false
+                }}
+                yFormat=" >-.2s"
+                axisTop={null}
+                axisRight={null}
+                axisBottom={{
+                  tickSize: 5,
+                  tickPadding: 5,
+                  tickRotation: 0,
+                  legend: '',
+                  legendOffset: 36,
+                  legendPosition: 'middle'
+                }}
+                axisLeft={{
+                  tickSize: 5,
+                  tickPadding: 5,
+                  tickRotation: 0,
+                  legend: '',
+                  legendOffset: -40,
+                  legendPosition: 'middle',
+                  format: value => `${(value / 1000).toFixed(0)}K Ft`
+                }}
+                enableArea={true}
+                areaOpacity={0.15}
+                pointSize={0}
+                useMesh={true}
+                legends={[]}
+                motionConfig="gentle"
+                curve="monotoneX"
+                enableSlices="x"
+              />
+            </div>
+          </div>
+
+          {/* Product Performance Table */}
+          <div className="overflow-hidden">
+            <div className="space-y-3 max-h-[350px] overflow-y-auto custom-scrollbar">
+              {/* Product 1 */}
+              <div className="glass-card p-3 rounded-lg hover:bg-white/5 transition-colors cursor-pointer">
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 rounded-lg bg-white/10 flex items-center justify-center">
+                    <Package className="w-6 h-6 text-white/60" />
+                  </div>
+                  <div className="flex-1">
+                    <h4 className="text-sm font-medium text-white">Gerincbarát Anatómiai Párna</h4>
+                    <div className="flex items-center gap-4 mt-1">
+                      <span className="text-xs text-white/50">PROFIT</span>
+                      <span className="text-xs font-semibold text-green-400">254,922 Ft</span>
+                      <span className="text-xs text-white/50">COGS</span>
+                      <span className="text-xs text-white/60">128,567 Ft</span>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <div className="flex items-center gap-3">
+                      <div>
+                        <span className="text-xs text-white/50">CPA</span>
+                        <p className="text-sm font-semibold text-white">4,443 Ft</p>
+                      </div>
+                      <div>
+                        <span className="text-xs text-white/50">ROAS</span>
+                        <p className="text-sm font-semibold text-purple-400">5.18</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-1 mt-1">
+                      <span className="text-xs text-white/50">PPU</span>
+                      <span className="text-xs font-semibold text-green-400">8,223 Ft</span>
+                      <span className="text-xs text-green-400">+35.76%</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Product 2 */}
+              <div className="glass-card p-3 rounded-lg hover:bg-white/5 transition-colors cursor-pointer">
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 rounded-lg bg-white/10 flex items-center justify-center">
+                    <Package className="w-6 h-6 text-white/60" />
+                  </div>
+                  <div className="flex-1">
+                    <h4 className="text-sm font-medium text-white">Ortopéd Pro Talpbetét</h4>
+                    <div className="flex items-center gap-4 mt-1">
+                      <span className="text-xs text-white/50">PROFIT</span>
+                      <span className="text-xs font-semibold text-green-400">149,378 Ft</span>
+                      <span className="text-xs text-white/50">COGS</span>
+                      <span className="text-xs text-white/60">36,799 Ft</span>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <div className="flex items-center gap-3">
+                      <div>
+                        <span className="text-xs text-white/50">CPA</span>
+                        <p className="text-sm font-semibold text-white">2,287 Ft</p>
+                      </div>
+                      <div>
+                        <span className="text-xs text-white/50">ROAS</span>
+                        <p className="text-sm font-semibold text-purple-400">3.59</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-1 mt-1">
+                      <span className="text-xs text-white/50">PPU</span>
+                      <span className="text-xs font-semibold text-cyan-400">2,995 Ft</span>
+                      <span className="text-xs text-green-400">+12.4%</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Product 3 */}
+              <div className="glass-card p-4 rounded-lg hover:bg-white/5 transition-colors cursor-pointer">
+                <div className="flex items-start justify-between mb-3">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-lg bg-white/10 flex items-center justify-center">
+                      <Package className="w-5 h-5 text-white/60" />
+                    </div>
+                    <div>
+                      <h4 className="text-sm font-medium text-white">SERENI Pikkelysömör Krém</h4>
+                      <p className="text-xs text-purple-400">High ROAS product</p>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-white text-sm font-medium">97.8K Ft</p>
+                    <p className="text-green-400 text-xs">+42.9%</p>
+                  </div>
+                </div>
+                <div className="grid grid-cols-4 gap-3">
+                  <div className="text-center">
+                    <p className="text-xs text-white/40">Revenue</p>
+                    <p className="text-sm font-semibold text-white">227.8K</p>
+                  </div>
+                  <div className="text-center">
+                    <p className="text-xs text-white/40">CPA</p>
+                    <p className="text-sm font-semibold text-yellow-400">1.4K</p>
+                  </div>
+                  <div className="text-center">
+                    <p className="text-xs text-white/40">ROAS</p>
+                    <p className="text-sm font-semibold text-purple-400">6.27</p>
+                  </div>
+                  <div className="text-center">
+                    <p className="text-xs text-white/40">Orders</p>
+                    <p className="text-sm font-semibold text-cyan-400">26</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Product 4 */}
+              <div className="glass-card p-3 rounded-lg hover:bg-white/5 transition-colors cursor-pointer">
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 rounded-lg bg-white/10 flex items-center justify-center">
+                    <Package className="w-6 h-6 text-white/60" />
+                  </div>
+                  <div className="flex-1">
+                    <h4 className="text-sm font-medium text-white">Vibráló Masszázshenger</h4>
+                    <div className="flex items-center gap-4 mt-1">
+                      <span className="text-xs text-white/50">PROFIT</span>
+                      <span className="text-xs font-semibold text-green-400">72,961 Ft</span>
+                      <span className="text-xs text-white/50">COGS</span>
+                      <span className="text-xs text-white/60">98,743 Ft</span>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <div className="flex items-center gap-3">
+                      <div>
+                        <span className="text-xs text-white/50">CPA</span>
+                        <p className="text-sm font-semibold text-white">3,512 Ft</p>
+                      </div>
+                      <div>
+                        <span className="text-xs text-white/50">ROAS</span>
+                        <p className="text-sm font-semibold text-purple-400">5.43</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-1 mt-1">
+                      <span className="text-xs text-white/50">PPU</span>
+                      <span className="text-xs font-semibold text-green-400">6,633 Ft</span>
+                      <span className="text-xs text-green-400">+34.4%</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Product 5 */}
+              <div className="glass-card p-3 rounded-lg hover:bg-white/5 transition-colors cursor-pointer">
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 rounded-lg bg-white/10 flex items-center justify-center">
+                    <Package className="w-6 h-6 text-white/60" />
+                  </div>
+                  <div className="flex-1">
+                    <h4 className="text-sm font-medium text-white">EarthFlow Földeléses Szőnyeg</h4>
+                    <div className="flex items-center gap-4 mt-1">
+                      <span className="text-xs text-white/50">PROFIT</span>
+                      <span className="text-xs font-semibold text-green-400">51,423 Ft</span>
+                      <span className="text-xs text-white/50">COGS</span>
+                      <span className="text-xs text-white/60">61,708 Ft</span>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <div className="flex items-center gap-3">
+                      <div>
+                        <span className="text-xs text-white/50">CPA</span>
+                        <p className="text-sm font-semibold text-white">2,825 Ft</p>
+                      </div>
+                      <div>
+                        <span className="text-xs text-white/50">ROAS</span>
+                        <p className="text-sm font-semibold text-purple-400">6.10</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-1 mt-1">
+                      <span className="text-xs text-white/50">PPU</span>
+                      <span className="text-xs font-semibold text-green-400">6,428 Ft</span>
+                      <span className="text-xs text-green-400">+38.1%</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <button className="glass-button w-full mt-3 py-2 text-sm hover:scale-[1.02] transition-transform">
+              Load more
+            </button>
+          </div>
+        </div>
+      </div>
+
       {/* Charts Section */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Area Chart */}
@@ -381,7 +637,7 @@ function Dashboard() {
             ))}
           </div>
 
-          <div style={{ height: '400px' }}>
+          <div style={{ height: '400px', minHeight: '400px', width: '100%' }}>
             <ResponsiveLine
               data={areaChartData}
               theme={glassTheme}
@@ -461,23 +717,18 @@ function Dashboard() {
             <Activity className="w-5 h-5 text-white/40" />
           </div>
 
-          <div style={{ height: '500px' }}>
+          <div style={{ height: '450px', minHeight: '450px', width: '100%' }}>
             <ResponsiveFunnel
-              data={funnelData}
+              data={revenueFunnelData}
               theme={glassTheme}
-              margin={{ top: 20, right: 20, bottom: 20, left: 20 }}
-              direction="vertical"
-              shapeBlending={0.7}
-              spacing={8}
+              margin={{ top: 20, right: 30, bottom: 20, left: 30 }}
+              shapeBlending={0.66}
               valueFormat=" >-.2s"
-              colors={{ scheme: 'purple_blue' }}
+              colors={['#a855f7', '#d946ef', '#c026d3', '#9333ea', '#7c3aed']}
               borderWidth={20}
               borderColor={{ from: 'color', modifiers: [['darker', 0.3]] }}
               borderOpacity={0.5}
-              labelColor={{
-                from: 'color',
-                modifiers: [['brighter', 3]]
-              }}
+              labelColor={{ from: 'color', modifiers: [['brighter', 3]] }}
               beforeSeparatorLength={100}
               beforeSeparatorOffset={20}
               afterSeparatorLength={100}
@@ -485,7 +736,40 @@ function Dashboard() {
               currentPartSizeExtension={10}
               currentBorderWidth={40}
               motionConfig="gentle"
+              isInteractive={true}
+              enableLabel={true}
+              animate={true}
+              tooltip={({ id, value, color }) => (
+                <div style={{
+                  background: 'rgba(0, 0, 0, 0.9)',
+                  color: '#ffffff',
+                  padding: '12px',
+                  borderRadius: '8px',
+                  border: '1px solid rgba(255, 255, 255, 0.2)'
+                }}>
+                  <strong>{id}</strong>
+                  <br />
+                  <span style={{ color }}>{value.toLocaleString('en-US')} Ft</span>
+                </div>
+              )}
             />
+          </div>
+          
+          {/* Compact Net Profit Display */}
+          <div className="mt-4 glass-card p-3 rounded-xl bg-gradient-to-r from-green-500/10 to-emerald-500/10">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-6">
+                <div>
+                  <span className="text-xs text-white/60 uppercase tracking-wider">Net Profit</span>
+                  <p className="text-xl font-bold text-green-400">1.07M Ft</p>
+                </div>
+                <div className="h-8 w-px bg-white/10"></div>
+                <div>
+                  <span className="text-xs text-white/60 uppercase tracking-wider">Profit Margin</span>
+                  <p className="text-xl font-bold text-emerald-400">33.5%</p>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </div>
