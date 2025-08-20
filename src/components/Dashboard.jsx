@@ -428,7 +428,7 @@ function Dashboard() {
 
           {/* Product Performance Table */}
           <div className="overflow-hidden">
-            <div className="space-y-2 max-h-[350px] overflow-y-auto custom-scrollbar">
+            <div className="space-y-3 max-h-[350px] overflow-y-auto custom-scrollbar">
               {/* Product 1 */}
               <div className="glass-card p-3 rounded-lg hover:bg-white/5 transition-colors cursor-pointer">
                 <div className="flex items-center gap-3">
@@ -483,7 +483,7 @@ function Dashboard() {
                     <div className="flex items-center gap-3">
                       <div>
                         <span className="text-xs text-white/50">CPA</span>
-                        <p className="text-sm font-semibold text-white">2,315 Ft</p>
+                        <p className="text-sm font-semibold text-white">2,287 Ft</p>
                       </div>
                       <div>
                         <span className="text-xs text-white/50">ROAS</span>
@@ -492,44 +492,46 @@ function Dashboard() {
                     </div>
                     <div className="flex items-center gap-1 mt-1">
                       <span className="text-xs text-white/50">PPU</span>
-                      <span className="text-xs font-semibold text-green-400">3,046 Ft</span>
-                      <span className="text-xs text-green-400">+35.71%</span>
+                      <span className="text-xs font-semibold text-cyan-400">2,995 Ft</span>
+                      <span className="text-xs text-green-400">+12.4%</span>
                     </div>
                   </div>
                 </div>
               </div>
 
               {/* Product 3 */}
-              <div className="glass-card p-3 rounded-lg hover:bg-white/5 transition-colors cursor-pointer">
-                <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 rounded-lg bg-white/10 flex items-center justify-center">
-                    <Package className="w-6 h-6 text-white/60" />
-                  </div>
-                  <div className="flex-1">
-                    <h4 className="text-sm font-medium text-white">SERENI Pikkelysömör Krém</h4>
-                    <div className="flex items-center gap-4 mt-1">
-                      <span className="text-xs text-white/50">PROFIT</span>
-                      <span className="text-xs font-semibold text-green-400">97,818 Ft</span>
-                      <span className="text-xs text-white/50">COGS</span>
-                      <span className="text-xs text-white/60">42,618 Ft</span>
+              <div className="glass-card p-4 rounded-lg hover:bg-white/5 transition-colors cursor-pointer">
+                <div className="flex items-start justify-between mb-3">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-lg bg-white/10 flex items-center justify-center">
+                      <Package className="w-5 h-5 text-white/60" />
+                    </div>
+                    <div>
+                      <h4 className="text-sm font-medium text-white">SERENI Pikkelysömör Krém</h4>
+                      <p className="text-xs text-purple-400">High ROAS product</p>
                     </div>
                   </div>
                   <div className="text-right">
-                    <div className="flex items-center gap-3">
-                      <div>
-                        <span className="text-xs text-white/50">CPA</span>
-                        <p className="text-sm font-semibold text-white">1,397 Ft</p>
-                      </div>
-                      <div>
-                        <span className="text-xs text-white/50">ROAS</span>
-                        <p className="text-sm font-semibold text-purple-400">6.27</p>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-1 mt-1">
-                      <span className="text-xs text-white/50">PPU</span>
-                      <span className="text-xs font-semibold text-green-400">5,782 Ft</span>
-                      <span className="text-xs text-green-400">+42.94%</span>
-                    </div>
+                    <p className="text-white text-sm font-medium">97.8K Ft</p>
+                    <p className="text-green-400 text-xs">+42.9%</p>
+                  </div>
+                </div>
+                <div className="grid grid-cols-4 gap-3">
+                  <div className="text-center">
+                    <p className="text-xs text-white/40">Revenue</p>
+                    <p className="text-sm font-semibold text-white">227.8K</p>
+                  </div>
+                  <div className="text-center">
+                    <p className="text-xs text-white/40">CPA</p>
+                    <p className="text-sm font-semibold text-yellow-400">1.4K</p>
+                  </div>
+                  <div className="text-center">
+                    <p className="text-xs text-white/40">ROAS</p>
+                    <p className="text-sm font-semibold text-purple-400">6.27</p>
+                  </div>
+                  <div className="text-center">
+                    <p className="text-xs text-white/40">Orders</p>
+                    <p className="text-sm font-semibold text-cyan-400">26</p>
                   </div>
                 </div>
               </div>
@@ -544,16 +546,16 @@ function Dashboard() {
                     <h4 className="text-sm font-medium text-white">Vibráló Masszázshenger</h4>
                     <div className="flex items-center gap-4 mt-1">
                       <span className="text-xs text-white/50">PROFIT</span>
-                      <span className="text-xs font-semibold text-green-400">72,999 Ft</span>
+                      <span className="text-xs font-semibold text-green-400">72,961 Ft</span>
                       <span className="text-xs text-white/50">COGS</span>
-                      <span className="text-xs text-white/60">41,206 Ft</span>
+                      <span className="text-xs text-white/60">98,743 Ft</span>
                     </div>
                   </div>
                   <div className="text-right">
                     <div className="flex items-center gap-3">
                       <div>
                         <span className="text-xs text-white/50">CPA</span>
-                        <p className="text-sm font-semibold text-white">3,546 Ft</p>
+                        <p className="text-sm font-semibold text-white">3,512 Ft</p>
                       </div>
                       <div>
                         <span className="text-xs text-white/50">ROAS</span>
@@ -562,8 +564,8 @@ function Dashboard() {
                     </div>
                     <div className="flex items-center gap-1 mt-1">
                       <span className="text-xs text-white/50">PPU</span>
-                      <span className="text-xs font-semibold text-green-400">6,636 Ft</span>
-                      <span className="text-xs text-green-400">+34.44%</span>
+                      <span className="text-xs font-semibold text-green-400">6,633 Ft</span>
+                      <span className="text-xs text-green-400">+34.4%</span>
                     </div>
                   </div>
                 </div>
@@ -579,16 +581,16 @@ function Dashboard() {
                     <h4 className="text-sm font-medium text-white">EarthFlow Földeléses Szőnyeg</h4>
                     <div className="flex items-center gap-4 mt-1">
                       <span className="text-xs text-white/50">PROFIT</span>
-                      <span className="text-xs font-semibold text-green-400">51,435 Ft</span>
+                      <span className="text-xs font-semibold text-green-400">51,423 Ft</span>
                       <span className="text-xs text-white/50">COGS</span>
-                      <span className="text-xs text-white/60">31,368 Ft</span>
+                      <span className="text-xs text-white/60">61,708 Ft</span>
                     </div>
                   </div>
                   <div className="text-right">
                     <div className="flex items-center gap-3">
                       <div>
                         <span className="text-xs text-white/50">CPA</span>
-                        <p className="text-sm font-semibold text-white">2,764 Ft</p>
+                        <p className="text-sm font-semibold text-white">2,825 Ft</p>
                       </div>
                       <div>
                         <span className="text-xs text-white/50">ROAS</span>
@@ -597,8 +599,8 @@ function Dashboard() {
                     </div>
                     <div className="flex items-center gap-1 mt-1">
                       <span className="text-xs text-white/50">PPU</span>
-                      <span className="text-xs font-semibold text-green-400">6,433 Ft</span>
-                      <span className="text-xs text-green-400">+38.13%</span>
+                      <span className="text-xs font-semibold text-green-400">6,428 Ft</span>
+                      <span className="text-xs text-green-400">+38.1%</span>
                     </div>
                   </div>
                 </div>
