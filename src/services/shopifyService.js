@@ -129,6 +129,7 @@ class ShopifyService {
           transformed.barcode = variant.barcode;
           transformed.price = parseFloat(variant.price) || 0;
           transformed.comparePrice = parseFloat(variant.compare_at_price) || null;
+          // Cost comes from the inventory_items endpoint (fetched by backend)
           transformed.cost = parseFloat(variant.cost) || 0;
           transformed.stock = variant.inventory_quantity || 0;
           transformed.weight = variant.weight;
@@ -144,6 +145,7 @@ class ShopifyService {
             barcode: variant.barcode,
             price: parseFloat(variant.price) || 0,
             comparePrice: parseFloat(variant.compare_at_price) || null,
+            // Cost comes from the inventory_items endpoint (fetched by backend)
             cost: parseFloat(variant.cost) || 0,
             stock: variant.inventory_quantity || 0,
             weight: variant.weight,
@@ -164,8 +166,32 @@ class ShopifyService {
         }
       }
 
-      // Add category from product type or first collection
-      transformed.category = product.product_type || 'Uncategorized';
+      // Parse category from tags or collections
+      // Look for tags that might indicate category (e.g., "category:Electronics")
+      let category = 'Uncategorized';
+      
+      // Check if any tag starts with "category:" or "collection:"
+      if (product.tags) {
+        const categoryTag = product.tags.split(', ').find(tag => 
+          tag.toLowerCase().startsWith('category:') || 
+          tag.toLowerCase().startsWith('collection:')
+        );
+        if (categoryTag) {
+          category = categoryTag.split(':')[1].trim();
+        }
+      }
+      
+      // If no category tag found, try to use vendor as category if it's not generic
+      if (category === 'Uncategorized' && product.vendor && 
+          product.vendor.toLowerCase() !== 'vendor' && 
+          product.vendor.toLowerCase() !== 'default vendor') {
+        category = product.vendor;
+      }
+      
+      transformed.category = category;
+      
+      // Keep product_type as type for filtering
+      transformed.type = product.product_type || '';
       
       return transformed;
     });

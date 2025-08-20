@@ -588,10 +588,62 @@ app.post('/api/shopify/products', async (req, res) => {
     }
     
     const data = await response.json();
+    const products = data.products;
+    
+    // Fetch inventory item costs for all variants
+    // Collect all inventory item IDs
+    const inventoryItemIds = [];
+    products.forEach(product => {
+      if (product.variants) {
+        product.variants.forEach(variant => {
+          if (variant.inventory_item_id) {
+            inventoryItemIds.push(variant.inventory_item_id);
+          }
+        });
+      }
+    });
+    
+    // Fetch inventory items in batches (Shopify allows up to 100 at a time)
+    const inventoryCosts = {};
+    for (let i = 0; i < inventoryItemIds.length; i += 100) {
+      const batch = inventoryItemIds.slice(i, i + 100);
+      const inventoryUrl = `https://${storeDomain}.myshopify.com/admin/api/2024-01/inventory_items.json?ids=${batch.join(',')}`;
+      
+      try {
+        const invResponse = await fetch(inventoryUrl, {
+          headers: {
+            'X-Shopify-Access-Token': accessToken,
+            'Content-Type': 'application/json'
+          }
+        });
+        
+        if (invResponse.ok) {
+          const invData = await invResponse.json();
+          invData.inventory_items.forEach(item => {
+            inventoryCosts[item.id] = item.cost || 0;
+          });
+        }
+      } catch (invError) {
+        console.error('Error fetching inventory costs:', invError);
+        // Continue without costs if this fails
+      }
+    }
+    
+    // Add costs to variants
+    products.forEach(product => {
+      if (product.variants) {
+        product.variants.forEach(variant => {
+          if (variant.inventory_item_id && inventoryCosts[variant.inventory_item_id]) {
+            variant.cost = inventoryCosts[variant.inventory_item_id];
+          }
+        });
+      }
+    });
+    
     res.json({ 
       success: true, 
-      products: data.products,
-      count: data.products.length
+      products: products,
+      count: products.length
     });
   } catch (error) {
     console.error('Shopify products fetch error:', error);
