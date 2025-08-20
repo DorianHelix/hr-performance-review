@@ -296,6 +296,46 @@ function Analytics() {
     }
   ];
 
+  // Customer Retention Rate data - NEW
+  const retentionData = [
+    {
+      id: "retention",
+      color: "hsl(160, 70%, 50%)",
+      data: [
+        { x: "Jan", y: 92 },
+        { x: "Feb", y: 89 },
+        { x: "Mar", y: 91 },
+        { x: "Apr", y: 88 },
+        { x: "May", y: 90 },
+        { x: "Jun", y: 93 },
+        { x: "Jul", y: 94 },
+        { x: "Aug", y: 91 },
+        { x: "Sep", y: 92 },
+        { x: "Oct", y: 95 },
+        { x: "Nov", y: 94 },
+        { x: "Dec", y: 96 }
+      ]
+    },
+    {
+      id: "new_customers",
+      color: "hsl(220, 70%, 50%)",
+      data: [
+        { x: "Jan", y: 15 },
+        { x: "Feb", y: 18 },
+        { x: "Mar", y: 22 },
+        { x: "Apr", y: 19 },
+        { x: "May", y: 25 },
+        { x: "Jun", y: 28 },
+        { x: "Jul", y: 24 },
+        { x: "Aug", y: 26 },
+        { x: "Sep", y: 23 },
+        { x: "Oct", y: 29 },
+        { x: "Nov", y: 31 },
+        { x: "Dec", y: 35 }
+      ]
+    }
+  ];
+
   // Heatmap data for weekly activity
   const heatmapData = [
     { id: "Monday", data: [
@@ -1180,6 +1220,160 @@ function Analytics() {
               <div className="text-xs text-white/60">Total Profit</div>
               <div className="text-lg font-bold text-green-400">1,350,000 Ft</div>
             </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Customer Retention Rate Chart - NEW */}
+      <div className="glass-card-large p-6 mb-6">
+        <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+          <Users size={20} className="text-emerald-400" />
+          Customer Retention & Growth
+        </h3>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-6">
+          <div className="glass-card p-4 rounded-xl bg-gradient-to-br from-emerald-500/10 to-green-600/10">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-xs text-white/60">Avg Retention Rate</p>
+                <p className="text-2xl font-bold text-emerald-400 mt-1">92.3%</p>
+                <p className="text-xs text-white/50 mt-2">Industry avg: 85%</p>
+              </div>
+              <div className="glass-card p-3 rounded-xl bg-gradient-to-br from-emerald-500/20 to-green-500/20">
+                <TrendingUp size={24} className="text-emerald-400" />
+              </div>
+            </div>
+          </div>
+          
+          <div className="glass-card p-4 rounded-xl bg-gradient-to-br from-blue-500/10 to-indigo-600/10">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-xs text-white/60">Customer Lifetime Value</p>
+                <p className="text-2xl font-bold text-blue-400 mt-1">385,000 Ft</p>
+                <p className="text-xs text-green-400 mt-2">+12% vs last year</p>
+              </div>
+              <div className="glass-card p-3 rounded-xl bg-gradient-to-br from-blue-500/20 to-indigo-500/20">
+                <DollarSign size={24} className="text-blue-400" />
+              </div>
+            </div>
+          </div>
+          
+          <div className="glass-card p-4 rounded-xl bg-gradient-to-br from-purple-500/10 to-violet-600/10">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-xs text-white/60">Churn Rate</p>
+                <p className="text-2xl font-bold text-purple-400 mt-1">7.7%</p>
+                <p className="text-xs text-green-400 mt-2">-2.3% improvement</p>
+              </div>
+              <div className="glass-card p-3 rounded-xl bg-gradient-to-br from-purple-500/20 to-violet-500/20">
+                <ArrowDown size={24} className="text-purple-400" />
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <div style={{ height: '350px' }}>
+          <ResponsiveLine
+            data={retentionData}
+            theme={glassTheme}
+            margin={{ top: 20, right: 110, bottom: 50, left: 60 }}
+            xScale={{ type: 'point' }}
+            yScale={{ 
+              type: 'linear', 
+              min: 0, 
+              max: 100, 
+              stacked: false,
+              reverse: false
+            }}
+            yFormat=" >-.1f"
+            axisTop={null}
+            axisRight={null}
+            axisBottom={{
+              tickSize: 5,
+              tickPadding: 5,
+              tickRotation: 0,
+              legend: 'Month',
+              legendOffset: 36,
+              legendPosition: 'middle'
+            }}
+            axisLeft={{
+              tickSize: 5,
+              tickPadding: 5,
+              tickRotation: 0,
+              legend: 'Percentage (%)',
+              legendOffset: -45,
+              legendPosition: 'middle',
+              format: value => `${value}%`
+            }}
+            colors={['#10b981', '#3b82f6']}
+            lineWidth={3}
+            pointSize={8}
+            pointColor={{ theme: 'background' }}
+            pointBorderWidth={2}
+            pointBorderColor={{ from: 'serieColor' }}
+            pointLabelYOffset={-12}
+            enableArea={true}
+            areaOpacity={0.15}
+            useMesh={true}
+            legends={[
+              {
+                anchor: 'bottom-right',
+                direction: 'column',
+                justify: false,
+                translateX: 100,
+                translateY: 0,
+                itemsSpacing: 0,
+                itemDirection: 'left-to-right',
+                itemWidth: 90,
+                itemHeight: 23,
+                itemOpacity: 0.75,
+                symbolSize: 12,
+                symbolShape: 'circle',
+                symbolBorderColor: 'rgba(0, 0, 0, .5)',
+                effects: [
+                  {
+                    on: 'hover',
+                    style: {
+                      itemBackground: 'rgba(0, 0, 0, .03)',
+                      itemOpacity: 1
+                    }
+                  }
+                ],
+                data: [
+                  {
+                    id: 'retention',
+                    label: 'Retention %',
+                    color: '#10b981'
+                  },
+                  {
+                    id: 'new_customers',
+                    label: 'New Customer %',
+                    color: '#3b82f6'
+                  }
+                ]
+              }
+            ]}
+            animate={true}
+            motionConfig="gentle"
+            crosshairType="cross"
+          />
+        </div>
+        
+        <div className="mt-6 grid grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="glass-card p-3 rounded-lg">
+            <p className="text-xs text-white/60 mb-1">Best Month</p>
+            <p className="text-sm font-bold text-emerald-400">December (96%)</p>
+          </div>
+          <div className="glass-card p-3 rounded-lg">
+            <p className="text-xs text-white/60 mb-1">Worst Month</p>
+            <p className="text-sm font-bold text-orange-400">April (88%)</p>
+          </div>
+          <div className="glass-card p-3 rounded-lg">
+            <p className="text-xs text-white/60 mb-1">YoY Growth</p>
+            <p className="text-sm font-bold text-blue-400">+4.2%</p>
+          </div>
+          <div className="glass-card p-3 rounded-lg">
+            <p className="text-xs text-white/60 mb-1">Q4 Average</p>
+            <p className="text-sm font-bold text-purple-400">95%</p>
           </div>
         </div>
       </div>
