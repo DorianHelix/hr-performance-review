@@ -1410,9 +1410,10 @@ function CategoryManagementModal({ categories, onSave, onClose }) {
 /* -----------------------------------------------------------
    Employees Content Component
 ----------------------------------------------------------- */
-function EmployeesContent() {
+function EmployeesContent({ isDarkMode }) {
   const [employees, setEmployees] = useState(() => {
-    return lsRead(LS_EMPLOYEES, []);
+    const data = lsRead(LS_EMPLOYEES, []);
+    return Array.isArray(data) ? data : [];
   });
   const [showAddModal, setShowAddModal] = useState(false);
   const [showBulkImportModal, setShowBulkImportModal] = useState(false);
@@ -1480,14 +1481,15 @@ function EmployeesContent() {
   };
 
   // Filter employees
-  const filteredEmployees = employees.filter(emp => {
+  const filteredEmployees = (employees || []).filter(emp => {
+    if (!emp || !emp.name) return false;
     const matchesSearch = emp.name.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesDivision = !filterDepartment || emp.division === filterDepartment;
     return matchesSearch && matchesDivision;
   });
 
   // Get unique divisions
-  const departments = [...new Set(employees.map(emp => emp.division))].filter(Boolean);
+  const departments = [...new Set((employees || []).map(emp => emp?.division))].filter(Boolean);
 
   // Simple Org Chart Component
   const OrgChart = ({ onQuickAdd, onEditEmployee, onDeleteEmployee, zoom, onZoomChange, isDarkMode, isFullscreen }) => {
@@ -1532,7 +1534,7 @@ function EmployeesContent() {
         const levels = {};
         
         // First pass: create all nodes
-        employees.forEach(emp => {
+        (employees || []).forEach(emp => {
           nodeMap[emp.id] = {
             ...emp,
             width: 200,
@@ -1542,7 +1544,7 @@ function EmployeesContent() {
         });
         
         // Second pass: build relationships
-        employees.forEach(emp => {
+        (employees || []).forEach(emp => {
           if (emp.managerId && nodeMap[emp.managerId]) {
             nodeMap[emp.managerId].children.push(emp.id);
           } else if (!emp.managerId) {
@@ -2425,7 +2427,7 @@ function EmployeesContent() {
               <p className="text-white/60">Manage your team members and organizational structure</p>
             </div>
             <div className="text-3xl font-bold text-white">
-              {employees.length}
+              {(employees || []).length}
               <span className="text-sm font-normal text-white/60 ml-2">Total Employees</span>
             </div>
           </div>
@@ -4200,7 +4202,7 @@ export default function App() {
       {/* Conditional Content Based on Current View */}
       {currentView === 'dashboard' && <Dashboard />}
       
-      {currentView === 'employees' && <EmployeesContent />}
+      {currentView === 'employees' && <EmployeesContent isDarkMode={isDarkMode} />}
       
       {currentView === 'creative' && (
         <CreativePerformance 
