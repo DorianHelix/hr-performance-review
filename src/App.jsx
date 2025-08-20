@@ -96,14 +96,6 @@ function Sidebar({ isCollapsed, onToggle, currentView, onViewChange, isDarkMode,
 
   return (
     <div className={`${isCollapsed ? 'w-20' : 'w-72'} glass-sidebar h-screen flex flex-col transition-all duration-500 ease-out fixed left-0 top-0 z-50 ml-2 mt-4 mb-4 mr-2 rounded-3xl relative`}>
-      {/* Hover edge trigger - positioned at sidebar center (always visible for consistent workflow) */}
-      <div 
-        className="absolute top-1/2 -translate-y-1/2 -right-2 w-4 h-16 bg-transparent hover:bg-white/5 cursor-pointer transition-colors duration-300 flex items-center justify-center group rounded-r-xl"
-        onClick={onToggle}
-        title={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
-      >
-        <div className="w-1 h-8 bg-white/20 rounded-full group-hover:bg-white/40 group-hover:w-1.5 transition-all duration-300"></div>
-      </div>
       {/* Header with Logo Toggle */}
       <div className="p-6 relative" style={{ borderBottom: '1px solid var(--glass-border)' }}>
         <div className={`flex items-center gap-3 ${isCollapsed ? 'justify-center' : ''}`}>
@@ -113,15 +105,6 @@ function Sidebar({ isCollapsed, onToggle, currentView, onViewChange, isDarkMode,
             title={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
           >
             <CompanyLogo className={`${isCollapsed ? 'w-8 h-8' : 'w-10 h-10'} text-white transition-all duration-500 group-hover:rotate-12`} />
-            
-            {/* Subtle indicator */}
-            <div className="absolute -bottom-1 -right-1 w-3 h-3 glass-card rounded-full flex items-center justify-center opacity-70 group-hover:opacity-100 transition-opacity">
-              {isCollapsed ? (
-                <ChevronRight size={8} className="text-white/80" />
-              ) : (
-                <ChevronLeft size={8} className="text-white/80" />
-              )}
-            </div>
           </button>
           
           {!isCollapsed && (
@@ -2412,10 +2395,9 @@ function EmployeesContent({ isDarkMode }) {
   };
 
   return (
-    <div className="flex flex-col lg:flex-row h-full w-full overflow-hidden">
+    <div className="h-full flex flex-col lg:flex-row p-4 md:p-6 overflow-auto">
       {/* Main Content */}
-      <div className="flex-1 p-4 md:p-6 overflow-hidden min-w-0">
-        <div className="w-full max-w-[1556px] mx-auto h-full flex flex-col">
+      <div className="flex-1 flex flex-col">
         <header className="glass-card-large p-6 mb-6" style={{ minHeight: '170px' }}>
           <div className="flex items-center justify-between mb-4">
             <div>
@@ -2757,10 +2739,9 @@ function EmployeesContent({ isDarkMode }) {
           </div>
         )}
         </div>
-      </div>
 
       {/* Right Sidebar - Add Employee Widget */}
-      <div className="w-full lg:w-96 p-4 md:p-6 space-y-6 lg:h-full lg:overflow-y-auto flex-shrink-0">
+      <div className="w-full lg:w-96 space-y-6 overflow-y-auto flex-shrink-0 lg:ml-6">
         <div className="glass-card-large p-6">
           <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
             <PlusCircle size={20} className="text-blue-400" />
