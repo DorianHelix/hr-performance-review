@@ -288,11 +288,11 @@ body {
   font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Helvetica Neue', sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  background: var(--bg-main);
+  background: linear-gradient(135deg, var(--color-bgPrimary) 0%, var(--color-bgSecondary) 100%);
   min-height: 100vh;
   overflow-x: hidden;
-  color: var(--text-primary);
-  transition: var(--transition);
+  color: var(--color-textPrimary);
+  transition: background 0.3s ease, color 0.3s ease;
 }
 
 * {
@@ -305,36 +305,36 @@ html, body, #root {
 
 /* Glass Morphism Components */
 .glass-card {
-  background: var(--glass-bg);
+  background: var(--color-glassBg);
   backdrop-filter: var(--backdrop-blur);
   -webkit-backdrop-filter: var(--backdrop-blur);
-  border: 1px solid var(--glass-border);
+  border: 1px solid var(--color-glassBorder);
   border-radius: var(--border-radius);
   box-shadow: var(--glass-shadow);
   transition: var(--transition);
 }
 
 .glass-card:hover {
-  background: var(--glass-bg-hover);
+  background: var(--color-glassHover);
   box-shadow: var(--glass-shadow-hover);
   transform: translateY(-2px);
 }
 
 .glass-card-no-transition {
-  background: var(--glass-bg);
+  background: var(--color-glassBg);
   backdrop-filter: var(--backdrop-blur);
   -webkit-backdrop-filter: var(--backdrop-blur);
-  border: 1px solid var(--glass-border);
+  border: 1px solid var(--color-glassBorder);
   border-radius: var(--border-radius);
   box-shadow: var(--glass-shadow);
   transition: none;
 }
 
 .glass-card-large {
-  background: var(--glass-bg);
+  background: var(--color-glassBg);
   backdrop-filter: var(--backdrop-blur);
   -webkit-backdrop-filter: var(--backdrop-blur);
-  border: 1px solid var(--glass-border);
+  border: 1px solid var(--color-glassBorder);
   border-radius: var(--border-radius-large);
   box-shadow: var(--glass-shadow);
   transition: var(--transition);
@@ -346,21 +346,21 @@ html, body, #root {
   -webkit-backdrop-filter: blur(40px) saturate(180%);
   border: 1px solid rgba(255, 255, 255, 0.15);
   box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
-  color: var(--text-primary);
+  color: var(--color-textPrimary);
 }
 
 .glass-button {
-  background: var(--glass-bg);
+  background: var(--color-glassBg);
   backdrop-filter: var(--backdrop-blur);
   -webkit-backdrop-filter: var(--backdrop-blur);
-  border: 1px solid var(--glass-border);
+  border: 1px solid var(--color-glassBorder);
   border-radius: 16px;
   transition: var(--transition);
   color: rgba(255, 255, 255, 0.9);
 }
 
 .glass-button:hover {
-  background: var(--glass-bg-hover);
+  background: var(--color-glassHover);
   transform: scale(1.02);
   box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
 }
@@ -387,10 +387,10 @@ html, body, #root {
 }
 
 .glass-input {
-  background: var(--glass-bg);
+  background: var(--color-glassBg);
   backdrop-filter: var(--backdrop-blur);
   -webkit-backdrop-filter: var(--backdrop-blur);
-  border: 1px solid var(--glass-border);
+  border: 1px solid var(--color-glassBorder);
   border-radius: 16px;
   color: rgba(255, 255, 255, 0.9);
   transition: var(--transition);
@@ -550,10 +550,10 @@ input[type="range"]::-moz-range-thumb {
 /* Apple Liquid Style Date Inputs */
 input[type="date"].glass-input {
   position: relative;
-  background: var(--glass-bg);
+  background: var(--color-glassBg);
   backdrop-filter: var(--backdrop-blur);
   -webkit-backdrop-filter: var(--backdrop-blur);
-  border: 1px solid var(--glass-border);
+  border: 1px solid var(--color-glassBorder);
   border-radius: 16px;
   color: rgba(255, 255, 255, 0.9);
   transition: var(--transition);
@@ -566,11 +566,11 @@ input[type="date"].glass-input:focus {
   outline: none;
   border-color: rgba(255, 255, 255, 0.3);
   box-shadow: 0 0 0 4px rgba(255, 255, 255, 0.1);
-  background: var(--glass-bg-hover);
+  background: var(--color-glassHover);
 }
 
 input[type="date"].glass-input:hover {
-  background: var(--glass-bg-hover);
+  background: var(--color-glassHover);
   transform: translateY(-1px);
 }
 

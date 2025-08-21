@@ -1261,13 +1261,24 @@ app.get('/api/orders', (req, res) => {
   let params = [];
   
   if (search) {
+    // Search in orders and line items (case-insensitive)
     whereConditions.push(`(
-      o.order_number LIKE ? OR 
-      o.customer_name LIKE ? OR 
-      o.customer_email LIKE ?
+      LOWER(o.order_number) LIKE LOWER(?) OR 
+      LOWER(o.customer_name) LIKE LOWER(?) OR 
+      LOWER(o.customer_email) LIKE LOWER(?) OR
+      EXISTS (
+        SELECT 1 FROM order_items oi 
+        WHERE oi.order_id = o.id 
+        AND (
+          LOWER(oi.name) LIKE LOWER(?) OR 
+          LOWER(oi.sku) LIKE LOWER(?) OR 
+          LOWER(oi.variant_title) LIKE LOWER(?)
+        )
+      )
     )`);
     const searchPattern = `%${search}%`;
-    params.push(searchPattern, searchPattern, searchPattern);
+    // 6 parameters for the search: 3 for orders, 3 for line items
+    params.push(searchPattern, searchPattern, searchPattern, searchPattern, searchPattern, searchPattern);
   }
   
   if (fulfillmentStatus) {

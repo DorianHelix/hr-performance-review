@@ -121,18 +121,18 @@ function Sidebar({ isCollapsed, onToggle, currentView, onViewChange, isDarkMode,
   return (
     <div className={`${isCollapsed ? 'w-20' : 'w-72'} glass-sidebar h-screen flex flex-col transition-all duration-500 ease-out fixed left-0 top-0 z-50 ml-2 mt-4 mb-4 mr-2 rounded-3xl relative`}>
       {/* Header with Logo Toggle */}
-      <div className="p-6 relative" style={{ borderBottom: '1px solid var(--glass-border)' }}>
+      <div className="p-6 relative" style={{ borderBottom: '1px solid var(--color-glassBorder)' }}>
         <div className={`flex items-center gap-3 ${isCollapsed ? 'justify-center' : ''}`}>
           <button
             onClick={onToggle}
             className="group relative glass-card p-2 rounded-2xl liquid-float hover:scale-110 transition-all duration-500 cursor-pointer"
             title={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
           >
-            <CompanyLogo className={`${isCollapsed ? 'w-8 h-8' : 'w-10 h-10'} text-white transition-all duration-500 group-hover:rotate-12`} />
+            <CompanyLogo className={`${isCollapsed ? 'w-8 h-8' : 'w-10 h-10'} transition-all duration-500 group-hover:rotate-12`} style={{ color: 'var(--color-primary)' }} />
           </button>
           
           {!isCollapsed && (
-            <div className="text-xl font-bold bg-gradient-to-r from-white to-white/80 bg-clip-text text-transparent">
+            <div className="text-xl font-bold" style={{ background: `linear-gradient(to right, var(--color-textPrimary), var(--color-textSecondary))`, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
               Helix Digital
             </div>
           )}
@@ -148,22 +148,39 @@ function Sidebar({ isCollapsed, onToggle, currentView, onViewChange, isDarkMode,
               <li key={item.id}>
                 <button
                   onClick={() => onViewChange(item.id)}
-                  className={`${isCollapsed ? 'flex-none min-w-[56px] max-w-[56px] h-14 justify-center p-0' : 'w-full flex gap-4 p-4'} flex items-center rounded-2xl transition-all duration-300 group relative overflow-hidden ${
-                    item.active 
-                      ? 'glass-card bg-gradient-to-r from-blue-500/20 to-purple-500/20 border-blue-400/30 shadow-lg shadow-blue-500/20 text-white' 
-                      : 'text-white/70 hover:text-white hover:glass-card hover:bg-white/5'
-                  }`}
+                  className={`${isCollapsed ? 'flex-none min-w-[56px] max-w-[56px] h-14 justify-center p-0' : 'w-full flex gap-4 p-4'} flex items-center rounded-2xl transition-all duration-300 group relative overflow-hidden hover-nav-item`}
+                  style={{
+                    '--bg-active': `linear-gradient(to right, var(--color-primary)33, var(--color-secondary)33)`,
+                    '--bg-hover': 'var(--color-glassHover)',
+                    background: item.active ? 'var(--bg-active)' : 'transparent',
+                    borderColor: item.active ? 'var(--color-primary)66' : 'transparent',
+                    color: item.active ? 'var(--color-textPrimary)' : 'var(--color-textSecondary)',
+                  }}
+                  onMouseEnter={(e) => {
+                    if (!item.active) {
+                      e.currentTarget.style.background = 'var(--color-glassHover)';
+                      e.currentTarget.style.color = 'var(--color-textPrimary)';
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    if (!item.active) {
+                      e.currentTarget.style.background = 'transparent';
+                      e.currentTarget.style.color = 'var(--color-textSecondary)';
+                    }
+                  }}
                   title={isCollapsed ? item.label : ''}
                 >
-                  <div className={`p-3 w-14 h-14 rounded-xl transition-all duration-300 flex items-center justify-center ${
-                    item.active 
-                      ? 'bg-gradient-to-br from-blue-400 to-blue-600 shadow-lg shadow-blue-500/30' 
-                      : 'bg-white/10 group-hover:bg-white/20'
-                  }`}>
-                    <Icon size={20} className={`flex-shrink-0 ${item.active ? 'text-white' : isDarkMode ? 'text-white/80' : 'text-white'}`} />
+                  <div className="p-3 w-14 h-14 rounded-xl transition-all duration-300 flex items-center justify-center group-hover:scale-110"
+                    style={{
+                      background: item.active 
+                        ? `linear-gradient(to bottom right, var(--color-primary), var(--color-primaryDark))` 
+                        : 'var(--color-glassBg)',
+                      boxShadow: item.active ? '0 10px 20px var(--color-primary)33' : 'none'
+                    }}>
+                    <Icon size={20} className="flex-shrink-0" style={{ color: item.active ? 'white' : 'var(--color-textSecondary)' }} />
                   </div>
                   {!isCollapsed && (
-                    <span className="font-semibold text-lg tracking-wide">{item.label}</span>
+                    <span className="font-semibold text-lg tracking-wide" style={{ color: 'inherit' }}>{item.label}</span>
                   )}
                   {item.active && (
                     <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent animate-pulse rounded-2xl" />
@@ -176,7 +193,7 @@ function Sidebar({ isCollapsed, onToggle, currentView, onViewChange, isDarkMode,
       </nav>
 
       {/* Theme Switcher at Bottom */}
-      <div className={`p-4 ${isCollapsed ? 'flex justify-center' : ''}`} style={{ borderTop: '1px solid var(--glass-border)' }}>
+      <div className={`p-4 ${isCollapsed ? 'flex justify-center' : ''}`} style={{ borderTop: '1px solid var(--color-glassBorder)' }}>
         <ThemeSwitcher 
           isDarkMode={isDarkMode}
           onThemeToggle={onThemeToggle}

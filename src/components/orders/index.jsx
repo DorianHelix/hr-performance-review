@@ -179,38 +179,39 @@ function Orders() {
   // Get date range for filtering
   const getDateRange = () => {
     const now = new Date();
+    const today = new Date();
     const ranges = {
       today: {
-        start: new Date(now.setHours(0, 0, 0, 0)),
-        end: new Date(now.setHours(23, 59, 59, 999))
+        start: new Date(today.getFullYear(), today.getMonth(), today.getDate(), 0, 0, 0, 0),
+        end: new Date(today.getFullYear(), today.getMonth(), today.getDate(), 23, 59, 59, 999)
       },
       yesterday: {
-        start: new Date(now.setDate(now.getDate() - 1)).setHours(0, 0, 0, 0),
-        end: new Date(now.setHours(23, 59, 59, 999))
+        start: new Date(today.getFullYear(), today.getMonth(), today.getDate() - 1, 0, 0, 0, 0),
+        end: new Date(today.getFullYear(), today.getMonth(), today.getDate() - 1, 23, 59, 59, 999)
       },
       last7days: {
-        start: new Date(now.setDate(now.getDate() - 7)),
+        start: new Date(today.getFullYear(), today.getMonth(), today.getDate() - 7),
         end: new Date()
       },
       last30days: {
-        start: new Date(now.setDate(now.getDate() - 30)),
+        start: new Date(today.getFullYear(), today.getMonth(), today.getDate() - 30),
         end: new Date()
       },
       thisMonth: {
         start: new Date(now.getFullYear(), now.getMonth(), 1),
-        end: new Date(now.getFullYear(), now.getMonth() + 1, 0)
+        end: new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999)
       },
       lastMonth: {
         start: new Date(now.getFullYear(), now.getMonth() - 1, 1),
-        end: new Date(now.getFullYear(), now.getMonth(), 0)
+        end: new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59, 999)
       },
       last90days: {
-        start: new Date(now.setDate(now.getDate() - 90)),
+        start: new Date(today.getFullYear(), today.getMonth(), today.getDate() - 90),
         end: new Date()
       },
       thisYear: {
         start: new Date(now.getFullYear(), 0, 1),
-        end: new Date(now.getFullYear(), 11, 31)
+        end: new Date(now.getFullYear(), 11, 31, 23, 59, 59, 999)
       },
       custom: customDateRange
     };
