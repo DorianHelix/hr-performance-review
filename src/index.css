@@ -370,6 +370,22 @@ html, body, #root {
   transform: scale(0.98);
 }
 
+.glass-button-success {
+  background: linear-gradient(135deg, rgba(34, 197, 94, 0.2), rgba(16, 185, 129, 0.2));
+  backdrop-filter: var(--backdrop-blur);
+  -webkit-backdrop-filter: var(--backdrop-blur);
+  border: 1px solid rgba(34, 197, 94, 0.3);
+  border-radius: 16px;
+  transition: var(--transition);
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.glass-button-success:hover {
+  background: linear-gradient(135deg, rgba(34, 197, 94, 0.3), rgba(16, 185, 129, 0.3));
+  transform: scale(1.02);
+  box-shadow: 0 6px 20px rgba(34, 197, 94, 0.3);
+}
+
 .glass-input {
   background: var(--glass-bg);
   backdrop-filter: var(--backdrop-blur);

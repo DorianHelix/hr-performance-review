@@ -151,8 +151,12 @@ function ProductsAdvanced() {
 
   // Load products on mount
   useEffect(() => {
-    checkShopifyConnection();
-    loadProducts();
+    const initializeComponent = async () => {
+      await loadSettingsFromDatabase();
+      checkShopifyConnection();
+      await loadProducts();
+    };
+    initializeComponent();
   }, []); // Only run once on mount
 
   // Save KPI cards state
@@ -164,6 +168,26 @@ function ProductsAdvanced() {
   useEffect(() => {
     localStorage.setItem('products_sidebar_visible', JSON.stringify(showSidebar));
   }, [showSidebar]);
+
+  // Load settings from database
+  const loadSettingsFromDatabase = async () => {
+    try {
+      const response = await fetch('http://localhost:3001/api/settings');
+      if (response.ok) {
+        const settings = await response.json();
+        if (settings.shopify_store_domain && settings.shopify_access_token) {
+          shopifyService.saveCredentials(settings.shopify_store_domain, settings.shopify_access_token);
+          setShopifyCredentials({
+            storeDomain: settings.shopify_store_domain,
+            accessToken: settings.shopify_access_token
+          });
+          setShopifyConnected(true);
+        }
+      }
+    } catch (error) {
+      console.error('Failed to load settings from database:', error);
+    }
+  };
 
   // Check Shopify connection
   const checkShopifyConnection = () => {
@@ -216,11 +240,22 @@ function ProductsAdvanced() {
     }
   };
 
-  // Load products from cache or API
+  // Load products from database
   const loadProducts = async () => {
     setLoading(true);
     try {
-      // Try to get cached products first
+      // First try to load from database
+      const response = await fetch('http://localhost:3001/api/products');
+      if (response.ok) {
+        const dbProducts = await response.json();
+        if (dbProducts && dbProducts.length > 0) {
+          setProducts(dbProducts);
+          showSuccess(`Loaded ${dbProducts.length} products from database`);
+          return;
+        }
+      }
+      
+      // If database is empty or fails, try cache
       const cached = shopifyService.getCachedProducts();
       if (cached && cached.products) {
         setProducts(cached.products);
@@ -229,17 +264,22 @@ function ProductsAdvanced() {
         // If no cache but has credentials, fetch from Shopify
         await syncWithShopify();
       } else {
-        showWarning('No Shopify credentials configured. Please set up Shopify connection.');
+        showWarning('No products found. Please sync with Shopify or add products manually.');
       }
     } catch (error) {
-      showError('Failed to load products: ' + error.message);
+      console.error('Failed to load products:', error);
+      // Try cache as fallback
+      const cached = shopifyService.getCachedProducts();
+      if (cached && cached.products) {
+        setProducts(cached.products);
+      }
     } finally {
       setLoading(false);
     }
   };
 
   // Sync with Shopify
-  const syncWithShopify = async () => {
+  const syncWithShopify = async (saveToDb = false) => {
     if (!shopifyService.hasCredentials()) {
       showError('Please configure Shopify credentials first');
       return;
@@ -247,9 +287,13 @@ function ProductsAdvanced() {
 
     setSyncing(true);
     try {
-      const fetchedProducts = await shopifyService.fetchProducts();
+      const fetchedProducts = await shopifyService.fetchProducts({ saveToDb });
       setProducts(fetchedProducts);
-      showSuccess(`Synced ${fetchedProducts.length} products from Shopify`);
+      if (saveToDb) {
+        showSuccess(`Synced and saved ${fetchedProducts.length} products to database`);
+      } else {
+        showSuccess(`Synced ${fetchedProducts.length} products from Shopify`);
+      }
     } catch (error) {
       showError('Failed to sync with Shopify: ' + error.message);
     } finally {
@@ -475,7 +519,7 @@ function ProductsAdvanced() {
         // Convert map to array
         productMap.forEach(product => {
           // If product has variants, update totals
-          if (product.hasVariants && product.variants.length > 0) {
+          if (product.hasVariants && product.variants && Array.isArray(product.variants) && product.variants.length > 0) {
             product.totalStock = product.variants.reduce((sum, v) => sum + (v.stock || 0), 0);
             const prices = product.variants.map(v => v.price);
             product.priceMin = Math.min(...prices);
@@ -593,7 +637,7 @@ function ProductsAdvanced() {
       case 'comparePrice':
       case 'cost':
         // For products with variants, show average prices
-        if (product.hasVariants && product.variants) {
+        if (product.hasVariants && product.variants && Array.isArray(product.variants) && product.variants.length > 0) {
           let avgValue = 0;
           if (columnKey === 'price') {
             avgValue = product.variants.reduce((sum, v) => sum + (v.price || 0), 0) / product.variants.length;
@@ -627,7 +671,7 @@ function ProductsAdvanced() {
       
       case 'profit':
         // Calculate profit for products with variants
-        if (product.hasVariants && product.variants) {
+        if (product.hasVariants && product.variants && Array.isArray(product.variants) && product.variants.length > 0) {
           const avgPrice = product.variants.reduce((sum, v) => sum + (v.price || 0), 0) / product.variants.length;
           const avgCost = product.variants.reduce((sum, v) => sum + (v.cost || 0), 0) / product.variants.length;
           const profit = avgPrice - avgCost;
@@ -643,7 +687,7 @@ function ProductsAdvanced() {
       case 'stockValue':
         // Calculate stock value for products
         let stockValue = 0;
-        if (product.hasVariants && product.variants) {
+        if (product.hasVariants && product.variants && Array.isArray(product.variants) && product.variants.length > 0) {
           stockValue = product.variants.reduce((sum, v) => {
             return sum + ((v.stock || 0) * (v.cost || 0));
           }, 0);
@@ -655,7 +699,7 @@ function ProductsAdvanced() {
       case 'margin':
         // Calculate margin for products with variants
         let marginValue = 0;
-        if (product.hasVariants && product.variants) {
+        if (product.hasVariants && product.variants && Array.isArray(product.variants) && product.variants.length > 0) {
           const margins = product.variants
             .filter(v => v.cost && v.price && v.price > 0)
             .map(v => ((v.price - v.cost) / v.price) * 100);
@@ -758,7 +802,7 @@ function ProductsAdvanced() {
     
     // Calculate total stock value - properly handle variants
     const totalStockValue = filteredProducts.reduce((sum, p) => {
-      if (p.hasVariants && p.variants) {
+      if (p.hasVariants && p.variants && Array.isArray(p.variants) && p.variants.length > 0) {
         // For products with variants, sum up each variant's stock * cost
         return sum + p.variants.reduce((varSum, v) => {
           const varStock = v.stock || 0;
@@ -776,7 +820,7 @@ function ProductsAdvanced() {
     // Calculate average margin - considering variants
     const margins = [];
     filteredProducts.forEach(p => {
-      if (p.hasVariants && p.variants) {
+      if (p.hasVariants && p.variants && Array.isArray(p.variants) && p.variants.length > 0) {
         p.variants.forEach(v => {
           if (v.cost && v.price && v.price > 0) {
             margins.push(((v.price - v.cost) / v.price) * 100);
@@ -1316,12 +1360,21 @@ function ProductsAdvanced() {
                   </div>
                   
                   <button
-                    onClick={syncWithShopify}
+                    onClick={() => syncWithShopify(false)}
                     disabled={syncing}
                     className="glass-button w-full px-4 py-2 flex items-center justify-center gap-2 hover:scale-105 transition-transform"
                   >
                     <RefreshCw size={16} className={syncing ? 'animate-spin' : ''} />
                     {syncing ? 'Syncing...' : 'Sync Products'}
+                  </button>
+                  
+                  <button
+                    onClick={() => syncWithShopify(true)}
+                    disabled={syncing}
+                    className="glass-button-success w-full px-4 py-2 flex items-center justify-center gap-2 hover:scale-105 transition-transform mt-2"
+                  >
+                    <Database size={16} className={syncing ? 'animate-spin' : ''} />
+                    {syncing ? 'Saving...' : 'Sync & Save to DB'}
                   </button>
                   
                   <button

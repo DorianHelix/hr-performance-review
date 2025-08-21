@@ -194,16 +194,61 @@ app.delete('/api/employees/:id', (req, res) => {
 
 // Get all products
 app.get('/api/products', (req, res) => {
-  db.all('SELECT * FROM products ORDER BY name', (err, rows) => {
+  const { source } = req.query; // Filter by source if provided
+  
+  let query = `
+    SELECT 
+      p.*,
+      COUNT(v.id) as variant_count,
+      SUM(v.inventory_quantity) as total_variant_stock
+    FROM products p
+    LEFT JOIN product_variants v ON p.id = v.product_id
+    WHERE 1=1
+  `;
+  
+  const params = [];
+  if (source) {
+    query += ' AND p.source = ?';
+    params.push(source);
+  }
+  
+  query += ' GROUP BY p.id ORDER BY p.name';
+  
+  db.all(query, params, (err, rows) => {
     if (err) {
       res.status(500).json({ error: err.message });
       return;
     }
-    // Convert snake_case to camelCase for frontend
+    
+    // Transform for frontend compatibility
     const products = rows.map(row => ({
-      ...row,
-      minStock: row.min_stock
+      id: row.id,
+      shopifyId: row.shopify_id,
+      name: row.name,
+      handle: row.handle,
+      sku: row.sku,
+      vendor: row.vendor,
+      type: row.product_type,
+      status: row.status,
+      price: row.price,
+      comparePrice: row.compare_at_price,
+      cost: row.cost,
+      stock: row.inventory_quantity,
+      totalStock: row.total_inventory || row.inventory_quantity,
+      category: row.category,
+      tags: row.tags ? JSON.parse(row.tags) : [],
+      images: row.images ? JSON.parse(row.images) : [],
+      featuredImage: row.featured_image,
+      description: row.description,
+      variants: [], // Return empty array for now, will load separately if needed
+      variantsCount: row.variants_count || 1,
+      hasVariants: row.has_variants,
+      source: row.source,
+      createdAt: row.created_at,
+      updatedAt: row.updated_at,
+      lastSyncedAt: row.last_synced_at
     }));
+    
     res.json(products);
   });
 });
@@ -577,6 +622,27 @@ app.post('/api/shopify/products', async (req, res) => {
   }
   
   try {
+    // First, save the settings to database if saveToDb is true
+    if (saveToDb) {
+      // Save store domain
+      db.run(
+        `INSERT OR REPLACE INTO settings (key, value, updated_at) VALUES (?, ?, CURRENT_TIMESTAMP)`,
+        ['shopify_store_domain', storeDomain],
+        (err) => {
+          if (err) console.error('Error saving store domain:', err);
+        }
+      );
+      
+      // Save access token (encrypted in production)
+      db.run(
+        `INSERT OR REPLACE INTO settings (key, value, updated_at) VALUES (?, ?, CURRENT_TIMESTAMP)`,
+        ['shopify_access_token', accessToken],
+        (err) => {
+          if (err) console.error('Error saving access token:', err);
+        }
+      );
+    }
+    
     let allProducts = [];
     let hasNextPage = true;
     let pageInfo = null;
@@ -695,10 +761,135 @@ app.post('/api/shopify/products', async (req, res) => {
       }
     });
     
+    // Save products to database if requested
+    if (saveToDb) {
+      console.log('Saving products to database...');
+      let savedCount = 0;
+      let errorCount = 0;
+      
+      // Log sync operation
+      db.run(
+        `INSERT INTO shopify_sync_log (sync_type, status, records_processed) VALUES (?, ?, ?)`,
+        ['products', 'started', products.length]
+      );
+      
+      for (const product of products) {
+        try {
+          // Calculate aggregate values
+          const totalInventory = product.variants ? 
+            product.variants.reduce((sum, v) => sum + (v.inventory_quantity || 0), 0) : 0;
+          const minPrice = product.variants ? 
+            Math.min(...product.variants.map(v => v.price || 0)) : product.price;
+          const primaryVariant = product.variants?.[0] || {};
+          
+          // Insert or update product
+          db.run(
+            `INSERT OR REPLACE INTO products (
+              shopify_id, name, handle, vendor, product_type, status,
+              price, compare_at_price, cost,
+              inventory_quantity, category, tags, 
+              images, featured_image, description, description_html,
+              seo_title, seo_description,
+              weight, weight_unit, requires_shipping,
+              has_variants, variants_count, total_inventory,
+              source, shopify_created_at, shopify_updated_at, last_synced_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)`,
+            [
+              product.id,
+              product.title,
+              product.handle,
+              product.vendor,
+              product.product_type,
+              product.status || 'active',
+              minPrice,
+              primaryVariant.compare_at_price,
+              primaryVariant.cost || 0,
+              totalInventory,
+              product.product_type, // Using product_type as category for now
+              JSON.stringify(product.tags || []),
+              JSON.stringify(product.images?.map(img => img.src) || []),
+              product.image?.src || product.images?.[0]?.src,
+              product.body_html,
+              product.body_html,
+              product.title, // SEO title fallback
+              product.body_html?.substring(0, 160), // SEO description fallback
+              primaryVariant.weight,
+              primaryVariant.weight_unit || 'kg',
+              primaryVariant.requires_shipping !== false,
+              product.variants?.length > 1,
+              product.variants?.length || 1,
+              totalInventory,
+              'shopify',
+              product.created_at,
+              product.updated_at
+            ],
+            function(err) {
+              if (err) {
+                console.error('Error saving product:', err);
+                errorCount++;
+              } else {
+                const productId = this.lastID;
+                
+                // Save variants if any
+                if (product.variants && product.variants.length > 1) {
+                  product.variants.forEach(variant => {
+                    db.run(
+                      `INSERT OR REPLACE INTO product_variants (
+                        product_id, shopify_variant_id, title, sku, barcode, position,
+                        option1, option2, option3,
+                        price, compare_at_price, cost,
+                        inventory_quantity, inventory_item_id,
+                        weight, weight_unit, available
+                      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+                      [
+                        productId,
+                        variant.id,
+                        variant.title,
+                        variant.sku,
+                        variant.barcode,
+                        variant.position,
+                        variant.option1,
+                        variant.option2,
+                        variant.option3,
+                        variant.price,
+                        variant.compare_at_price,
+                        variant.cost || 0,
+                        variant.inventory_quantity || 0,
+                        variant.inventory_item_id,
+                        variant.weight,
+                        variant.weight_unit,
+                        variant.available !== false
+                      ]
+                    );
+                  });
+                }
+                savedCount++;
+              }
+            }
+          );
+        } catch (error) {
+          console.error('Error processing product:', error);
+          errorCount++;
+        }
+      }
+      
+      // Update sync log
+      setTimeout(() => {
+        db.run(
+          `UPDATE shopify_sync_log 
+           SET status = ?, records_created = ?, records_failed = ?, completed_at = CURRENT_TIMESTAMP 
+           WHERE id = (SELECT MAX(id) FROM shopify_sync_log WHERE sync_type = 'products')`,
+          ['completed', savedCount, errorCount]
+        );
+        console.log(`Saved ${savedCount} products to database, ${errorCount} errors`);
+      }, 1000);
+    }
+    
     res.json({ 
       success: true, 
       products: products,
-      count: products.length
+      count: products.length,
+      saved: saveToDb
     });
   } catch (error) {
     console.error('Shopify products fetch error:', error);
@@ -853,6 +1044,20 @@ app.delete('/api/settings/:key', (req, res) => {
 // Health check
 app.get('/api/health', (req, res) => {
   res.json({ status: 'OK', timestamp: new Date().toISOString() });
+});
+
+// Root endpoint
+app.get('/', (req, res) => {
+  res.json({ 
+    message: 'Helix Finance Backend API',
+    status: 'Running',
+    endpoints: {
+      health: '/api/health',
+      products: '/api/products',
+      settings: '/api/settings',
+      shopify: '/api/shopify/*'
+    }
+  });
 });
 
 // Start server

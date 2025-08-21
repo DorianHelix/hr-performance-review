@@ -62,7 +62,8 @@ class ShopifyService {
         },
         body: JSON.stringify({
           storeDomain: this.credentials.storeDomain,
-          accessToken: this.credentials.accessToken
+          accessToken: this.credentials.accessToken,
+          saveToDb: options.saveToDb || false
         })
       });
 

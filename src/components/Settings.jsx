@@ -37,25 +37,29 @@ function Settings() {
       const response = await fetch('http://localhost:3001/api/settings');
       const data = await response.json();
       
+      // Check for Shopify credentials saved in individual keys
+      const shopifySettings = {
+        ...settings.shopify
+      };
+      
+      if (data.shopify_store_domain) {
+        shopifySettings.storeDomain = data.shopify_store_domain;
+      }
+      if (data.shopify_access_token) {
+        shopifySettings.accessToken = data.shopify_access_token;
+      }
+      
       // Merge with default settings
       if (data.shopify) {
-        setSettings(prev => ({
-          ...prev,
-          shopify: { ...prev.shopify, ...data.shopify }
-        }));
+        Object.assign(shopifySettings, data.shopify);
       }
-      if (data.general) {
-        setSettings(prev => ({
-          ...prev,
-          general: { ...prev.general, ...data.general }
-        }));
-      }
-      if (data.notifications) {
-        setSettings(prev => ({
-          ...prev,
-          notifications: { ...prev.notifications, ...data.notifications }
-        }));
-      }
+      
+      setSettings(prev => ({
+        ...prev,
+        shopify: shopifySettings,
+        general: data.general ? { ...prev.general, ...data.general } : prev.general,
+        notifications: data.notifications ? { ...prev.notifications, ...data.notifications } : prev.notifications
+      }));
     } catch (error) {
       // Fallback to localStorage if database fails
       const savedSettings = localStorage.getItem('appSettings');
