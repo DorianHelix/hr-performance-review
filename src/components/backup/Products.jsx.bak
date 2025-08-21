@@ -610,27 +610,6 @@ function Products() {
 
   return (
     <div className="h-full flex relative overflow-hidden">
-      {/* DEBUG PANEL - REMOVE AFTER FIXING */}
-      <div className="fixed top-20 left-1/2 transform -translate-x-1/2 z-[100] bg-red-600 text-white p-4 rounded-lg shadow-lg">
-        <div className="text-center">
-          <div className="font-bold">DEBUG INFO</div>
-          <div>Data Source: {dataSource}</div>
-          <div>Products Count: {products.length}</div>
-          <div>Sidebar Collapsed: {isSidebarCollapsed ? 'YES' : 'NO'}</div>
-          <button 
-            onClick={() => handleDataSourceChange('manual')}
-            className="mt-2 px-3 py-1 bg-blue-500 rounded mr-2 hover:bg-blue-600"
-          >
-            Switch to Manual
-          </button>
-          <button 
-            onClick={() => setIsSidebarCollapsed(false)}
-            className="mt-2 px-3 py-1 bg-green-500 rounded hover:bg-green-600"
-          >
-            Show Sidebar
-          </button>
-        </div>
-      </div>
       
       {/* Main Content */}
       <div className="flex-1 p-4 md:p-6 flex flex-col overflow-hidden transition-all duration-500">
@@ -639,40 +618,6 @@ function Products() {
             style={{ maxHeight: isHeaderExpanded ? '300px' : '70px' }}>
             <div className="flex items-center justify-between p-4">
               <div className="flex items-center gap-3">
-                {/* DEBUG: Quick Action Buttons */}
-                <button
-                  onClick={() => {
-                    handleDataSourceChange('manual');
-                    showInfo('Switched to Manual mode');
-                  }}
-                  className="px-3 py-1 bg-blue-600 text-white text-xs rounded hover:bg-blue-700"
-                >
-                  MANUAL
-                </button>
-                <button
-                  onClick={async () => {
-                    if (confirm(`Delete all ${products.length} products from database?`)) {
-                      try {
-                        for (const product of products) {
-                          await API.products.deleteProduct(product.id);
-                        }
-                        localStorage.removeItem('hr_products');
-                        localStorage.removeItem('hr_products_imported');
-                        localStorage.removeItem('shopify_products_cache');
-                        localStorage.removeItem('shopify_products_active');
-                        setProducts([]);
-                        showSuccess('All products deleted!');
-                        window.location.reload();
-                      } catch (error) {
-                        console.error('Error:', error);
-                        showError('Failed to delete products');
-                      }
-                    }
-                  }}
-                  className="px-3 py-1 bg-red-600 text-white text-xs rounded hover:bg-red-700"
-                >
-                  DELETE ALL ({products.length})
-                </button>
                 
                 {/* Sidebar Toggle */}
                 <button
@@ -1046,11 +991,6 @@ function Products() {
       <div className={`${isSidebarCollapsed ? 'w-0' : 'w-80'} transition-all duration-500 py-6 pr-6`}>
         <div className={`${isSidebarCollapsed ? 'hidden' : 'block'} h-full overflow-y-auto custom-scrollbar rounded-3xl bg-black/40 backdrop-blur-xl border border-white/10`}>
           <div className="p-6 space-y-6">
-        {/* HELLO TEST */}
-        <div className="p-4 bg-red-600 text-white text-2xl font-bold rounded">
-          HELLO 1 - Products.jsx
-        </div>
-        
         {/* Sidebar Header */}
         <div className="flex items-center justify-between mb-2">
           <h2 className="text-xl font-bold text-white">Controls</h2>

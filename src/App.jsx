@@ -10,8 +10,9 @@ import {
 
 // Import components
 import CreativePerformance from "./components/CreativePerformance";
-import Products from "./components/Products";
-import ProductsAdvanced from "./components/ProductsAdvanced";
+// import Products from "./components/Products"; // OLD - REMOVED
+import ProductsAdvanced from "./components/products"; // Final working version
+import ShopifyProducts from "./components/products"; // Final working version
 import ProductVariantsDemo from "./components/ProductVariantsDemo";
 import FlowBuilder from "./components/FlowBuilder";
 import Analytics from "./components/Analytics";
@@ -83,6 +84,12 @@ function Sidebar({ isCollapsed, onToggle, currentView, onViewChange, isDarkMode,
       label: 'Products',
       icon: Package,
       active: currentView === 'products'
+    },
+    {
+      id: 'shopify-products',
+      label: 'Shopify Products',
+      icon: Package,
+      active: currentView === 'shopify-products'
     },
     {
       id: 'flowbuilder',
@@ -2122,6 +2129,8 @@ export default function App() {
       )}
       
       {currentView === 'products' && <ProductsAdvanced />}
+      
+      {currentView === 'shopify-products' && <ShopifyProducts />}
       
       {currentView === 'flowbuilder' && <FlowBuilder />}
       
