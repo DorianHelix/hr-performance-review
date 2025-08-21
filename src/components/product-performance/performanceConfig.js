@@ -1,15 +1,17 @@
 // Performance metrics configuration based on Shopify Orders & Analytics API
 export const PERFORMANCE_COLUMNS = [
   // Product Basic Info
-  { key: 'name', label: 'Product Name', category: 'Product', default: true, frozen: true },
+  { key: 'product_title', label: 'Product Name', category: 'Product', default: true, frozen: true },
   { key: 'sku', label: 'SKU', category: 'Product', default: false },
   { key: 'vendor', label: 'Vendor', category: 'Product', default: false },
+  { key: 'product_type', label: 'Type', category: 'Product', default: false },
   
-  // Sales Metrics (from Orders API)
-  { key: 'totalSales', label: 'Total Sales', category: 'Sales', default: true, format: 'currency' },
-  { key: 'unitsSold', label: 'Units Sold', category: 'Sales', default: true, format: 'number' },
-  { key: 'ordersCount', label: 'Orders', category: 'Sales', default: true, format: 'number' },
-  { key: 'averageOrderValue', label: 'AOV', category: 'Sales', default: true, format: 'currency', tooltip: 'Average Order Value' },
+  // Sales Metrics (from aggregated data)
+  { key: 'total_revenue', label: 'Total Revenue', category: 'Sales', default: true, format: 'currency' },
+  { key: 'total_units', label: 'Units Sold', category: 'Sales', default: true, format: 'number' },
+  { key: 'total_orders', label: 'Orders', category: 'Sales', default: true, format: 'number' },
+  { key: 'avg_price', label: 'Avg Price', category: 'Sales', default: true, format: 'currency', tooltip: 'Average Price per Unit' },
+  { key: 'days_sold', label: 'Active Days', category: 'Sales', default: false, format: 'number' },
   { key: 'firstTimeOrders', label: 'New Customer Orders', category: 'Sales', default: false, format: 'number' },
   { key: 'repeatOrders', label: 'Repeat Orders', category: 'Sales', default: false, format: 'number' },
   
@@ -64,25 +66,25 @@ export const PERFORMANCE_VIEWS = [
     id: 'overview',
     name: 'Performance Overview',
     description: 'Key sales and revenue metrics',
-    columns: ['name', 'totalSales', 'unitsSold', 'ordersCount', 'averageOrderValue', 'netSales', 'profit', 'margin', 'conversionRate', 'salesTrend'],
+    columns: ['product_title', 'total_revenue', 'total_units', 'total_orders', 'avg_price', 'margin', 'salesTrend'],
     icon: 'TrendingUp'
   },
   {
     id: 'revenue-analysis',
     name: 'Revenue Analysis',
     description: 'Detailed revenue breakdown',
-    columns: ['name', 'grossSales', 'discounts', 'returns', 'taxes', 'shipping', 'netSales', 'profit', 'margin'],
+    columns: ['product_title', 'total_revenue', 'total_units', 'avg_price', 'days_sold'],
     icon: 'DollarSign',
-    filter: (product) => product.totalSales > 0
+    filter: (product) => product.total_revenue > 0
   },
   {
     id: 'top-performers',
     name: 'Top Performers',
     description: 'Best selling and most profitable products',
-    columns: ['name', 'totalSales', 'unitsSold', 'ordersCount', 'profit', 'margin', 'conversionRate', 'salesTrend'],
+    columns: ['product_title', 'total_revenue', 'total_units', 'total_orders', 'avg_price'],
     icon: 'Target',
-    filter: (product) => product.totalSales > 10000,
-    sort: { key: 'totalSales', direction: 'desc' }
+    filter: (product) => product.total_revenue > 10000,
+    sort: { key: 'total_revenue', direction: 'desc' }
   },
   {
     id: 'underperformers',
@@ -182,9 +184,9 @@ export const AGGREGATIONS = {
 export const formatters = {
   currency: (value) => {
     if (value === null || value === undefined) return '-';
-    return new Intl.NumberFormat('en-US', {
+    return new Intl.NumberFormat('hu-HU', {
       style: 'currency',
-      currency: 'USD',
+      currency: 'HUF',
       minimumFractionDigits: 0,
       maximumFractionDigits: 0
     }).format(value);

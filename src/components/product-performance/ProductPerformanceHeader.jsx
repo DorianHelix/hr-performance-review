@@ -1,14 +1,18 @@
 import React from 'react';
 import { 
   TrendingUp, RefreshCw, Download, Calendar, 
-  BarChart3, Settings, Menu, Filter, DollarSign, Package, AlertTriangle
+  BarChart3, Settings, Menu, Filter, DollarSign, Package, AlertTriangle,
+  ChevronLeft, ChevronRight
 } from 'lucide-react';
 import { DATE_RANGES, COMPARISON_PERIODS, EXPORT_FORMATS } from './performanceConfig';
 import SectionHeader from '../SectionHeader';
+import DateRangePicker from '../DateRangePicker';
 
 const ProductPerformanceHeader = ({ 
   dateRange, 
   setDateRange,
+  customDateRange,
+  setCustomDateRange,
   comparisonPeriod,
   setComparisonPeriod,
   onSync,
@@ -16,10 +20,13 @@ const ProductPerformanceHeader = ({
   syncing,
   onToggleSidebar,
   totalProducts,
-  filteredCount
+  filteredCount,
+  currentPage,
+  totalPages,
+  onPageChange
 }) => {
   return (
-    <>
+    <div className="space-y-4">
       <SectionHeader 
         icon={TrendingUp}
         iconColorClass="from-purple-400/20 to-pink-600/20"
@@ -35,72 +42,88 @@ const ProductPerformanceHeader = ({
         onToggleKPICards={() => {}}
         showSidebar={true}
         onToggleSidebar={onToggleSidebar}
-        actions={
-          <div className="flex items-center gap-3">
-            {/* Date Range Selector */}
-            <div className="flex items-center gap-2">
-              <Calendar size={16} className="text-white/50" />
-              <select 
-                value={dateRange} 
-                onChange={(e) => setDateRange(e.target.value)}
-                className="glass-input px-3 py-2 text-sm"
-              >
-                {DATE_RANGES?.map(range => (
-                  <option key={range.value} value={range.value}>
-                    {range.label}
-                  </option>
-                )) || <option>Last 30 days</option>}
-              </select>
+      />
+
+      {/* Controls Bar */}
+      <div className="px-6">
+        <div className="glass-card-large p-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <span className="px-3 py-1 bg-purple-500/20 text-purple-300 rounded-full text-sm font-medium">
+                {filteredCount} / {totalProducts} products
+              </span>
               
-              {/* Comparison Period */}
-              <select
-                value={comparisonPeriod}
-                onChange={(e) => setComparisonPeriod(e.target.value)}
-                className="glass-input px-3 py-2 text-sm"
-              >
-                {COMPARISON_PERIODS?.map(period => (
-                  <option key={period.value} value={period.value}>
-                    vs {period.label}
-                  </option>
-                )) || <option>vs Previous Period</option>}
-              </select>
+              {/* Pagination controls */}
+              {totalPages > 1 && (
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => onPageChange(currentPage - 1)}
+                    disabled={currentPage === 1}
+                    className="p-1.5 glass-button disabled:opacity-50 disabled:cursor-not-allowed hover:scale-105 transition-transform"
+                  >
+                    <ChevronLeft size={16} />
+                  </button>
+                  <span className="px-3 py-1 bg-gradient-to-r from-purple-500/10 to-pink-500/10 rounded-lg text-sm">
+                    Page {currentPage} of {totalPages}
+                  </span>
+                  <button
+                    onClick={() => onPageChange(currentPage + 1)}
+                    disabled={currentPage === totalPages}
+                    className="p-1.5 glass-button disabled:opacity-50 disabled:cursor-not-allowed hover:scale-105 transition-transform"
+                  >
+                    <ChevronRight size={16} />
+                  </button>
+                </div>
+              )}
+              
+              {/* Date Range Picker */}
+              <DateRangePicker
+                startDate={customDateRange?.start}
+                endDate={customDateRange?.end}
+                onRangeChange={(start, end) => {
+                  console.log('Date range changed:', start, end);
+                  setCustomDateRange({ start: new Date(start), end: new Date(end) });
+                  setDateRange('custom');
+                }}
+              />
             </div>
 
             {/* Action Buttons */}
-            <button 
-              onClick={onSync} 
-              className="glass-button px-3 py-2 flex items-center gap-2 hover:scale-105 transition-transform"
-              disabled={syncing}
-              title="Sync with Shopify"
-            >
-              <RefreshCw size={16} className={syncing ? 'animate-spin' : ''} />
-              {syncing ? 'Syncing...' : 'Sync'}
-            </button>
+            <div className="flex items-center gap-3">
+              <button 
+                onClick={onSync} 
+                className="glass-button px-3 py-2 flex items-center gap-2 hover:scale-105 transition-transform"
+                disabled={syncing}
+                title="Sync with Shopify"
+              >
+                <RefreshCw size={16} className={syncing ? 'animate-spin' : ''} />
+                {syncing ? 'Syncing...' : 'Sync'}
+              </button>
 
-            <button 
-              onClick={() => onExport('csv')} 
-              className="glass-button px-3 py-2 flex items-center gap-2 hover:scale-105 transition-transform"
-            >
-              <Download size={16} />
-              Export
-            </button>
+              <button 
+                onClick={() => onExport('csv')} 
+                className="glass-button px-3 py-2 flex items-center gap-2 hover:scale-105 transition-transform"
+              >
+                <Download size={16} />
+                Export
+              </button>
 
-            <button className="glass-button px-3 py-2 flex items-center gap-2 hover:scale-105 transition-transform" title="View Charts">
-              <BarChart3 size={16} />
-              Charts
-            </button>
+              <button className="glass-button px-3 py-2 flex items-center gap-2 hover:scale-105 transition-transform" title="View Charts">
+                <BarChart3 size={16} />
+                Charts
+              </button>
 
-            <button className="glass-button px-3 py-2 flex items-center gap-2 hover:scale-105 transition-transform" title="Settings">
-              <Settings size={16} />
-              Settings
-            </button>
+              <button className="glass-button px-3 py-2 flex items-center gap-2 hover:scale-105 transition-transform" title="Settings">
+                <Settings size={16} />
+                Settings
+              </button>
+            </div>
           </div>
-        }
-      />
+        </div>
+      </div>
 
-      
       {/* KPI Cards */}
-      <div className="px-6 mb-4">
+      <div className="px-6 -mt-2">
         <div className="flex gap-4 overflow-x-auto pb-2">
           {/* Period Sales */}
           <div className="glass-card p-3 rounded-xl bg-gradient-to-br from-green-500/10 to-emerald-500/10 relative overflow-hidden flex-shrink-0" style={{minWidth: '160px'}}>
@@ -110,7 +133,7 @@ const ProductPerformanceHeader = ({
                 <h3 className="font-semibold text-white text-sm">Period Sales</h3>
               </div>
               <div className="flex items-baseline gap-1">
-                <span className="text-2xl font-bold text-white">$0</span>
+                <span className="text-2xl font-bold text-white">0 Ft</span>
                 <span className="text-xs text-green-400">+0%</span>
               </div>
             </div>
@@ -138,7 +161,7 @@ const ProductPerformanceHeader = ({
                 <h3 className="font-semibold text-white text-sm">Avg Order Value</h3>
               </div>
               <div className="flex items-baseline gap-1">
-                <span className="text-2xl font-bold text-white">$0</span>
+                <span className="text-2xl font-bold text-white">0 Ft</span>
                 <span className="text-xs text-green-400">+0%</span>
               </div>
             </div>
@@ -187,7 +210,7 @@ const ProductPerformanceHeader = ({
           </div>
         </div>
       </div>
-    </>
+    </div>
   );
 };
 

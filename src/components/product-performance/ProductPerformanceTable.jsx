@@ -28,14 +28,14 @@ const ProductPerformanceTable = ({
     if (!column) return <span>-</span>;
     
     // Special handling for product name
-    if (columnKey === 'name') {
+    if (columnKey === 'product_title' || columnKey === 'name') {
       return (
         <div className="flex flex-col">
           <button 
             className="font-medium text-white hover:text-blue-400 transition-colors text-left"
             onClick={() => onProductClick(product)}
           >
-            {value || 'Unnamed Product'}
+            {product.product_title || product.name || 'Unnamed Product'}
           </button>
           {product.sku && (
             <span className="text-xs text-white/50">{product.sku}</span>
@@ -229,7 +229,7 @@ const ProductPerformanceTable = ({
                   const column = getColumn(columnKey);
                   const total = totals[columnKey];
                   
-                  if (columnKey === 'name') {
+                  if (columnKey === 'product_title' || columnKey === 'name') {
                     return (
                       <td key={columnKey} className="p-3 text-white font-medium">
                         Totals ({products.length} products)

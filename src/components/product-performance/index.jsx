@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useToast } from '../Toast';
 import shopifyService from '../../services/shopifyService';
+import DateRangePicker from '../DateRangePicker';
 
 // Import sub-components
 import ProductPerformanceHeader from './ProductPerformanceHeader';
@@ -26,12 +27,22 @@ const ProductPerformance = () => {
   const [loading, setLoading] = useState(false);
   const [syncing, setSyncing] = useState(false);
   
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalProducts, setTotalProducts] = useState(0);
+  const [itemsPerPage] = useState(50);
+  
   // Filter states
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedView, setSelectedView] = useState('overview');
-  const [dateRange, setDateRange] = useState('30d');
+  const [dateRange, setDateRange] = useState('custom');
+  const [customDateRange, setCustomDateRange] = useState({ 
+    start: new Date('2025-07-22'), 
+    end: new Date('2025-08-21') 
+  });
   const [comparisonPeriod, setComparisonPeriod] = useState('previous_period');
-  const [sortBy, setSortBy] = useState('totalSales_desc');
+  const [sortBy, setSortBy] = useState('total_revenue_desc');
   const [filters, setFilters] = useState({});
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
   
@@ -53,13 +64,18 @@ const ProductPerformance = () => {
 
   // Load products and performance data on mount
   useEffect(() => {
-    loadProducts();
+    checkShopifyConnection();
+    loadPerformanceData(1);
   }, []);
 
-  // Apply filters when dependencies change
+  // Reload when filters change
   useEffect(() => {
-    applyFilters();
-  }, [products, searchTerm, selectedView, sortBy, filters, dateRange]);
+    const timer = setTimeout(() => {
+      loadPerformanceData(1);
+    }, 500); // Debounce for 500ms
+    
+    return () => clearTimeout(timer);
+  }, [searchTerm, dateRange, customDateRange]);
 
   // Update visible columns when view changes
   useEffect(() => {
@@ -69,32 +85,104 @@ const ProductPerformance = () => {
     }
   }, [selectedView]);
 
-  // Load products from backend
-  const loadProducts = async () => {
+  // Apply filters when performance data changes
+  useEffect(() => {
+    if (performanceData && performanceData.length > 0) {
+      applyFilters();
+    } else {
+      setFilteredProducts([]);
+    }
+  }, [performanceData, selectedView, sortBy]); // Removed searchTerm and filters to avoid re-render loop
+
+  // Check Shopify connection
+  const checkShopifyConnection = () => {
+    const hasCredentials = shopifyService.hasCredentials();
+    // You can add Shopify connection state if needed
+  };
+
+  // Get date range for filtering
+  const getDateRange = () => {
+    return customDateRange;
+  };
+
+  // Load performance data from backend
+  const loadPerformanceData = async (page = 1) => {
     setLoading(true);
     try {
-      const response = await fetch('http://localhost:3001/api/products');
-      const data = await response.json();
+      // Build query parameters
+      const params = new URLSearchParams({
+        page: page.toString(),
+        limit: itemsPerPage.toString()
+      });
       
-      if (data && data.length > 0) {
-        // Generate mock performance data for now
-        const productsWithPerformance = data.map(product => ({
-          ...product,
-          ...generateMockPerformanceData(product)
-        }));
-        setProducts(productsWithPerformance);
-        setPerformanceData(productsWithPerformance);
-      } else {
-        if (!hasShownWarning.current) {
-          showToast('No products found. Sync with Shopify to load products.', 'warning');
-          hasShownWarning.current = true;
+      // Add date range filter
+      const range = getDateRange();
+      if (range.start) {
+        params.append('start_date', range.start.toISOString().slice(0, 10));
+      }
+      if (range.end) {
+        params.append('end_date', range.end.toISOString().slice(0, 10));
+      }
+      
+      // Add search filter
+      if (searchTerm) {
+        params.append('search', searchTerm);
+      }
+      
+      // Get aggregated data
+      const response = await fetch(`http://localhost:3001/api/product-performance/aggregate?${params}`);
+      
+      if (response.ok) {
+        const data = await response.json();
+        console.log('API Response:', data); // Debug log
+        if (data.products && data.products.length > 0) {
+          console.log('Setting products:', data.products.length); // Debug log
+          setProducts(data.products);
+          setPerformanceData(data.products);
+          setTotalProducts(data.summary.totalProducts);
+          setCurrentPage(page);
+          setTotalPages(Math.ceil(data.summary.totalProducts / itemsPerPage));
+          console.log(`Loaded ${data.products.length} products with performance data`);
+        } else {
+          console.log('No products in response'); // Debug log
+          setProducts([]);
+          setPerformanceData([]);
+          if (!hasShownWarning.current) {
+            showToast('No performance data available. Please sync orders first.', 'warning');
+            hasShownWarning.current = true;
+          }
         }
+      } else {
+        throw new Error('Failed to load performance data');
       }
     } catch (error) {
-      console.error('Error loading products:', error);
-      showToast('Failed to load products', 'error');
+      console.error('Error loading performance data:', error);
+      showToast('Failed to load performance data', 'error');
     } finally {
       setLoading(false);
+    }
+  };
+
+  // Sync performance data
+  const syncPerformanceData = async () => {
+    setSyncing(true);
+    try {
+      const response = await fetch('http://localhost:3001/api/product-performance/sync', {
+        method: 'POST'
+      });
+      
+      if (response.ok) {
+        const result = await response.json();
+        showToast(`Performance data synced: ${result.recordsCreated} records created`, 'success');
+        loadPerformanceData(1);
+      } else {
+        throw new Error('Sync failed');
+      }
+    } catch (error) {
+      console.error('Error syncing performance data:', error);
+      showToast('Failed to sync performance data', 'error');
+    } finally {
+      setSyncing(false);
     }
   };
 
@@ -167,25 +255,24 @@ const ProductPerformance = () => {
     };
   };
 
-  // Sync with Shopify
+  // Sync with Shopify (now using orders data)
   const syncWithShopify = async () => {
     setSyncing(true);
     try {
-      // Sync products first
-      await shopifyService.syncProducts(true);
+      // First sync orders if needed
+      const ordersResponse = await fetch('http://localhost:3001/api/orders/sync', {
+        method: 'POST'
+      });
       
-      // TODO: Implement Shopify Analytics API integration
-      // This would fetch:
-      // - Order data for revenue and sales metrics
-      // - Customer data for customer metrics
-      // - Refund/return data
-      // - Traffic and conversion data
-      
-      showToast('Performance data synced successfully', 'success');
-      await loadProducts();
+      if (ordersResponse.ok) {
+        // Then sync performance data
+        await syncPerformanceData();
+      } else {
+        throw new Error('Failed to sync orders');
+      }
     } catch (error) {
       console.error('Sync error:', error);
-      showToast(error.message || 'Failed to sync performance data', 'error');
+      showToast(error.message || 'Failed to sync data', 'error');
     } finally {
       setSyncing(false);
     }
@@ -198,7 +285,7 @@ const ProductPerformance = () => {
     // Search filter
     if (searchTerm) {
       filtered = filtered.filter(product =>
-        product.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        product.product_title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         product.sku?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         product.vendor?.toLowerCase().includes(searchTerm.toLowerCase())
       );
@@ -212,10 +299,10 @@ const ProductPerformance = () => {
     
     // Advanced filters
     if (filters.minSales !== undefined) {
-      filtered = filtered.filter(p => p.totalSales >= filters.minSales);
+      filtered = filtered.filter(p => p.total_revenue >= filters.minSales);
     }
     if (filters.maxSales !== undefined) {
-      filtered = filtered.filter(p => p.totalSales <= filters.maxSales);
+      filtered = filtered.filter(p => p.total_revenue <= filters.maxSales);
     }
     if (filters.minMargin !== undefined) {
       filtered = filtered.filter(p => p.margin >= filters.minMargin);
@@ -224,24 +311,38 @@ const ProductPerformance = () => {
       filtered = filtered.filter(p => p.margin <= filters.maxMargin);
     }
     if (filters.minUnits !== undefined) {
-      filtered = filtered.filter(p => p.unitsSold >= filters.minUnits);
+      filtered = filtered.filter(p => p.total_units >= filters.minUnits);
     }
     if (filters.maxUnits !== undefined) {
-      filtered = filtered.filter(p => p.unitsSold <= filters.maxUnits);
+      filtered = filtered.filter(p => p.total_units <= filters.maxUnits);
     }
     if (filters.vendor) {
       filtered = filtered.filter(p => p.vendor === filters.vendor);
     }
     if (filters.category) {
-      filtered = filtered.filter(p => p.category === filters.category);
+      filtered = filtered.filter(p => p.product_type === filters.category);
     }
     
     // Sorting
     if (sortBy) {
-      const [key, direction] = sortBy.split('_');
+      const parts = sortBy.split('_');
+      const direction = parts.pop(); // Get last part as direction
+      const key = parts.join('_'); // Join remaining parts as key
+      
+      // Map old keys to new keys
+      const keyMap = {
+        'totalRevenue': 'total_revenue',
+        'totalSales': 'total_revenue',
+        'unitsSold': 'total_units',
+        'ordersCount': 'total_orders',
+        'averageOrderValue': 'avg_price'
+      };
+      
+      const actualKey = keyMap[key] || key;
+      
       filtered.sort((a, b) => {
-        const aVal = a[key] || 0;
-        const bVal = b[key] || 0;
+        const aVal = a[actualKey] || 0;
+        const bVal = b[actualKey] || 0;
         if (direction === 'asc') {
           return aVal > bVal ? 1 : -1;
         } else {
@@ -345,17 +446,22 @@ const ProductPerformance = () => {
       <ProductPerformanceHeader
         dateRange={dateRange}
         setDateRange={setDateRange}
+        customDateRange={customDateRange}
+        setCustomDateRange={setCustomDateRange}
         comparisonPeriod={comparisonPeriod}
         setComparisonPeriod={setComparisonPeriod}
         onSync={syncWithShopify}
         onExport={handleExport}
         syncing={syncing}
         onToggleSidebar={() => setRightSidebarOpen(!rightSidebarOpen)}
-        totalProducts={products.length}
+        totalProducts={totalProducts}
         filteredCount={filteredProducts.length}
+        currentPage={currentPage}
+        totalPages={totalPages}
+        onPageChange={(page) => loadPerformanceData(page)}
       />
 
-      <div className={`flex-1 px-6 pb-6 overflow-hidden flex ${rightSidebarOpen ? 'gap-4' : ''}`}>
+      <div className={`flex-1 px-6 pb-6 mt-4 overflow-hidden flex ${rightSidebarOpen ? 'gap-4' : ''}`}>
         <div className="flex-1 flex flex-col">
           <ProductPerformanceFilters
             searchTerm={searchTerm}

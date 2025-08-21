@@ -1756,6 +1756,237 @@ app.delete('/api/orders', (req, res) => {
   });
 });
 
+// === PRODUCT PERFORMANCE ROUTES ===
+
+// Sync product performance from orders
+app.post('/api/product-performance/sync', async (req, res) => {
+  console.log('Starting product performance sync...');
+  
+  try {
+    // Clear existing performance data
+    db.run('DELETE FROM product_performance', (err) => {
+      if (err) console.error('Error clearing product_performance:', err);
+    });
+    
+    // Calculate performance from orders and order_items
+    // Note: product_id in order_items is actually the Shopify ID
+    const query = `
+      INSERT INTO product_performance (product_id, date, revenue, units_sold, orders_count)
+      SELECT 
+        p.id as product_id,
+        DATE(o.created_at) as date,
+        SUM(oi.price * oi.quantity) as revenue,
+        SUM(oi.quantity) as units_sold,
+        COUNT(DISTINCT o.id) as orders_count
+      FROM order_items oi
+      JOIN orders o ON oi.order_id = o.id
+      LEFT JOIN products p ON p.shopify_id = oi.product_id
+      WHERE o.financial_status IN ('paid', 'partially_paid', 'pending')
+        AND oi.product_id IS NOT NULL
+        AND oi.product_id != ''
+        AND p.id IS NOT NULL
+      GROUP BY p.id, DATE(o.created_at)
+    `;
+    
+    db.run(query, function(err) {
+      if (err) {
+        console.error('Error syncing product performance:', err);
+        return res.status(500).json({ error: 'Failed to sync product performance' });
+      }
+      
+      // Get count of records created
+      db.get('SELECT COUNT(*) as count FROM product_performance', (err, result) => {
+        if (err) {
+          return res.status(500).json({ error: 'Failed to get count' });
+        }
+        
+        console.log(`✅ Product performance synced: ${result.count} records`);
+        res.json({ 
+          success: true, 
+          message: 'Product performance synced successfully',
+          recordsCreated: result.count
+        });
+      });
+    });
+    
+  } catch (error) {
+    console.error('Error in product performance sync:', error);
+    res.status(500).json({ error: 'Failed to sync product performance', message: error.message });
+  }
+});
+
+// Get product performance with filters
+app.get('/api/product-performance', (req, res) => {
+  const { 
+    page = 1, 
+    limit = 50,
+    start_date,
+    end_date,
+    product_id,
+    search
+  } = req.query;
+  
+  const offset = (page - 1) * limit;
+  
+  // Build WHERE conditions
+  let whereConditions = [];
+  let params = [];
+  
+  if (start_date) {
+    whereConditions.push('pp.date >= ?');
+    params.push(start_date);
+  }
+  
+  if (end_date) {
+    whereConditions.push('pp.date <= ?');
+    params.push(end_date);
+  }
+  
+  if (product_id) {
+    whereConditions.push('pp.product_id = ?');
+    params.push(product_id);
+  }
+  
+  if (search) {
+    whereConditions.push('(p.name LIKE ? OR p.vendor LIKE ? OR p.product_type LIKE ?)');
+    const searchPattern = `%${search}%`;
+    params.push(searchPattern, searchPattern, searchPattern);
+  }
+  
+  const whereClause = whereConditions.length > 0 
+    ? 'WHERE ' + whereConditions.join(' AND ')
+    : '';
+  
+  // Get total count
+  const countQuery = `
+    SELECT COUNT(DISTINCT pp.product_id, pp.date) as total
+    FROM product_performance pp
+    LEFT JOIN products p ON pp.product_id = p.id
+    ${whereClause}
+  `;
+  
+  db.get(countQuery, params, (err, countResult) => {
+    if (err) {
+      console.error('Error counting product performance:', err);
+      return res.status(500).json({ error: 'Failed to count records' });
+    }
+    
+    const totalCount = countResult.total;
+    const totalPages = Math.ceil(totalCount / limit);
+    
+    // Get paginated data with product details
+    const dataQuery = `
+      SELECT 
+        pp.*,
+        p.name as product_title,
+        p.vendor,
+        p.product_type,
+        p.tags,
+        p.featured_image as image_url,
+        p.handle,
+        p.status,
+        p.sku
+      FROM product_performance pp
+      LEFT JOIN products p ON pp.product_id = p.id
+      ${whereClause}
+      ORDER BY pp.date DESC, pp.revenue DESC
+      LIMIT ? OFFSET ?
+    `;
+    
+    const queryParams = [...params, parseInt(limit), offset];
+    
+    db.all(dataQuery, queryParams, (err, rows) => {
+      if (err) {
+        console.error('Error fetching product performance:', err);
+        return res.status(500).json({ error: 'Failed to fetch product performance' });
+      }
+      
+      // Parse JSON fields
+      const performance = rows.map(row => {
+        if (row.tags) {
+          try {
+            row.tags = JSON.parse(row.tags);
+          } catch (e) {
+            row.tags = [];
+          }
+        }
+        return row;
+      });
+      
+      res.json({
+        performance: performance,
+        pagination: {
+          page: parseInt(page),
+          limit: parseInt(limit),
+          total: totalCount,
+          totalPages: totalPages,
+          hasNextPage: page < totalPages,
+          hasPrevPage: page > 1
+        }
+      });
+    });
+  });
+});
+
+// Get aggregated product performance
+app.get('/api/product-performance/aggregate', (req, res) => {
+  const { start_date, end_date } = req.query;
+  
+  let whereConditions = [];
+  let params = [];
+  
+  if (start_date) {
+    whereConditions.push('pp.date >= ?');
+    params.push(start_date);
+  }
+  
+  if (end_date) {
+    whereConditions.push('pp.date <= ?');
+    params.push(end_date);
+  }
+  
+  const whereClause = whereConditions.length > 0 
+    ? 'WHERE ' + whereConditions.join(' AND ')
+    : '';
+  
+  const query = `
+    SELECT 
+      pp.product_id,
+      p.name as product_title,
+      p.vendor,
+      p.product_type,
+      p.featured_image as image_url,
+      p.sku,
+      SUM(pp.revenue) as total_revenue,
+      SUM(pp.units_sold) as total_units,
+      SUM(pp.orders_count) as total_orders,
+      AVG(pp.revenue / NULLIF(pp.units_sold, 0)) as avg_price,
+      COUNT(DISTINCT pp.date) as days_sold
+    FROM product_performance pp
+    LEFT JOIN products p ON pp.product_id = p.id
+    ${whereClause}
+    GROUP BY pp.product_id
+    ORDER BY total_revenue DESC
+  `;
+  
+  db.all(query, params, (err, rows) => {
+    if (err) {
+      console.error('Error fetching aggregated performance:', err);
+      return res.status(500).json({ error: 'Failed to fetch aggregated performance' });
+    }
+    
+    res.json({
+      products: rows,
+      summary: {
+        totalProducts: rows.length,
+        totalRevenue: rows.reduce((sum, p) => sum + (p.total_revenue || 0), 0),
+        totalUnits: rows.reduce((sum, p) => sum + (p.total_units || 0), 0),
+        totalOrders: rows.reduce((sum, p) => sum + (p.total_orders || 0), 0)
+      }
+    });
+  });
+});
+
 // Start server
 app.listen(PORT, () => {
   console.log(`🚀 Server running on http://localhost:${PORT}`);
