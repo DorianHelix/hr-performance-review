@@ -148,15 +148,24 @@ function ProductsAdvanced() {
     }
     return window.innerWidth >= 1024;
   });
+  const hasShownWarning = useRef(false);
 
   // Load products on mount
   useEffect(() => {
+    let mounted = true;
+    
     const initializeComponent = async () => {
+      if (!mounted) return;
       await loadSettingsFromDatabase();
       checkShopifyConnection();
       await loadProducts();
     };
+    
     initializeComponent();
+    
+    return () => {
+      mounted = false;
+    };
   }, []); // Only run once on mount
 
   // Save KPI cards state
@@ -250,21 +259,16 @@ function ProductsAdvanced() {
         const dbProducts = await response.json();
         if (dbProducts && dbProducts.length > 0) {
           setProducts(dbProducts);
-          showSuccess(`Loaded ${dbProducts.length} products from database`);
+          console.log(`Loaded ${dbProducts.length} products from database`);
           return;
         }
       }
       
-      // If database is empty or fails, try cache
-      const cached = shopifyService.getCachedProducts();
-      if (cached && cached.products) {
-        setProducts(cached.products);
-        showSuccess(`Loaded ${cached.products.length} products from cache`);
-      } else if (shopifyService.hasCredentials()) {
-        // If no cache but has credentials, fetch from Shopify
-        await syncWithShopify();
-      } else {
-        showWarning('No products found. Please sync with Shopify or add products manually.');
+      // If database is empty, don't load from cache
+      // Only show warning message once
+      if (!hasShownWarning.current) {
+        showWarning('No products in database. Please sync with Shopify to import products.');
+        hasShownWarning.current = true;
       }
     } catch (error) {
       console.error('Failed to load products:', error);
@@ -938,18 +942,26 @@ function ProductsAdvanced() {
               {/* DELETE ALL BUTTON */}
               <button
                 onClick={async () => {
-                  if (confirm(`Are you sure you want to delete all ${products.length} products?`)) {
+                  if (confirm(`Are you sure you want to delete all ${products.length} products from the database? This cannot be undone!`)) {
                     try {
-                      // Clear all localStorage
-                      localStorage.removeItem('shopify_products_cache');
-                      localStorage.removeItem('shopify_products_active');
-                      localStorage.removeItem('hr_products');
-                      localStorage.removeItem('hr_products_imported');
-                      // Reset products state
-                      setProducts([]);
-                      showSuccess('All products deleted!');
-                      // Reload page
-                      window.location.reload();
+                      // Delete from database
+                      const response = await fetch('http://localhost:3001/api/products', {
+                        method: 'DELETE'
+                      });
+                      const data = await response.json();
+                      
+                      if (response.ok) {
+                        // Clear all localStorage
+                        localStorage.removeItem('shopify_products_cache');
+                        localStorage.removeItem('shopify_products_active');
+                        localStorage.removeItem('hr_products');
+                        localStorage.removeItem('hr_products_imported');
+                        // Reset products state
+                        setProducts([]);
+                        showSuccess(`Deleted ${data.count} products from database!`);
+                      } else {
+                        showError('Failed to delete products: ' + data.error);
+                      }
                     } catch (error) {
                       console.error('Error:', error);
                       showError('Failed to delete products');
@@ -1277,18 +1289,26 @@ function ProductsAdvanced() {
               
               <button
                 onClick={async () => {
-                  if (confirm(`Are you sure you want to delete all ${products.length} products?\n\nThis will clear all product data from local storage.`)) {
+                  if (confirm(`Are you sure you want to delete all ${products.length} products?\n\nThis will permanently delete all products from the database.`)) {
                     try {
-                      // Clear all localStorage
-                      localStorage.removeItem('shopify_products_cache');
-                      localStorage.removeItem('shopify_products_active');
-                      localStorage.removeItem('hr_products');
-                      localStorage.removeItem('hr_products_imported');
-                      // Reset products state
-                      setProducts([]);
-                      showSuccess('All products have been deleted successfully!');
-                      // Reload page after a short delay
-                      setTimeout(() => window.location.reload(), 1000);
+                      // Delete from database
+                      const response = await fetch('http://localhost:3001/api/products', {
+                        method: 'DELETE'
+                      });
+                      const data = await response.json();
+                      
+                      if (response.ok) {
+                        // Clear all localStorage
+                        localStorage.removeItem('shopify_products_cache');
+                        localStorage.removeItem('shopify_products_active');
+                        localStorage.removeItem('hr_products');
+                        localStorage.removeItem('hr_products_imported');
+                        // Reset products state
+                        setProducts([]);
+                        showSuccess(`Deleted ${data.count} products from database!`);
+                      } else {
+                        showError('Failed to delete products: ' + data.error);
+                      }
                     } catch (error) {
                       console.error('Error deleting products:', error);
                       showError('Failed to delete products');

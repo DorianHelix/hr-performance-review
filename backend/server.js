@@ -13,6 +13,9 @@ app.use(cors());
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 
+// Serve static files (admin.html)
+app.use(express.static(path.join(__dirname)));
+
 // Database setup
 const db = new sqlite3.Database('./database.db');
 
@@ -328,6 +331,39 @@ app.delete('/api/products/:id', (req, res) => {
         return;
       }
       res.json({ deleted: true });
+    });
+  });
+});
+
+// Delete all products
+app.delete('/api/products', (req, res) => {
+  const { source } = req.query; // Optional: delete only products from specific source
+  
+  let query = 'DELETE FROM products';
+  const params = [];
+  
+  if (source) {
+    query += ' WHERE source = ?';
+    params.push(source);
+  }
+  
+  db.run(query, params, function(err) {
+    if (err) {
+      res.status(500).json({ error: err.message });
+      return;
+    }
+    
+    // Also delete orphaned variants
+    db.run('DELETE FROM product_variants WHERE product_id NOT IN (SELECT id FROM products)', (varErr) => {
+      if (varErr) {
+        console.error('Error cleaning up variants:', varErr);
+      }
+    });
+    
+    res.json({ 
+      deleted: true, 
+      count: this.changes,
+      message: `Deleted ${this.changes} products from database` 
     });
   });
 });
@@ -1055,8 +1091,33 @@ app.get('/', (req, res) => {
       health: '/api/health',
       products: '/api/products',
       settings: '/api/settings',
-      shopify: '/api/shopify/*'
+      shopify: '/api/shopify/*',
+      admin: '/admin.html'
     }
+  });
+});
+
+// Admin endpoint - get any table data
+app.get('/api/admin/table/:table', (req, res) => {
+  const { table } = req.params;
+  
+  // Whitelist of allowed tables
+  const allowedTables = [
+    'products', 'product_variants', 'product_performance', 
+    'product_scores', 'settings', 'shopify_sync_log', 
+    'employees', 'scores', 'categories'
+  ];
+  
+  if (!allowedTables.includes(table)) {
+    return res.status(400).json({ error: 'Invalid table name' });
+  }
+  
+  db.all(`SELECT * FROM ${table} LIMIT 1000`, (err, rows) => {
+    if (err) {
+      res.status(500).json({ error: err.message });
+      return;
+    }
+    res.json(rows || []);
   });
 });
 
