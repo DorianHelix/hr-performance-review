@@ -1195,7 +1195,8 @@ app.get('/api/admin/table/:table', (req, res) => {
   const allowedTables = [
     'products', 'product_variants', 'product_performance', 
     'product_scores', 'settings', 'shopify_sync_log', 
-    'employees', 'scores', 'categories'
+    'employees', 'scores', 'categories',
+    'orders', 'order_items'
   ];
   
   if (!allowedTables.includes(table)) {
@@ -1342,14 +1343,129 @@ app.post('/api/orders/sync', async (req, res) => {
       let hasNextPage = true;
       let pageInfo = null;
       const pageSize = 50; // Reduced from 250 to avoid rate limits
+      let savedCount = 0;
+      let skippedCount = 0;
+      let pageCount = 0;
+      const maxPages = 1000; // Safety limit to prevent infinite loops
       
       console.log('Starting to fetch orders from Shopify...');
       
       // Helper function to wait
       const wait = (ms) => new Promise(resolve => setTimeout(resolve, ms));
       
+      // Helper function to save order to database
+      const saveOrderToDatabase = (order) => {
+        return new Promise((resolve, reject) => {
+          // First check if order already exists
+          db.get('SELECT id FROM orders WHERE shopify_id = ?', [order.id], (err, existingOrder) => {
+            if (err) {
+              console.error('Error checking existing order:', err);
+              resolve();
+              return;
+            }
+            
+            if (existingOrder) {
+              // Order already exists, skip
+              skippedCount++;
+              resolve();
+              return;
+            }
+            
+            // Use INSERT to add new order
+            db.run(`
+              INSERT INTO orders (
+                shopify_id, order_number, customer_name, customer_email, customer_phone,
+                financial_status, fulfillment_status, total_price, subtotal_price,
+                total_tax, total_discounts, total_shipping, total_refunded,
+                currency, note, customer_note, tags, source, channel,
+                shipping_address, billing_address, shipping_method,
+                tracking_number, carrier, created_at, processed_at,
+                fulfilled_at, cancelled_at, synced_at
+              ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+          `, [
+            order.id,
+            order.order_number || order.name,
+            order.customer ? `${order.customer.first_name || ''} ${order.customer.last_name || ''}`.trim() : null,
+            order.customer ? order.customer.email : order.email,
+            order.customer ? order.customer.phone : order.phone,
+            order.financial_status,
+            order.fulfillment_status,
+            parseFloat(order.total_price || 0),
+            parseFloat(order.subtotal_price || 0),
+            parseFloat(order.total_tax || 0),
+            parseFloat(order.total_discounts || 0),
+            parseFloat(order.total_shipping_price_set ? order.total_shipping_price_set.shop_money.amount : 0),
+            order.refunds ? order.refunds.reduce((sum, r) => sum + parseFloat(r.total_duties_set ? r.total_duties_set.shop_money.amount : 0), 0) : 0,
+            order.currency,
+            order.note,
+            order.note_attributes ? JSON.stringify(order.note_attributes) : null,
+            order.tags ? JSON.stringify(order.tags ? order.tags.split(',').map(t => t.trim()) : []) : '[]',
+            order.source_name,
+            order.source_identifier,
+            order.shipping_address ? JSON.stringify(order.shipping_address) : null,
+            order.billing_address ? JSON.stringify(order.billing_address) : null,
+            order.shipping_lines && order.shipping_lines[0] ? order.shipping_lines[0].title : null,
+            order.fulfillments && order.fulfillments[0] ? order.fulfillments[0].tracking_number : null,
+            order.fulfillments && order.fulfillments[0] ? order.fulfillments[0].tracking_company : null,
+            order.created_at,
+            order.processed_at,
+            order.fulfillments && order.fulfillments[0] ? order.fulfillments[0].created_at : null,
+            order.cancelled_at
+          ], function(err) {
+            if (err) {
+              console.error('Error saving order:', err);
+              resolve(); // Continue even if one order fails
+              return;
+            }
+            
+            const orderId = this.lastID;
+            savedCount++;
+            
+            // Only save line items if we actually inserted a new order
+            if (orderId && order.line_items && order.line_items.length > 0) {
+              let itemsToSave = order.line_items.length;
+              let itemsSaved = 0;
+              
+              order.line_items.forEach(item => {
+                db.run(`
+                  INSERT OR IGNORE INTO order_items (
+                    order_id, shopify_id, product_id, variant_id,
+                    name, variant_title, sku, quantity, price, cost,
+                    total_discount, fulfillment_status, image
+                  ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                `, [
+                  orderId,
+                  item.id,
+                  item.product_id,
+                  item.variant_id,
+                  item.name,
+                  item.variant_title,
+                  item.sku,
+                  item.quantity,
+                  parseFloat(item.price || 0),
+                  0, // Cost would need to be fetched from product data
+                  parseFloat(item.total_discount || 0),
+                  item.fulfillment_status,
+                  item.product_exists && item.image ? item.image.src : null
+                ], (err) => {
+                  if (err) console.error('Error saving line item:', err);
+                  itemsSaved++;
+                  if (itemsSaved === itemsToSave) {
+                    resolve();
+                  }
+                  });
+                });
+              } else {
+                resolve();
+              }
+            });
+          });
+        });
+      };
+      
       // Fetch all orders using pagination with rate limiting
-      while (hasNextPage) {
+      while (hasNextPage && pageCount < maxPages) {
+        pageCount++;
         let url;
         if (pageInfo) {
           // page_info cannot be used with other parameters except limit
@@ -1395,19 +1511,33 @@ app.post('/api/orders/sync', async (req, res) => {
         }
         
         const data = await response.json();
+        
+        // Save this batch of orders immediately
+        console.log(`Saving batch of ${data.orders.length} orders to database...`);
+        for (const order of data.orders) {
+          await saveOrderToDatabase(order);
+        }
+        
         allOrders = allOrders.concat(data.orders);
         
         // Check for pagination
         const linkHeader = response.headers.get('link');
         if (linkHeader && linkHeader.includes('rel="next"')) {
-          const matches = linkHeader.match(/page_info=([^&>]+).*?rel="next"/);
-          pageInfo = matches ? matches[1] : null;
-          hasNextPage = pageInfo !== null;
+          // Shopify Link header format: <url>; rel="next", <url>; rel="previous"
+          const links = linkHeader.split(',');
+          const nextLink = links.find(link => link.includes('rel="next"'));
+          if (nextLink) {
+            const pageInfoMatch = nextLink.match(/page_info=([^&>]+)/);
+            pageInfo = pageInfoMatch ? pageInfoMatch[1] : null;
+            hasNextPage = pageInfo !== null;
+          } else {
+            hasNextPage = false;
+          }
         } else {
           hasNextPage = false;
         }
         
-        console.log(`Fetched ${data.orders.length} orders, total so far: ${allOrders.length}`);
+        console.log(`Page ${pageCount}: Fetched ${data.orders.length} orders | Total fetched: ${allOrders.length} | Saved: ${savedCount} | Skipped (duplicates): ${skippedCount}`);
         
         // Add a small delay between requests to avoid rate limiting
         if (hasNextPage) {
@@ -1415,91 +1545,10 @@ app.post('/api/orders/sync', async (req, res) => {
         }
       }
       
-      console.log(`Total orders fetched: ${allOrders.length}`);
-      
-      // Save orders to database
-      let savedCount = 0;
-      for (const order of allOrders) {
-        // Save order
-        db.run(`
-          INSERT OR REPLACE INTO orders (
-            shopify_id, order_number, customer_name, customer_email, customer_phone,
-            financial_status, fulfillment_status, total_price, subtotal_price,
-            total_tax, total_discounts, total_shipping, total_refunded,
-            currency, note, customer_note, tags, source, channel,
-            shipping_address, billing_address, shipping_method,
-            tracking_number, carrier, created_at, processed_at,
-            fulfilled_at, cancelled_at, synced_at
-          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
-        `, [
-          order.id,
-          order.order_number || order.name,
-          order.customer ? `${order.customer.first_name} ${order.customer.last_name}` : null,
-          order.customer ? order.customer.email : order.email,
-          order.customer ? order.customer.phone : order.phone,
-          order.financial_status,
-          order.fulfillment_status,
-          parseFloat(order.total_price || 0),
-          parseFloat(order.subtotal_price || 0),
-          parseFloat(order.total_tax || 0),
-          parseFloat(order.total_discounts || 0),
-          parseFloat(order.total_shipping_price_set ? order.total_shipping_price_set.shop_money.amount : 0),
-          order.refunds ? order.refunds.reduce((sum, r) => sum + parseFloat(r.total_duties_set ? r.total_duties_set.shop_money.amount : 0), 0) : 0,
-          order.currency,
-          order.note,
-          order.note_attributes ? JSON.stringify(order.note_attributes) : null,
-          order.tags ? JSON.stringify(order.tags.split(',').map(t => t.trim())) : '[]',
-          order.source_name,
-          order.source_identifier,
-          order.shipping_address ? JSON.stringify(order.shipping_address) : null,
-          order.billing_address ? JSON.stringify(order.billing_address) : null,
-          order.shipping_lines && order.shipping_lines[0] ? order.shipping_lines[0].title : null,
-          order.fulfillments && order.fulfillments[0] ? order.fulfillments[0].tracking_number : null,
-          order.fulfillments && order.fulfillments[0] ? order.fulfillments[0].tracking_company : null,
-          order.created_at,
-          order.processed_at,
-          order.fulfillments && order.fulfillments[0] ? order.fulfillments[0].created_at : null,
-          order.cancelled_at
-        ], function(err) {
-          if (err) {
-            console.error('Error saving order:', err);
-            return;
-          }
-          
-          const orderId = this.lastID;
-          
-          // Save line items
-          if (order.line_items && order.line_items.length > 0) {
-            order.line_items.forEach(item => {
-              db.run(`
-                INSERT OR REPLACE INTO order_items (
-                  order_id, shopify_id, product_id, variant_id,
-                  name, variant_title, sku, quantity, price, cost,
-                  total_discount, fulfillment_status, image
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-              `, [
-                orderId,
-                item.id,
-                item.product_id,
-                item.variant_id,
-                item.name,
-                item.variant_title,
-                item.sku,
-                item.quantity,
-                parseFloat(item.price || 0),
-                0, // Cost would need to be fetched from product data
-                parseFloat(item.total_discount || 0),
-                item.fulfillment_status,
-                item.product_exists && item.image ? item.image.src : null
-              ]);
-            });
-          }
-        });
-        
-        savedCount++;
+      if (pageCount >= maxPages) {
+        console.log(`⚠️ Reached maximum page limit (${maxPages}). Stopping to prevent infinite loop.`);
       }
-      
-      console.log(`✅ Saved ${savedCount} orders to database`);
+      console.log(`✅ Sync completed! Total fetched: ${allOrders.length} | Saved: ${savedCount} | Skipped: ${skippedCount}`);
       
       // Return the orders
       db.all(`

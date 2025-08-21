@@ -400,6 +400,23 @@
                 </svg>
                 Settings
             </div>
+            <div class="nav-tab" onclick="loadTable('orders')">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/>
+                    <line x1="3" y1="6" x2="21" y2="6"/>
+                    <path d="M16 10a4 4 0 0 1-8 0"/>
+                </svg>
+                Orders
+            </div>
+            <div class="nav-tab" onclick="loadTable('order_items')">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/>
+                    <line x1="3" y1="6" x2="21" y2="6"/>
+                    <line x1="9" y1="12" x2="15" y2="12"/>
+                    <line x1="9" y1="16" x2="13" y2="16"/>
+                </svg>
+                Order Items
+            </div>
             <div class="nav-tab" onclick="loadTable('shopify_sync_log')">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
@@ -476,6 +493,8 @@
         const API_URL = 'http://localhost:3001/api';
         let currentTable = 'products';
         let currentData = [];
+        let currentPage = 1;
+        const itemsPerPage = 100;
 
         // Initialize
         document.addEventListener('DOMContentLoaded', function() {
@@ -485,6 +504,7 @@
         // Load table data
         async function loadTable(tableName) {
             currentTable = tableName;
+            currentPage = 1; // Reset to first page
             
             // Update active tab
             document.querySelectorAll('.nav-tab').forEach(tab => {
@@ -546,7 +566,7 @@
             }
         }
 
-        // Display table data
+        // Display table data with pagination
         function displayData(data) {
             const container = document.getElementById('tableContent');
             
@@ -565,10 +585,39 @@
                 return;
             }
             
+            // Calculate pagination
+            const totalPages = Math.ceil(data.length / itemsPerPage);
+            const startIndex = (currentPage - 1) * itemsPerPage;
+            const endIndex = Math.min(startIndex + itemsPerPage, data.length);
+            const pageData = data.slice(startIndex, endIndex);
+            
             // Get columns from first row
             const columns = Object.keys(data[0]);
             
-            let html = '<table class="data-table"><thead><tr>';
+            // Add pagination controls if needed
+            let html = '';
+            if (data.length > itemsPerPage) {
+                html += `
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                        <div style="color: var(--text-secondary);">
+                            Showing ${startIndex + 1}-${endIndex} of ${data.length} records
+                        </div>
+                        <div style="display: flex; gap: 10px;">
+                            <button class="btn" onclick="changePage(-1)" ${currentPage === 1 ? 'disabled' : ''}>
+                                Previous
+                            </button>
+                            <span style="padding: 8px 12px; background: var(--glass-bg); border-radius: 8px;">
+                                Page ${currentPage} of ${totalPages}
+                            </span>
+                            <button class="btn" onclick="changePage(1)" ${currentPage === totalPages ? 'disabled' : ''}>
+                                Next
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }
+            
+            html += '<div class="table-scroll"><table class="data-table"><thead><tr>';
             
             // Add column headers
             columns.forEach(col => {
@@ -576,8 +625,8 @@
             });
             html += '</tr></thead><tbody>';
             
-            // Add data rows
-            data.forEach(row => {
+            // Add data rows (only for current page)
+            pageData.forEach(row => {
                 html += '<tr>';
                 columns.forEach(col => {
                     let value = row[col];
@@ -591,8 +640,17 @@
                 html += '</tr>';
             });
             
-            html += '</tbody></table>';
+            html += '</tbody></table></div>';
             container.innerHTML = html;
+        }
+        
+        // Change page function
+        function changePage(direction) {
+            const totalPages = Math.ceil(currentData.length / itemsPerPage);
+            currentPage += direction;
+            if (currentPage < 1) currentPage = 1;
+            if (currentPage > totalPages) currentPage = totalPages;
+            displayData(currentData);
         }
 
         // Update stats
@@ -651,6 +709,8 @@
             const filter = input.value.toLowerCase();
             
             if (!currentData || currentData.length === 0) return;
+            
+            currentPage = 1; // Reset to first page when filtering
             
             const filtered = currentData.filter(row => 
                 Object.values(row).some(value => 
