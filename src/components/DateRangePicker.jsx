@@ -88,37 +88,39 @@ function DateRangePicker({ label, startDate, endDate, onRangeChange }) {
   }
 
   function handleDateClick(day) {
-    // Create date in local timezone to avoid date shifting
-    const clickedDate = new Date(viewY, viewM, day, 12, 0, 0); // Use noon to avoid DST issues
-    
     if (!isSelectingEnd) {
-      // First click - set start date
+      // First click - set start date at beginning of day
       const startDate = new Date(viewY, viewM, day, 0, 0, 0, 0);
       setSelectionStart(startDate);
       setSelectionEnd(null);
       setIsSelectingEnd(true);
     } else {
-      // Second click - set end date
-      const endDate = new Date(viewY, viewM, day, 23, 59, 59, 999);
+      // Second click - set end date at end of day
+      const clickedDate = new Date(viewY, viewM, day, 23, 59, 59, 999);
       let finalStart = selectionStart;
-      let finalEnd = endDate;
+      let finalEnd = clickedDate;
       
       // Ensure start is before end
-      if (finalEnd < finalStart) {
-        // Swap and adjust times
+      if (clickedDate < selectionStart) {
+        // User clicked before start date, swap them
         finalStart = new Date(viewY, viewM, day, 0, 0, 0, 0);
-        finalEnd = new Date(selectionStart.getFullYear(), selectionStart.getMonth(), selectionStart.getDate(), 23, 59, 59, 999);
+        finalEnd = new Date(
+          selectionStart.getFullYear(), 
+          selectionStart.getMonth(), 
+          selectionStart.getDate(), 
+          23, 59, 59, 999
+        );
       }
       
       setSelectionStart(finalStart);
       setSelectionEnd(finalEnd);
       setIsSelectingEnd(false);
       
-      // Update parent component
-      onRangeChange(
-        finalStart.toISOString().slice(0, 10),
-        finalEnd.toISOString().slice(0, 10)
-      );
+      // Format dates as YYYY-MM-DD for the parent component
+      const startStr = `${finalStart.getFullYear()}-${String(finalStart.getMonth() + 1).padStart(2, '0')}-${String(finalStart.getDate()).padStart(2, '0')}`;
+      const endStr = `${finalEnd.getFullYear()}-${String(finalEnd.getMonth() + 1).padStart(2, '0')}-${String(finalEnd.getDate()).padStart(2, '0')}`;
+      
+      onRangeChange(startStr, endStr);
       
       // Close dropdown after selection
       setTimeout(() => setOpen(false), 200);
@@ -138,15 +140,10 @@ function DateRangePicker({ label, startDate, endDate, onRangeChange }) {
       return "Select date range";
     }
     
-    const startStr = selectionStart.toLocaleDateString('en-US', { 
-      month: 'short', 
-      day: 'numeric' 
-    });
-    const endStr = selectionEnd.toLocaleDateString('en-US', { 
-      month: 'short', 
-      day: 'numeric',
-      year: 'numeric'
-    });
+    // Format dates to ensure we show the correct dates
+    const options = { year: 'numeric', month: 'short', day: 'numeric' };
+    const startStr = selectionStart.toLocaleDateString('en-US', options);
+    const endStr = selectionEnd.toLocaleDateString('en-US', options);
     
     return `${startStr} - ${endStr}`;
   }
@@ -162,7 +159,7 @@ function DateRangePicker({ label, startDate, endDate, onRangeChange }) {
   for (let i = 0; i < lead; i++) grid.push(null);
   for (let day = 1; day <= daysInMonth(viewY, viewM); day++) grid.push(day);
 
-  // Quick date range options - using proper date creation to avoid timezone issues
+  // Quick date range options - fixed for proper timezone handling
   const quickRanges = [
     { 
       label: 'Today', 
@@ -177,8 +174,10 @@ function DateRangePicker({ label, startDate, endDate, onRangeChange }) {
       label: 'Yesterday', 
       getValue: () => { 
         const now = new Date();
-        const start = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1, 0, 0, 0, 0);
-        const end = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1, 23, 59, 59, 999);
+        const yesterday = new Date(now);
+        yesterday.setDate(yesterday.getDate() - 1);
+        const start = new Date(yesterday.getFullYear(), yesterday.getMonth(), yesterday.getDate(), 0, 0, 0, 0);
+        const end = new Date(yesterday.getFullYear(), yesterday.getMonth(), yesterday.getDate(), 23, 59, 59, 999);
         return {start, end};
       }
     },
@@ -187,7 +186,9 @@ function DateRangePicker({ label, startDate, endDate, onRangeChange }) {
       getValue: () => { 
         const now = new Date();
         const end = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
-        const start = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 6, 0, 0, 0, 0);
+        const start = new Date(now);
+        start.setDate(start.getDate() - 6);
+        start.setHours(0, 0, 0, 0);
         return {start, end};
       }
     },
@@ -196,7 +197,9 @@ function DateRangePicker({ label, startDate, endDate, onRangeChange }) {
       getValue: () => { 
         const now = new Date();
         const end = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
-        const start = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 29, 0, 0, 0, 0);
+        const start = new Date(now);
+        start.setDate(start.getDate() - 29);
+        start.setHours(0, 0, 0, 0);
         return {start, end};
       }
     },
@@ -205,6 +208,7 @@ function DateRangePicker({ label, startDate, endDate, onRangeChange }) {
       getValue: () => { 
         const now = new Date();
         const start = new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0, 0);
+        // Last day of current month
         const end = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
         return {start, end};
       }
@@ -213,7 +217,9 @@ function DateRangePicker({ label, startDate, endDate, onRangeChange }) {
       label: 'Last Month', 
       getValue: () => { 
         const now = new Date();
+        // First day of last month
         const start = new Date(now.getFullYear(), now.getMonth() - 1, 1, 0, 0, 0, 0);
+        // Last day of last month
         const end = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59, 999);
         return {start, end};
       }
@@ -223,7 +229,9 @@ function DateRangePicker({ label, startDate, endDate, onRangeChange }) {
       getValue: () => { 
         const now = new Date();
         const end = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
-        const start = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 89, 0, 0, 0, 0);
+        const start = new Date(now);
+        start.setDate(start.getDate() - 89);
+        start.setHours(0, 0, 0, 0);
         return {start, end};
       }
     },
@@ -242,10 +250,12 @@ function DateRangePicker({ label, startDate, endDate, onRangeChange }) {
     const { start, end } = range.getValue();
     setSelectionStart(start);
     setSelectionEnd(end);
-    onRangeChange(
-      start.toISOString().slice(0, 10),
-      end.toISOString().slice(0, 10)
-    );
+    
+    // Format dates as YYYY-MM-DD for the parent component
+    const startStr = `${start.getFullYear()}-${String(start.getMonth() + 1).padStart(2, '0')}-${String(start.getDate()).padStart(2, '0')}`;
+    const endStr = `${end.getFullYear()}-${String(end.getMonth() + 1).padStart(2, '0')}-${String(end.getDate()).padStart(2, '0')}`;
+    
+    onRangeChange(startStr, endStr);
     setTimeout(() => setOpen(false), 200);
   }
 
@@ -288,94 +298,94 @@ function DateRangePicker({ label, startDate, endDate, onRangeChange }) {
         <div className="flex-1">
           {/* Header with month navigation */}
           <div className="flex items-center justify-between mb-3">
-        <button 
-          onClick={() => setViewM(m => m === 0 ? (setViewY(y => y - 1), 11) : m - 1)} 
-          className="p-1.5 rounded-md hover:bg-white/10"
-        >
-          <ChevronLeft size={18} className="text-white/80" />
-        </button>
-        <div className="font-semibold text-white">{monthName}</div>
-        <button 
-          onClick={() => setViewM(m => m === 11 ? (setViewY(y => y + 1), 0) : m + 1)} 
-          className="p-1.5 rounded-md hover:bg-white/10"
-        >
-          <ChevronRight size={18} className="text-white/80" />
-        </button>
-      </div>
-
-      {/* Instructions */}
-      <div className="text-xs text-white/50 text-center mb-3">
-        {isSelectingEnd 
-          ? "Click to select end date" 
-          : "Click to select start date"}
-      </div>
-
-      {/* Weekday headers */}
-      <div className="grid grid-cols-7 gap-1 text-center text-xs text-white/60 mb-2">
-        {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map(w => (
-          <div key={w} className="font-medium">{w}</div>
-        ))}
-      </div>
-
-      {/* Calendar grid */}
-      <div className="grid grid-cols-7 gap-1">
-        {grid.map((day, i) => {
-          if (!day) return <div key={i} className="h-9" />;
-          
-          const currentDate = new Date(viewY, viewM, day);
-          const isStart = isSameDay(currentDate, selectionStart);
-          const isEnd = isSameDay(currentDate, selectionEnd);
-          const inRange = isInRange(currentDate);
-          const inHoverRange = isInHoverRange(currentDate);
-          const isToday = isSameDay(currentDate, new Date());
-          
-          let className = "h-9 rounded-lg text-sm transition-all relative ";
-          
-          if (isStart || isEnd) {
-            className += "bg-blue-600 text-white font-medium z-10 ";
-          } else if (inRange) {
-            className += "bg-blue-500/30 text-white ";
-          } else if (inHoverRange) {
-            className += "bg-blue-500/20 text-white/80 ";
-          } else if (isToday) {
-            className += "glass-card text-blue-400 font-medium hover:bg-white/10 ";
-          } else {
-            className += "hover:bg-white/5 text-white/80 ";
-          }
-          
-          // Add rounded corners for range edges
-          if (isStart && !isEnd) {
-            className += "rounded-r-none ";
-          }
-          if (isEnd && !isStart) {
-            className += "rounded-l-none ";
-          }
-          if (inRange && !isStart && !isEnd) {
-            className += "rounded-none ";
-          }
-          
-          return (
-            <button
-              key={i}
-              onClick={() => handleDateClick(day)}
-              onMouseEnter={() => handleDateHover(day)}
-              onMouseLeave={() => handleDateHover(null)}
-              className={className}
+            <button 
+              onClick={() => setViewM(m => m === 0 ? (setViewY(y => y - 1), 11) : m - 1)} 
+              className="p-1.5 rounded-md hover:bg-white/10"
             >
-              {day}
-              {isStart && (
-                <span className="absolute -top-5 left-1/2 -translate-x-1/2 text-[10px] text-blue-400 font-medium">
-                  Start
-                </span>
-              )}
-              {isEnd && (
-                <span className="absolute -top-5 left-1/2 -translate-x-1/2 text-[10px] text-blue-400 font-medium">
-                  End
-                </span>
-              )}
+              <ChevronLeft size={18} className="text-white/80" />
             </button>
-          );
-        })}
+            <div className="font-semibold text-white">{monthName}</div>
+            <button 
+              onClick={() => setViewM(m => m === 11 ? (setViewY(y => y + 1), 0) : m + 1)} 
+              className="p-1.5 rounded-md hover:bg-white/10"
+            >
+              <ChevronRight size={18} className="text-white/80" />
+            </button>
+          </div>
+
+          {/* Instructions */}
+          <div className="text-xs text-white/50 text-center mb-3">
+            {isSelectingEnd 
+              ? "Click to select end date" 
+              : "Click to select start date"}
+          </div>
+
+          {/* Weekday headers */}
+          <div className="grid grid-cols-7 gap-1 text-center text-xs text-white/60 mb-2">
+            {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map(w => (
+              <div key={w} className="font-medium">{w}</div>
+            ))}
+          </div>
+
+          {/* Calendar grid */}
+          <div className="grid grid-cols-7 gap-1">
+            {grid.map((day, i) => {
+              if (!day) return <div key={i} className="h-9" />;
+              
+              const currentDate = new Date(viewY, viewM, day);
+              const isStart = isSameDay(currentDate, selectionStart);
+              const isEnd = isSameDay(currentDate, selectionEnd);
+              const inRange = isInRange(currentDate);
+              const inHoverRange = isInHoverRange(currentDate);
+              const isToday = isSameDay(currentDate, new Date());
+              
+              let className = "h-9 rounded-lg text-sm transition-all relative ";
+              
+              if (isStart || isEnd) {
+                className += "bg-blue-600 text-white font-medium z-10 ";
+              } else if (inRange) {
+                className += "bg-blue-500/30 text-white ";
+              } else if (inHoverRange) {
+                className += "bg-blue-500/20 text-white/80 ";
+              } else if (isToday) {
+                className += "glass-card text-blue-400 font-medium hover:bg-white/10 ";
+              } else {
+                className += "hover:bg-white/5 text-white/80 ";
+              }
+              
+              // Add rounded corners for range edges
+              if (isStart && !isEnd) {
+                className += "rounded-r-none ";
+              }
+              if (isEnd && !isStart) {
+                className += "rounded-l-none ";
+              }
+              if (inRange && !isStart && !isEnd) {
+                className += "rounded-none ";
+              }
+              
+              return (
+                <button
+                  key={i}
+                  onClick={() => handleDateClick(day)}
+                  onMouseEnter={() => handleDateHover(day)}
+                  onMouseLeave={() => handleDateHover(null)}
+                  className={className}
+                >
+                  {day}
+                  {isStart && (
+                    <span className="absolute -top-5 left-1/2 -translate-x-1/2 text-[10px] text-blue-400 font-medium">
+                      Start
+                    </span>
+                  )}
+                  {isEnd && (
+                    <span className="absolute -top-5 left-1/2 -translate-x-1/2 text-[10px] text-blue-400 font-medium">
+                      End
+                    </span>
+                  )}
+                </button>
+              );
+            })}
           </div>
         </div>
       </div>
@@ -393,7 +403,6 @@ function DateRangePicker({ label, startDate, endDate, onRangeChange }) {
         <span className="text-sm text-white font-medium">{formatDateRange()}</span>
         <Calendar size={16} className="text-white/60" />
       </button>
-
       {dropdown && createPortal(dropdown, document.body)}
     </div>
   );
