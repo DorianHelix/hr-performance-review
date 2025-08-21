@@ -89,6 +89,17 @@ db.serialize(() => {
     )
   `);
 
+  // Settings table
+  db.run(`
+    CREATE TABLE IF NOT EXISTS settings (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      key TEXT UNIQUE NOT NULL,
+      value TEXT NOT NULL,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+
   console.log('✅ Database tables created/verified');
 });
 
@@ -740,6 +751,103 @@ app.post('/api/shopify/inventory', async (req, res) => {
     console.error('Shopify inventory fetch error:', error);
     res.status(500).json({ error: 'Failed to fetch inventory', details: error.message });
   }
+});
+
+// === SETTINGS ROUTES ===
+
+// Get all settings
+app.get('/api/settings', (req, res) => {
+  db.all('SELECT * FROM settings', (err, rows) => {
+    if (err) {
+      res.status(500).json({ error: err.message });
+      return;
+    }
+    // Convert array to object for easier access
+    const settings = {};
+    rows.forEach(row => {
+      try {
+        settings[row.key] = JSON.parse(row.value);
+      } catch {
+        settings[row.key] = row.value;
+      }
+    });
+    res.json(settings);
+  });
+});
+
+// Get single setting
+app.get('/api/settings/:key', (req, res) => {
+  const { key } = req.params;
+  db.get('SELECT * FROM settings WHERE key = ?', [key], (err, row) => {
+    if (err) {
+      res.status(500).json({ error: err.message });
+      return;
+    }
+    if (!row) {
+      res.json({ key, value: null });
+      return;
+    }
+    try {
+      res.json({ key, value: JSON.parse(row.value) });
+    } catch {
+      res.json({ key, value: row.value });
+    }
+  });
+});
+
+// Save/update setting
+app.post('/api/settings/:key', (req, res) => {
+  const { key } = req.params;
+  const { value } = req.body;
+  const valueStr = typeof value === 'string' ? value : JSON.stringify(value);
+  
+  db.run(
+    `INSERT OR REPLACE INTO settings (key, value, updated_at) 
+     VALUES (?, ?, CURRENT_TIMESTAMP)`,
+    [key, valueStr],
+    function(err) {
+      if (err) {
+        res.status(500).json({ error: err.message });
+        return;
+      }
+      res.json({ key, value, success: true });
+    }
+  );
+});
+
+// Save multiple settings at once
+app.post('/api/settings', (req, res) => {
+  const settings = req.body;
+  const stmt = db.prepare(
+    `INSERT OR REPLACE INTO settings (key, value, updated_at) 
+     VALUES (?, ?, CURRENT_TIMESTAMP)`
+  );
+  
+  try {
+    Object.keys(settings).forEach(key => {
+      const value = typeof settings[key] === 'string' 
+        ? settings[key] 
+        : JSON.stringify(settings[key]);
+      stmt.run(key, value);
+    });
+    stmt.finalize();
+    res.json({ success: true });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Delete setting
+app.delete('/api/settings/:key', (req, res) => {
+  const { key } = req.params;
+  
+  db.run('DELETE FROM settings WHERE key = ?', [key], function(err) {
+    if (err) {
+      res.status(500).json({ error: err.message });
+      return;
+    }
+    res.json({ deleted: true });
+  });
 });
 
 // Health check

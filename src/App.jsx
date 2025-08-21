@@ -17,6 +17,7 @@ import FlowBuilder from "./components/FlowBuilder";
 import Analytics from "./components/Analytics";
 import Dashboard from "./components/Dashboard";
 import Employees from "./components/Employees";
+import SettingsPage from "./components/Settings";
 import DatePicker from "./components/DatePicker";
 import DateRangePicker from "./components/DateRangePicker";
 import { ToastProvider } from "./components/Toast";
@@ -94,6 +95,12 @@ function Sidebar({ isCollapsed, onToggle, currentView, onViewChange, isDarkMode,
       label: 'Analytics',
       icon: BarChart3,
       active: currentView === 'analytics'
+    },
+    {
+      id: 'settings',
+      label: 'Settings',
+      icon: Settings,
+      active: currentView === 'settings'
     }
   ];
 
@@ -2119,6 +2126,8 @@ export default function App() {
       {currentView === 'flowbuilder' && <FlowBuilder />}
       
       {currentView === 'analytics' && <Analytics />}
+      
+      {currentView === 'settings' && <SettingsPage />}
       
       {currentView === 'performance' && (
         <div className="flex h-full flex-col p-6">
