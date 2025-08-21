@@ -1112,13 +1112,25 @@ app.get('/api/admin/table/:table', (req, res) => {
     return res.status(400).json({ error: 'Invalid table name' });
   }
   
-  db.all(`SELECT * FROM ${table} LIMIT 1000`, (err, rows) => {
-    if (err) {
-      res.status(500).json({ error: err.message });
-      return;
-    }
-    res.json(rows || []);
-  });
+  // Special handling for settings which might not be an array
+  if (table === 'settings') {
+    db.all(`SELECT * FROM settings`, (err, rows) => {
+      if (err) {
+        res.status(500).json({ error: err.message });
+        return;
+      }
+      res.json(rows || []);
+    });
+  } else {
+    db.all(`SELECT * FROM ${table} LIMIT 1000`, (err, rows) => {
+      if (err) {
+        console.error(`Error fetching ${table}:`, err);
+        res.status(500).json({ error: err.message });
+        return;
+      }
+      res.json(rows || []);
+    });
+  }
 });
 
 // Start server
