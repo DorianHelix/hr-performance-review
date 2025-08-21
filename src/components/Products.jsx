@@ -1,10 +1,11 @@
-import React, { useState, useEffect } from 'react';
-import {
-  Package, Plus, Trash2, Settings, Upload, PlusCircle,
-  Search, Filter, Tag, DollarSign, Box, BarChart,
-  TrendingUp, ShoppingCart, Archive, AlertTriangle,
-  ChevronDown, ChevronRight, Layers, FileDown, Menu,
-  Mail, Bell, Send
+import React, { useState, useEffect, useMemo } from 'react';
+import { 
+  Package, Filter, Download, RefreshCw, Settings, Save, 
+  Eye, EyeOff, ChevronDown, ChevronRight, Search, X,
+  DollarSign, TrendingUp, AlertTriangle, Box, Tag,
+  BarChart3, ShoppingCart, Zap, Database, Check,
+  Plus, Trash2, Upload, PlusCircle, Archive, Layers,
+  FileDown, Menu, Mail, Bell, Send, BarChart
 } from 'lucide-react';
 import API from '../api';
 import { TruncatedTooltip } from './LiquidTooltip';

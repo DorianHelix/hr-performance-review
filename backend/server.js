@@ -557,17 +557,17 @@ app.post('/api/shopify/test', async (req, res) => {
   }
 });
 
-// Fetch products from Shopify
+// Fetch products from Shopify with all available fields
 app.post('/api/shopify/products', async (req, res) => {
-  const { storeDomain, accessToken, limit = 250, since_id = null } = req.body;
+  const { storeDomain, accessToken, limit = 250, since_id = null, saveToDb = false } = req.body;
   
   if (!storeDomain || !accessToken) {
     return res.status(400).json({ error: 'Store domain and access token are required' });
   }
   
   try {
-    // Include fields that contain category information
-    let url = `https://${storeDomain}.myshopify.com/admin/api/2024-01/products.json?limit=${limit}&fields=id,title,body_html,vendor,product_type,handle,tags,status,created_at,updated_at,images,variants,product_category,metafields`;
+    // Fetch ALL fields including metafields, SEO, and collections
+    let url = `https://${storeDomain}.myshopify.com/admin/api/2024-01/products.json?limit=${limit}`;
     if (since_id) {
       url += `&since_id=${since_id}`;
     }

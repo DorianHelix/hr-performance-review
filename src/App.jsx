@@ -11,6 +11,7 @@ import {
 // Import components
 import CreativePerformance from "./components/CreativePerformance";
 import Products from "./components/Products";
+import ProductsAdvanced from "./components/ProductsAdvanced";
 import ProductVariantsDemo from "./components/ProductVariantsDemo";
 import FlowBuilder from "./components/FlowBuilder";
 import Analytics from "./components/Analytics";
@@ -2113,7 +2114,7 @@ export default function App() {
         />
       )}
       
-      {currentView === 'products' && <Products />}
+      {currentView === 'products' && <ProductsAdvanced />}
       
       {currentView === 'flowbuilder' && <FlowBuilder />}
       
