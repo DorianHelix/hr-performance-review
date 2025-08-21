@@ -705,7 +705,7 @@ app.post('/api/shopify/test', async (req, res) => {
   }
   
   try {
-    const shopifyUrl = `https://${storeDomain}.myshopify.com/admin/api/2024-01/shop.json`;
+    const shopifyUrl = `https://${storeDomain}.myshopify.com/admin/api/2024-10/shop.json`;
     const response = await fetch(shopifyUrl, {
       headers: {
         'X-Shopify-Access-Token': accessToken,
@@ -781,10 +781,10 @@ app.post('/api/shopify/products', async (req, res) => {
       let url;
       if (pageInfo) {
         // Use cursor-based pagination for subsequent pages
-        url = `https://${storeDomain}.myshopify.com/admin/api/2024-01/products.json?limit=${pageSize}&page_info=${pageInfo}`;
+        url = `https://${storeDomain}.myshopify.com/admin/api/2024-10/products.json?limit=${pageSize}&page_info=${pageInfo}`;
       } else {
         // First page
-        url = `https://${storeDomain}.myshopify.com/admin/api/2024-01/products.json?limit=${pageSize}`;
+        url = `https://${storeDomain}.myshopify.com/admin/api/2024-10/products.json?limit=${pageSize}`;
       }
       
       const response = await fetch(url, {
@@ -1236,6 +1236,372 @@ app.delete('/api/shopify/clear', (req, res) => {
     
     console.log('✅ Shopify credentials cleared successfully');
     res.json({ success: true, message: 'Shopify credentials cleared successfully' });
+  });
+});
+
+// === ORDERS API ROUTES ===
+
+// Get all orders
+app.get('/api/orders', (req, res) => {
+  db.all(`
+    SELECT 
+      o.*,
+      GROUP_CONCAT(
+        json_object(
+          'id', oi.id,
+          'shopify_id', oi.shopify_id,
+          'product_id', oi.product_id,
+          'variant_id', oi.variant_id,
+          'name', oi.name,
+          'variant_title', oi.variant_title,
+          'sku', oi.sku,
+          'quantity', oi.quantity,
+          'price', oi.price,
+          'cost', oi.cost,
+          'fulfillment_status', oi.fulfillment_status,
+          'image', oi.image
+        )
+      ) as line_items_json
+    FROM orders o
+    LEFT JOIN order_items oi ON o.id = oi.order_id
+    GROUP BY o.id
+    ORDER BY o.created_at DESC
+  `, (err, rows) => {
+    if (err) {
+      console.error('Error fetching orders:', err);
+      return res.status(500).json({ error: 'Failed to fetch orders' });
+    }
+    
+    // Parse line items JSON
+    const orders = rows.map(row => {
+      const order = { ...row };
+      if (order.line_items_json) {
+        try {
+          order.lineItems = order.line_items_json.split(',').map(item => JSON.parse(item));
+        } catch (e) {
+          order.lineItems = [];
+        }
+        delete order.line_items_json;
+      } else {
+        order.lineItems = [];
+      }
+      
+      // Parse JSON fields
+      if (order.tags) order.tags = JSON.parse(order.tags || '[]');
+      if (order.shipping_address) order.shippingAddress = JSON.parse(order.shipping_address || '{}');
+      if (order.billing_address) order.billingAddress = JSON.parse(order.billing_address || '{}');
+      
+      // Convert snake_case to camelCase for frontend
+      order.orderNumber = order.order_number;
+      order.customerName = order.customer_name;
+      order.customerEmail = order.customer_email;
+      order.customerPhone = order.customer_phone;
+      order.financialStatus = order.financial_status;
+      order.fulfillmentStatus = order.fulfillment_status;
+      order.totalPrice = order.total_price;
+      order.subtotalPrice = order.subtotal_price;
+      order.totalTax = order.total_tax;
+      order.totalDiscounts = order.total_discounts;
+      order.totalShipping = order.total_shipping;
+      order.totalRefunded = order.total_refunded;
+      order.customerNote = order.customer_note;
+      order.shippingMethod = order.shipping_method;
+      order.trackingNumber = order.tracking_number;
+      order.createdAt = order.created_at;
+      order.processedAt = order.processed_at;
+      order.fulfilledAt = order.fulfilled_at;
+      order.cancelledAt = order.cancelled_at;
+      order.shopifyId = order.shopify_id;
+      
+      return order;
+    });
+    
+    res.json(orders);
+  });
+});
+
+// Sync orders from Shopify
+app.post('/api/orders/sync', async (req, res) => {
+  // Get Shopify credentials from settings
+  db.all(`SELECT key, value FROM settings WHERE key IN ('shopify_store_domain', 'shopify_access_token')`, async (err, rows) => {
+    if (err) {
+      return res.status(500).json({ error: 'Failed to get settings' });
+    }
+    
+    const settings = {};
+    rows.forEach(row => {
+      settings[row.key] = row.value;
+    });
+    
+    if (!settings.shopify_store_domain || !settings.shopify_access_token) {
+      return res.status(400).json({ error: 'Shopify credentials not configured' });
+    }
+    
+    try {
+      let allOrders = [];
+      let hasNextPage = true;
+      let pageInfo = null;
+      const pageSize = 50; // Reduced from 250 to avoid rate limits
+      
+      console.log('Starting to fetch orders from Shopify...');
+      
+      // Helper function to wait
+      const wait = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+      
+      // Fetch all orders using pagination with rate limiting
+      while (hasNextPage) {
+        let url;
+        if (pageInfo) {
+          // page_info cannot be used with other parameters except limit
+          url = `https://${settings.shopify_store_domain}.myshopify.com/admin/api/2024-10/orders.json?limit=${pageSize}&page_info=${pageInfo}`;
+        } else {
+          // First page can use status parameter
+          url = `https://${settings.shopify_store_domain}.myshopify.com/admin/api/2024-10/orders.json?limit=${pageSize}&status=any`;
+        }
+        
+        const response = await fetch(url, {
+          headers: {
+            'X-Shopify-Access-Token': settings.shopify_access_token,
+            'Content-Type': 'application/json'
+          }
+        });
+        
+        // Handle rate limiting
+        if (response.status === 429) {
+          const retryAfter = response.headers.get('Retry-After');
+          const waitTime = retryAfter ? parseInt(retryAfter) * 1000 : 2000;
+          console.log(`Rate limited. Waiting ${waitTime}ms before retry...`);
+          await wait(waitTime);
+          continue; // Retry the same request
+        }
+        
+        if (!response.ok) {
+          const error = await response.text();
+          console.error('Shopify API Error:', response.status, error);
+          
+          // Check for specific error types
+          if (response.status === 403) {
+            return res.status(403).json({ 
+              error: 'Access denied. Please check your Shopify access token has the "read_orders" scope.', 
+              details: error,
+              requiredScopes: ['read_orders', 'read_customers']
+            });
+          }
+          
+          return res.status(response.status).json({ 
+            error: 'Failed to fetch from Shopify', 
+            details: error 
+          });
+        }
+        
+        const data = await response.json();
+        allOrders = allOrders.concat(data.orders);
+        
+        // Check for pagination
+        const linkHeader = response.headers.get('link');
+        if (linkHeader && linkHeader.includes('rel="next"')) {
+          const matches = linkHeader.match(/page_info=([^&>]+).*?rel="next"/);
+          pageInfo = matches ? matches[1] : null;
+          hasNextPage = pageInfo !== null;
+        } else {
+          hasNextPage = false;
+        }
+        
+        console.log(`Fetched ${data.orders.length} orders, total so far: ${allOrders.length}`);
+        
+        // Add a small delay between requests to avoid rate limiting
+        if (hasNextPage) {
+          await wait(500); // Wait 500ms between requests
+        }
+      }
+      
+      console.log(`Total orders fetched: ${allOrders.length}`);
+      
+      // Save orders to database
+      let savedCount = 0;
+      for (const order of allOrders) {
+        // Save order
+        db.run(`
+          INSERT OR REPLACE INTO orders (
+            shopify_id, order_number, customer_name, customer_email, customer_phone,
+            financial_status, fulfillment_status, total_price, subtotal_price,
+            total_tax, total_discounts, total_shipping, total_refunded,
+            currency, note, customer_note, tags, source, channel,
+            shipping_address, billing_address, shipping_method,
+            tracking_number, carrier, created_at, processed_at,
+            fulfilled_at, cancelled_at, synced_at
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+        `, [
+          order.id,
+          order.order_number || order.name,
+          order.customer ? `${order.customer.first_name} ${order.customer.last_name}` : null,
+          order.customer ? order.customer.email : order.email,
+          order.customer ? order.customer.phone : order.phone,
+          order.financial_status,
+          order.fulfillment_status,
+          parseFloat(order.total_price || 0),
+          parseFloat(order.subtotal_price || 0),
+          parseFloat(order.total_tax || 0),
+          parseFloat(order.total_discounts || 0),
+          parseFloat(order.total_shipping_price_set ? order.total_shipping_price_set.shop_money.amount : 0),
+          order.refunds ? order.refunds.reduce((sum, r) => sum + parseFloat(r.total_duties_set ? r.total_duties_set.shop_money.amount : 0), 0) : 0,
+          order.currency,
+          order.note,
+          order.note_attributes ? JSON.stringify(order.note_attributes) : null,
+          order.tags ? JSON.stringify(order.tags.split(',').map(t => t.trim())) : '[]',
+          order.source_name,
+          order.source_identifier,
+          order.shipping_address ? JSON.stringify(order.shipping_address) : null,
+          order.billing_address ? JSON.stringify(order.billing_address) : null,
+          order.shipping_lines && order.shipping_lines[0] ? order.shipping_lines[0].title : null,
+          order.fulfillments && order.fulfillments[0] ? order.fulfillments[0].tracking_number : null,
+          order.fulfillments && order.fulfillments[0] ? order.fulfillments[0].tracking_company : null,
+          order.created_at,
+          order.processed_at,
+          order.fulfillments && order.fulfillments[0] ? order.fulfillments[0].created_at : null,
+          order.cancelled_at
+        ], function(err) {
+          if (err) {
+            console.error('Error saving order:', err);
+            return;
+          }
+          
+          const orderId = this.lastID;
+          
+          // Save line items
+          if (order.line_items && order.line_items.length > 0) {
+            order.line_items.forEach(item => {
+              db.run(`
+                INSERT OR REPLACE INTO order_items (
+                  order_id, shopify_id, product_id, variant_id,
+                  name, variant_title, sku, quantity, price, cost,
+                  total_discount, fulfillment_status, image
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+              `, [
+                orderId,
+                item.id,
+                item.product_id,
+                item.variant_id,
+                item.name,
+                item.variant_title,
+                item.sku,
+                item.quantity,
+                parseFloat(item.price || 0),
+                0, // Cost would need to be fetched from product data
+                parseFloat(item.total_discount || 0),
+                item.fulfillment_status,
+                item.product_exists && item.image ? item.image.src : null
+              ]);
+            });
+          }
+        });
+        
+        savedCount++;
+      }
+      
+      console.log(`✅ Saved ${savedCount} orders to database`);
+      
+      // Return the orders
+      db.all(`
+        SELECT 
+          o.*,
+          GROUP_CONCAT(
+            json_object(
+              'id', oi.id,
+              'shopify_id', oi.shopify_id,
+              'product_id', oi.product_id,
+              'variant_id', oi.variant_id,
+              'name', oi.name,
+              'variant_title', oi.variant_title,
+              'sku', oi.sku,
+              'quantity', oi.quantity,
+              'price', oi.price,
+              'cost', oi.cost,
+              'fulfillment_status', oi.fulfillment_status,
+              'image', oi.image
+            )
+          ) as line_items_json
+        FROM orders o
+        LEFT JOIN order_items oi ON o.id = oi.order_id
+        GROUP BY o.id
+        ORDER BY o.created_at DESC
+      `, (err, rows) => {
+        if (err) {
+          return res.status(500).json({ error: 'Failed to fetch saved orders' });
+        }
+        
+        // Parse line items JSON
+        const orders = rows.map(row => {
+          const order = { ...row };
+          if (order.line_items_json) {
+            try {
+              order.lineItems = order.line_items_json.split(',').map(item => JSON.parse(item));
+            } catch (e) {
+              order.lineItems = [];
+            }
+            delete order.line_items_json;
+          } else {
+            order.lineItems = [];
+          }
+          
+          // Parse JSON fields
+          if (order.tags) order.tags = JSON.parse(order.tags || '[]');
+          if (order.shipping_address) order.shippingAddress = JSON.parse(order.shipping_address || '{}');
+          if (order.billing_address) order.billingAddress = JSON.parse(order.billing_address || '{}');
+          
+          // Convert snake_case to camelCase
+          order.orderNumber = order.order_number;
+          order.customerName = order.customer_name;
+          order.customerEmail = order.customer_email;
+          order.customerPhone = order.customer_phone;
+          order.financialStatus = order.financial_status;
+          order.fulfillmentStatus = order.fulfillment_status;
+          order.totalPrice = order.total_price;
+          order.subtotalPrice = order.subtotal_price;
+          order.totalTax = order.total_tax;
+          order.totalDiscounts = order.total_discounts;
+          order.totalShipping = order.total_shipping;
+          order.totalRefunded = order.total_refunded;
+          order.customerNote = order.customer_note;
+          order.shippingMethod = order.shipping_method;
+          order.trackingNumber = order.tracking_number;
+          order.createdAt = order.created_at;
+          order.processedAt = order.processed_at;
+          order.fulfilledAt = order.fulfilled_at;
+          order.cancelledAt = order.cancelled_at;
+          order.shopifyId = order.shopify_id;
+          
+          return order;
+        });
+        
+        res.json({ 
+          success: true, 
+          count: savedCount,
+          orders: orders
+        });
+      });
+      
+    } catch (error) {
+      console.error('Error syncing orders:', error);
+      res.status(500).json({ error: 'Failed to sync orders', message: error.message });
+    }
+  });
+});
+
+// Delete all orders
+app.delete('/api/orders', (req, res) => {
+  db.run('DELETE FROM order_items', (err) => {
+    if (err) {
+      return res.status(500).json({ error: 'Failed to delete order items' });
+    }
+    
+    db.run('DELETE FROM orders', (err) => {
+      if (err) {
+        return res.status(500).json({ error: 'Failed to delete orders' });
+      }
+      
+      res.json({ success: true, message: 'All orders deleted' });
+    });
   });
 });
 

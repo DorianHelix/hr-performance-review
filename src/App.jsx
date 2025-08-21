@@ -5,7 +5,7 @@ import {
   ChevronLeft, ChevronRight, Calendar, Plus, Users, 
   TrendingUp, Clock, FileText, Briefcase, Upload,
   Bot, Save, Edit2, Star, Home, BarChart3, Sun, Moon, Menu, ArrowLeft, Network, Minus, Maximize2, Minimize2,
-  Zap, Lightbulb, RefreshCw, MessageSquare, Sparkles, Package, GitBranch
+  Zap, Lightbulb, RefreshCw, MessageSquare, Sparkles, Package, GitBranch, ShoppingCart
 } from "lucide-react";
 
 // Import components
@@ -13,6 +13,7 @@ import CreativePerformance from "./components/CreativePerformance";
 // import Products from "./components/Products"; // OLD - REMOVED
 import ProductsAdvanced from "./components/products"; // Final working version
 import ProductPerformance from "./components/product-performance"; // Product Performance Dashboard
+import Orders from "./components/orders"; // Orders Management
 import ProductVariantsDemo from "./components/ProductVariantsDemo";
 import FlowBuilder from "./components/FlowBuilder";
 import Analytics from "./components/Analytics";
@@ -84,6 +85,12 @@ function Sidebar({ isCollapsed, onToggle, currentView, onViewChange, isDarkMode,
       label: 'Products',
       icon: Package,
       active: currentView === 'products'
+    },
+    {
+      id: 'orders',
+      label: 'Orders',
+      icon: ShoppingCart,
+      active: currentView === 'orders'
     },
     {
       id: 'product-performance',
@@ -2129,6 +2136,8 @@ export default function App() {
       )}
       
       {currentView === 'products' && <ProductsAdvanced />}
+      
+      {currentView === 'orders' && <Orders />}
       
       {currentView === 'product-performance' && <ProductPerformance />}
       
