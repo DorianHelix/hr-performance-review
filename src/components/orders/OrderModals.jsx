@@ -5,6 +5,7 @@ import {
   CheckCircle, AlertCircle, Truck, FileText,
   DollarSign, Tag, Hash, Globe
 } from 'lucide-react';
+import { ORDER_COLUMNS } from './orderConfig';
 
 function OrderDetailModal({ order, onClose }) {
   if (!order) return null;

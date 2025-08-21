@@ -157,18 +157,68 @@ function DateRangePicker({ label, startDate, endDate, onRangeChange }) {
   for (let i = 0; i < lead; i++) grid.push(null);
   for (let day = 1; day <= daysInMonth(viewY, viewM); day++) grid.push(day);
 
+  // Quick date range options
+  const quickRanges = [
+    { label: 'Today', getValue: () => { const t = new Date(); t.setHours(0,0,0,0); const e = new Date(); e.setHours(23,59,59,999); return {start: t, end: e}; }},
+    { label: 'Yesterday', getValue: () => { const y = new Date(); y.setDate(y.getDate()-1); y.setHours(0,0,0,0); const e = new Date(y); e.setHours(23,59,59,999); return {start: y, end: e}; }},
+    { label: 'Last 7 Days', getValue: () => { const e = new Date(); const s = new Date(); s.setDate(s.getDate()-7); s.setHours(0,0,0,0); return {start: s, end: e}; }},
+    { label: 'Last 30 Days', getValue: () => { const e = new Date(); const s = new Date(); s.setDate(s.getDate()-30); s.setHours(0,0,0,0); return {start: s, end: e}; }},
+    { label: 'This Month', getValue: () => { const n = new Date(); const s = new Date(n.getFullYear(), n.getMonth(), 1); const e = new Date(n.getFullYear(), n.getMonth()+1, 0); e.setHours(23,59,59,999); return {start: s, end: e}; }},
+    { label: 'Last Month', getValue: () => { const n = new Date(); const s = new Date(n.getFullYear(), n.getMonth()-1, 1); const e = new Date(n.getFullYear(), n.getMonth(), 0); e.setHours(23,59,59,999); return {start: s, end: e}; }},
+    { label: 'Last 90 Days', getValue: () => { const e = new Date(); const s = new Date(); s.setDate(s.getDate()-90); s.setHours(0,0,0,0); return {start: s, end: e}; }},
+    { label: 'This Year', getValue: () => { const n = new Date(); const s = new Date(n.getFullYear(), 0, 1); const e = new Date(n.getFullYear(), 11, 31); e.setHours(23,59,59,999); return {start: s, end: e}; }}
+  ];
+
+  function handleQuickRange(range) {
+    const { start, end } = range.getValue();
+    setSelectionStart(start);
+    setSelectionEnd(end);
+    onRangeChange(
+      start.toISOString().slice(0, 10),
+      end.toISOString().slice(0, 10)
+    );
+    setTimeout(() => setOpen(false), 200);
+  }
+
   const dropdown = open && (
     <div 
       ref={dropdownRef}
-      className="fixed z-[9999] w-96 rounded-xl glass-card-no-transition shadow-xl p-4"
+      className="fixed z-[9999] w-[600px] rounded-xl glass-card-no-transition shadow-xl p-4"
       style={{
         top: position.top + 'px',
         left: position.left + 'px',
         visibility: position.top === 0 && position.left === 0 ? 'hidden' : 'visible'
       }}
     >
-      {/* Header with month navigation */}
-      <div className="flex items-center justify-between mb-3">
+      <div className="flex gap-4">
+        {/* Quick selectors */}
+        <div className="w-40 border-r border-white/10 pr-4">
+          <div className="text-xs font-medium text-white/60 mb-2 uppercase tracking-wider">Quick Select</div>
+          <div className="space-y-1">
+            {quickRanges.map(range => (
+              <button
+                key={range.label}
+                onClick={() => handleQuickRange(range)}
+                className="w-full text-left px-3 py-2 rounded-lg text-sm text-white/80 hover:bg-white/10 hover:text-white transition-all flex items-center gap-2"
+              >
+                <span className={`text-xs ${range.label.includes('Today') || range.label.includes('This') ? 'text-blue-400' : 'text-white/40'}`}>✓</span>
+                {range.label}
+              </button>
+            ))}
+            <button
+              onClick={() => setIsSelectingEnd(false)}
+              className="w-full text-left px-3 py-2 rounded-lg text-sm text-white/80 hover:bg-white/10 hover:text-white transition-all flex items-center gap-2"
+            >
+              <span className="text-xs text-purple-400">✓</span>
+              Custom Range
+            </button>
+          </div>
+        </div>
+        
+        {/* Calendar */}
+        <div className="flex-1">
+          {/* Header with month navigation */}
+          <div className="flex items-center justify-between mb-3">
         <button 
           onClick={() => setViewM(m => m === 0 ? (setViewY(y => y - 1), 11) : m - 1)} 
           className="p-1.5 rounded-md hover:bg-white/10"
@@ -257,85 +307,7 @@ function DateRangePicker({ label, startDate, endDate, onRangeChange }) {
             </button>
           );
         })}
-      </div>
-
-      {/* Quick presets */}
-      <div className="mt-4 pt-4 border-t border-white/10">
-        <div className="text-xs text-white/50 mb-2">Quick select:</div>
-        <div className="flex gap-2 flex-wrap">
-          <button
-            onClick={() => {
-              const today = new Date();
-              const dayOfWeek = today.getDay();
-              // Calculate Monday (if Sunday, go back 6 days, otherwise go back dayOfWeek-1 days)
-              const monday = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
-              const sunday = monday + 6;
-              
-              const start = new Date(today);
-              start.setDate(today.getDate() + monday);
-              const end = new Date(today);
-              end.setDate(today.getDate() + sunday);
-              
-              // Use UTC to avoid timezone issues
-              const startUTC = new Date(Date.UTC(start.getFullYear(), start.getMonth(), start.getDate()));
-              const endUTC = new Date(Date.UTC(end.getFullYear(), end.getMonth(), end.getDate()));
-              
-              setSelectionStart(startUTC);
-              setSelectionEnd(endUTC);
-              onRangeChange(
-                startUTC.toISOString().slice(0, 10),
-                endUTC.toISOString().slice(0, 10)
-              );
-              setOpen(false);
-            }}
-            className="px-3 py-1 text-xs rounded-lg glass-button hover:bg-white/10"
-          >
-            This Week
-          </button>
-          <button
-            onClick={() => {
-              const today = new Date();
-              const year = today.getFullYear();
-              const month = today.getMonth();
-              
-              const start = new Date(Date.UTC(year, month, 1));
-              const end = new Date(Date.UTC(year, month + 1, 0));
-              
-              setSelectionStart(start);
-              setSelectionEnd(end);
-              onRangeChange(
-                start.toISOString().slice(0, 10),
-                end.toISOString().slice(0, 10)
-              );
-              setOpen(false);
-            }}
-            className="px-3 py-1 text-xs rounded-lg glass-button hover:bg-white/10"
-          >
-            This Month
-          </button>
-          <button
-            onClick={() => {
-              const today = new Date();
-              const end = new Date(today);
-              const start = new Date(today);
-              start.setDate(today.getDate() - 29); // -29 to include today as the 30th day
-              
-              // Use UTC to avoid timezone issues
-              const startUTC = new Date(Date.UTC(start.getFullYear(), start.getMonth(), start.getDate()));
-              const endUTC = new Date(Date.UTC(end.getFullYear(), end.getMonth(), end.getDate()));
-              
-              setSelectionStart(startUTC);
-              setSelectionEnd(endUTC);
-              onRangeChange(
-                startUTC.toISOString().slice(0, 10),
-                endUTC.toISOString().slice(0, 10)
-              );
-              setOpen(false);
-            }}
-            className="px-3 py-1 text-xs rounded-lg glass-button hover:bg-white/10"
-          >
-            Last 30 Days
-          </button>
+          </div>
         </div>
       </div>
     </div>

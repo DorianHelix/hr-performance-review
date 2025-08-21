@@ -48,7 +48,7 @@ export const ORDER_COLUMNS = [
   
   // Items
   { key: 'itemCount', label: 'Items', category: 'Items', default: true },
-  { key: 'productNames', label: 'Products', category: 'Items', default: false },
+  { key: 'productNames', label: 'Products', category: 'Items', default: true },
   { key: 'skus', label: 'SKUs', category: 'Items', default: false },
   
   // Customer
@@ -84,7 +84,7 @@ export const PRESET_VIEWS = [
     id: 'default',
     name: 'All Orders',
     description: 'Complete order overview',
-    columns: ['orderNumber', 'customerName', 'createdAt', 'itemCount', 'totalPrice', 'profit', 'margin', 'fulfillmentStatus', 'financialStatus'],
+    columns: ['orderNumber', 'customerName', 'createdAt', 'productNames', 'itemCount', 'totalPrice', 'profit', 'margin', 'fulfillmentStatus', 'financialStatus'],
     icon: 'ShoppingCart'
   },
   {

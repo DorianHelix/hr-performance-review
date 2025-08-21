@@ -77,7 +77,7 @@ function Orders() {
     }, 500); // Debounce for 500ms
     
     return () => clearTimeout(timer);
-  }, [searchTerm, fulfillmentFilter, financialFilter]);
+  }, [searchTerm, fulfillmentFilter, financialFilter, dateRange, customDateRange]);
 
   // Save UI preferences
   useEffect(() => {
@@ -108,6 +108,15 @@ function Orders() {
       if (searchTerm) params.append('search', searchTerm);
       if (fulfillmentFilter !== 'all') params.append('fulfillment_status', fulfillmentFilter);
       if (financialFilter !== 'all') params.append('financial_status', financialFilter);
+      
+      // Add date range filter
+      const range = getDateRange();
+      if (range.start) {
+        params.append('start_date', range.start.toISOString());
+      }
+      if (range.end) {
+        params.append('end_date', range.end.toISOString());
+      }
       
       const response = await fetch(`http://localhost:3001/api/orders?${params}`);
       if (response.ok) {

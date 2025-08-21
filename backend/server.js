@@ -1312,28 +1312,9 @@ app.get('/api/orders', (req, res) => {
     const queryParams = [...params, limit, offset];
     
     db.all(`
-      SELECT 
-        o.*,
-        GROUP_CONCAT(
-          json_object(
-            'id', oi.id,
-            'shopify_id', oi.shopify_id,
-            'product_id', oi.product_id,
-            'variant_id', oi.variant_id,
-            'name', oi.name,
-            'variant_title', oi.variant_title,
-            'sku', oi.sku,
-            'quantity', oi.quantity,
-            'price', oi.price,
-            'cost', oi.cost,
-            'fulfillment_status', oi.fulfillment_status,
-            'image', oi.image
-          )
-        ) as line_items_json
+      SELECT o.*
       FROM orders o
-      LEFT JOIN order_items oi ON o.id = oi.order_id
       ${whereClause}
-      GROUP BY o.id
       ORDER BY o.created_at DESC
       LIMIT ? OFFSET ?
     `, queryParams, (err, rows) => {
@@ -1342,63 +1323,92 @@ app.get('/api/orders', (req, res) => {
         return res.status(500).json({ error: 'Failed to fetch orders' });
       }
       
-      // Parse line items JSON
-    const orders = rows.map(row => {
-      const order = { ...row };
-      if (order.line_items_json) {
-        try {
-          order.lineItems = order.line_items_json.split(',').map(item => JSON.parse(item));
-        } catch (e) {
-          order.lineItems = [];
+      // Get order IDs for fetching line items
+      const orderIds = rows.map(row => row.id);
+      
+      // Fetch line items for these orders
+      const lineItemsQuery = orderIds.length > 0 ? `
+        SELECT * FROM order_items 
+        WHERE order_id IN (${orderIds.map(() => '?').join(',')})
+      ` : null;
+      
+      const fetchLineItems = new Promise((resolve) => {
+        if (!lineItemsQuery) {
+          resolve([]);
+          return;
         }
-        delete order.line_items_json;
-      } else {
-        order.lineItems = [];
-      }
+        
+        db.all(lineItemsQuery, orderIds, (err, items) => {
+          if (err) {
+            console.error('Error fetching line items:', err);
+            resolve([]);
+          } else {
+            resolve(items);
+          }
+        });
+      });
       
-      // Parse JSON fields
-      if (order.tags) order.tags = JSON.parse(order.tags || '[]');
-      if (order.shipping_address) order.shippingAddress = JSON.parse(order.shipping_address || '{}');
-      if (order.billing_address) order.billingAddress = JSON.parse(order.billing_address || '{}');
-      
-      // Convert snake_case to camelCase for frontend
-      order.orderNumber = order.order_number;
-      order.customerName = order.customer_name;
-      order.customerEmail = order.customer_email;
-      order.customerPhone = order.customer_phone;
-      order.financialStatus = order.financial_status;
-      order.fulfillmentStatus = order.fulfillment_status;
-      order.totalPrice = order.total_price;
-      order.subtotalPrice = order.subtotal_price;
-      order.totalTax = order.total_tax;
-      order.totalDiscounts = order.total_discounts;
-      order.totalShipping = order.total_shipping;
-      order.totalRefunded = order.total_refunded;
-      order.customerNote = order.customer_note;
-      order.shippingMethod = order.shipping_method;
-      order.trackingNumber = order.tracking_number;
-      order.createdAt = order.created_at;
-      order.processedAt = order.processed_at;
-      order.fulfilledAt = order.fulfilled_at;
-      order.cancelledAt = order.cancelled_at;
-      order.shopifyId = order.shopify_id;
-      
-      return order;
+      fetchLineItems.then(lineItems => {
+        // Group line items by order_id
+        const lineItemsByOrder = {};
+        lineItems.forEach(item => {
+          if (!lineItemsByOrder[item.order_id]) {
+            lineItemsByOrder[item.order_id] = [];
+          }
+          lineItemsByOrder[item.order_id].push(item);
+        });
+        
+        // Parse and format orders
+        const orders = rows.map(row => {
+          const order = { ...row };
+          
+          // Add line items
+          order.lineItems = lineItemsByOrder[order.id] || [];
+          
+          // Parse JSON fields
+          if (order.tags) order.tags = JSON.parse(order.tags || '[]');
+          if (order.shipping_address) order.shippingAddress = JSON.parse(order.shipping_address || '{}');
+          if (order.billing_address) order.billingAddress = JSON.parse(order.billing_address || '{}');
+          
+          // Convert snake_case to camelCase for frontend
+          order.orderNumber = order.order_number;
+          order.customerName = order.customer_name;
+          order.customerEmail = order.customer_email;
+          order.customerPhone = order.customer_phone;
+          order.financialStatus = order.financial_status;
+          order.fulfillmentStatus = order.fulfillment_status;
+          order.totalPrice = order.total_price;
+          order.subtotalPrice = order.subtotal_price;
+          order.totalTax = order.total_tax;
+          order.totalDiscounts = order.total_discounts;
+          order.totalShipping = order.total_shipping;
+          order.totalRefunded = order.total_refunded;
+          order.customerNote = order.customer_note;
+          order.shippingMethod = order.shipping_method;
+          order.trackingNumber = order.tracking_number;
+          order.createdAt = order.created_at;
+          order.processedAt = order.processed_at;
+          order.fulfilledAt = order.fulfilled_at;
+          order.cancelledAt = order.cancelled_at;
+          order.shopifyId = order.shopify_id;
+          
+          return order;
+        });
+        
+        // Return paginated response with metadata
+        res.json({
+          orders: orders,
+          pagination: {
+            page: page,
+            limit: limit,
+            total: totalCount,
+            totalPages: totalPages,
+            hasNextPage: page < totalPages,
+            hasPrevPage: page > 1
+          }
+        });
+      });
     });
-    
-    // Return paginated response with metadata
-    res.json({
-      orders: orders,
-      pagination: {
-        page: page,
-        limit: limit,
-        total: totalCount,
-        totalPages: totalPages,
-        hasNextPage: page < totalPages,
-        hasPrevPage: page > 1
-      }
-    });
-  });
   });
 });
 
