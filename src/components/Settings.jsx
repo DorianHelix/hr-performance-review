@@ -336,6 +336,58 @@ function Settings() {
                     </button>
                   </div>
 
+                  {/* Clear Shopify Data */}
+                  <div className="mt-6 p-4 glass-card rounded-xl bg-gradient-to-br from-red-500/10 to-orange-500/10 border border-red-400/20">
+                    <h3 className="text-sm font-semibold text-red-300 mb-2">Security</h3>
+                    <p className="text-xs text-white/60 mb-3">
+                      This will remove Shopify API credentials from the database. Product data will be preserved.
+                    </p>
+                    <button
+                      onClick={async () => {
+                        if (confirm('Are you sure you want to clear Shopify API credentials? You will need to re-enter them to sync again.')) {
+                          setLoading(true);
+                          try {
+                            const response = await fetch('http://localhost:3001/api/shopify/clear', {
+                              method: 'DELETE'
+                            });
+                            
+                            if (response.ok) {
+                              setSettings({
+                                ...settings,
+                                shopify: {
+                                  storeDomain: '',
+                                  accessToken: '',
+                                  autoSync: false,
+                                  syncInterval: 60
+                                }
+                              });
+                              setTestResult({
+                                success: true,
+                                message: 'Shopify API credentials cleared successfully'
+                              });
+                              // Reload settings to confirm cleared from database
+                              setTimeout(loadSettings, 1000);
+                            } else {
+                              throw new Error('Failed to clear data');
+                            }
+                          } catch (error) {
+                            setTestResult({
+                              success: false,
+                              message: 'Failed to clear data: ' + error.message
+                            });
+                          } finally {
+                            setLoading(false);
+                          }
+                        }
+                      }}
+                      disabled={loading}
+                      className="glass-button px-4 py-2 bg-red-500/20 border-red-400/30 text-red-300 hover:bg-red-500/30 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                    >
+                      <AlertCircle size={16} />
+                      Clear Shopify Credentials
+                    </button>
+                  </div>
+
                   {/* Test Result */}
                   {testResult && (
                     <div className={`p-4 rounded-xl flex items-start gap-3 glass-card ${

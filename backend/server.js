@@ -47,16 +47,38 @@ db.serialize(() => {
   // Products table - for product management
   db.run(`
     CREATE TABLE IF NOT EXISTS products (
-      id TEXT PRIMARY KEY,
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      shopify_id TEXT UNIQUE,
       name TEXT NOT NULL,
+      handle TEXT,
       sku TEXT,
+      vendor TEXT,
+      product_type TEXT,
       category TEXT,
       description TEXT,
+      description_html TEXT,
       price REAL,
-      stock INTEGER,
+      compare_at_price REAL,
+      cost REAL,
+      inventory_quantity INTEGER,
       min_stock INTEGER,
       status TEXT DEFAULT 'active',
       supplier TEXT,
+      tags TEXT,
+      images TEXT,
+      featured_image TEXT,
+      seo_title TEXT,
+      seo_description TEXT,
+      weight REAL,
+      weight_unit TEXT,
+      requires_shipping BOOLEAN,
+      has_variants BOOLEAN,
+      variants_count INTEGER,
+      total_inventory INTEGER,
+      source TEXT,
+      shopify_created_at DATETIME,
+      shopify_updated_at DATETIME,
+      last_synced_at DATETIME,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
     )
@@ -100,6 +122,74 @@ db.serialize(() => {
       value TEXT NOT NULL,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+
+  // Product variants table
+  db.run(`
+    CREATE TABLE IF NOT EXISTS product_variants (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      product_id TEXT NOT NULL,
+      shopify_variant_id TEXT,
+      title TEXT,
+      sku TEXT,
+      barcode TEXT,
+      position INTEGER,
+      option1 TEXT,
+      option2 TEXT,
+      option3 TEXT,
+      price REAL,
+      compare_at_price REAL,
+      cost REAL,
+      inventory_quantity INTEGER,
+      inventory_item_id TEXT,
+      weight REAL,
+      weight_unit TEXT,
+      available BOOLEAN,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (product_id) REFERENCES products(id)
+    )
+  `);
+
+  // Product performance table
+  db.run(`
+    CREATE TABLE IF NOT EXISTS product_performance (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      product_id TEXT NOT NULL,
+      date TEXT NOT NULL,
+      revenue REAL,
+      units_sold INTEGER,
+      orders_count INTEGER,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (product_id) REFERENCES products(id)
+    )
+  `);
+
+  // Product scores table
+  db.run(`
+    CREATE TABLE IF NOT EXISTS product_scores (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      product_id TEXT NOT NULL,
+      score_type TEXT,
+      score_value REAL,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (product_id) REFERENCES products(id)
+    )
+  `);
+
+  // Shopify sync log table
+  db.run(`
+    CREATE TABLE IF NOT EXISTS shopify_sync_log (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      sync_type TEXT,
+      status TEXT,
+      records_processed INTEGER,
+      records_created INTEGER,
+      records_failed INTEGER,
+      error_message TEXT,
+      started_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      completed_at DATETIME
     )
   `);
 
@@ -1131,6 +1221,22 @@ app.get('/api/admin/table/:table', (req, res) => {
       res.json(rows || []);
     });
   }
+});
+
+// Clear Shopify credentials only
+app.delete('/api/shopify/clear', (req, res) => {
+  console.log('Clearing Shopify credentials...');
+  
+  // Only clear Shopify credentials from settings, keep products and other data
+  db.run(`DELETE FROM settings WHERE key IN ('shopify_store_domain', 'shopify_access_token', 'shopify')`, (err) => {
+    if (err) {
+      console.error('Error clearing Shopify settings:', err);
+      return res.status(500).json({ error: 'Failed to clear settings' });
+    }
+    
+    console.log('✅ Shopify credentials cleared successfully');
+    res.json({ success: true, message: 'Shopify credentials cleared successfully' });
+  });
 });
 
 // Start server
