@@ -17,6 +17,12 @@ function Orders() {
   const [loading, setLoading] = useState(false);
   const [syncing, setSyncing] = useState(false);
   
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalOrders, setTotalOrders] = useState(0);
+  const [itemsPerPage] = useState(50);
+  
   // Filters
   const [searchTerm, setSearchTerm] = useState('');
   const [fulfillmentFilter, setFulfillmentFilter] = useState('all');
@@ -61,8 +67,17 @@ function Orders() {
   // Load orders on mount
   useEffect(() => {
     checkShopifyConnection();
-    loadOrders();
+    loadOrders(1);
   }, []);
+  
+  // Reload when filters change
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      loadOrders(1);
+    }, 500); // Debounce for 500ms
+    
+    return () => clearTimeout(timer);
+  }, [searchTerm, fulfillmentFilter, financialFilter]);
 
   // Save UI preferences
   useEffect(() => {
@@ -79,23 +94,40 @@ function Orders() {
     setShopifyConnected(hasCredentials);
   };
 
-  // Load orders from database
-  const loadOrders = async () => {
+  // Load orders from database with pagination
+  const loadOrders = async (page = 1) => {
     setLoading(true);
     try {
-      const response = await fetch('http://localhost:3001/api/orders');
-      if (response.ok) {
-        const dbOrders = await response.json();
-        if (dbOrders && dbOrders.length > 0) {
-          setOrders(dbOrders);
-          console.log(`Loaded ${dbOrders.length} orders from database`);
-          return;
-        }
-      }
+      // Build query parameters
+      const params = new URLSearchParams({
+        page: page.toString(),
+        limit: itemsPerPage.toString()
+      });
       
-      if (!hasShownWarning.current) {
-        showWarning('No orders in database. Please sync with Shopify to import orders.');
-        hasShownWarning.current = true;
+      // Add filters if they exist
+      if (searchTerm) params.append('search', searchTerm);
+      if (fulfillmentFilter !== 'all') params.append('fulfillment_status', fulfillmentFilter);
+      if (financialFilter !== 'all') params.append('financial_status', financialFilter);
+      
+      const response = await fetch(`http://localhost:3001/api/orders?${params}`);
+      if (response.ok) {
+        const data = await response.json();
+        if (data.orders && data.orders.length > 0) {
+          setOrders(data.orders);
+          setCurrentPage(data.pagination.page);
+          setTotalPages(data.pagination.totalPages);
+          setTotalOrders(data.pagination.total);
+          console.log(`Loaded page ${page} of ${data.pagination.totalPages} (${data.orders.length} orders)`);
+          return;
+        } else if (data.pagination && data.pagination.total === 0) {
+          setOrders([]);
+          setTotalOrders(0);
+          setTotalPages(1);
+          if (!hasShownWarning.current) {
+            showWarning('No orders in database. Please sync with Shopify to import orders.');
+            hasShownWarning.current = true;
+          }
+        }
       }
     } catch (error) {
       console.error('Failed to load orders:', error);
@@ -121,7 +153,8 @@ function Orders() {
       
       if (response.ok) {
         const result = await response.json();
-        setOrders(result.orders);
+        // Reload first page after sync
+        loadOrders(1);
         showSuccess(`Synced ${result.count} orders from Shopify`);
       } else {
         const error = await response.json();
@@ -201,7 +234,7 @@ function Orders() {
     });
   }, [orders]);
 
-  // Filter orders
+  // Filter orders (client-side filtering for views and additional filters)
   const filteredOrders = useMemo(() => {
     let filtered = enhancedOrders;
     
@@ -221,26 +254,6 @@ function Orders() {
       });
     }
     
-    // Search filter
-    if (searchTerm) {
-      const term = searchTerm.toLowerCase();
-      filtered = filtered.filter(order => 
-        order.orderNumber?.toString().includes(term) ||
-        order.customerName?.toLowerCase().includes(term) ||
-        order.customerEmail?.toLowerCase().includes(term)
-      );
-    }
-    
-    // Fulfillment filter
-    if (fulfillmentFilter !== 'all') {
-      filtered = filtered.filter(order => order.fulfillmentStatus === fulfillmentFilter);
-    }
-    
-    // Financial filter
-    if (financialFilter !== 'all') {
-      filtered = filtered.filter(order => order.financialStatus === financialFilter);
-    }
-    
     // Amount filters
     if (minAmount) {
       filtered = filtered.filter(order => order.totalPrice >= parseFloat(minAmount));
@@ -258,12 +271,8 @@ function Orders() {
       );
     }
     
-    // Sort by date (newest first)
-    filtered.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-    
     return filtered;
-  }, [enhancedOrders, searchTerm, selectedView, customViews, fulfillmentFilter, 
-      financialFilter, minAmount, maxAmount, customerFilter, dateRange, customDateRange]);
+  }, [enhancedOrders, selectedView, customViews, minAmount, maxAmount, customerFilter, dateRange, customDateRange]);
 
   // Calculate metrics
   const metrics = useMemo(() => {
@@ -507,7 +516,10 @@ function Orders() {
         onExport={exportData}
         onShowFilters={() => setShowFilters(prev => !prev)}
         orderCount={filteredOrders.length}
-        totalOrderCount={orders.length}
+        totalOrderCount={totalOrders}
+        currentPage={currentPage}
+        totalPages={totalPages}
+        onPageChange={(page) => loadOrders(page)}
       />
 
       {/* KPI Cards */}

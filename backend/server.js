@@ -1242,38 +1242,107 @@ app.delete('/api/shopify/clear', (req, res) => {
 
 // === ORDERS API ROUTES ===
 
-// Get all orders
+// Get all orders with pagination
 app.get('/api/orders', (req, res) => {
-  db.all(`
-    SELECT 
-      o.*,
-      GROUP_CONCAT(
-        json_object(
-          'id', oi.id,
-          'shopify_id', oi.shopify_id,
-          'product_id', oi.product_id,
-          'variant_id', oi.variant_id,
-          'name', oi.name,
-          'variant_title', oi.variant_title,
-          'sku', oi.sku,
-          'quantity', oi.quantity,
-          'price', oi.price,
-          'cost', oi.cost,
-          'fulfillment_status', oi.fulfillment_status,
-          'image', oi.image
-        )
-      ) as line_items_json
-    FROM orders o
-    LEFT JOIN order_items oi ON o.id = oi.order_id
-    GROUP BY o.id
-    ORDER BY o.created_at DESC
-  `, (err, rows) => {
+  // Parse query parameters for pagination
+  const page = parseInt(req.query.page) || 1;
+  const limit = parseInt(req.query.limit) || 50; // Default 50 items per page
+  const offset = (page - 1) * limit;
+  
+  // Get search and filter parameters
+  const search = req.query.search || '';
+  const fulfillmentStatus = req.query.fulfillment_status || '';
+  const financialStatus = req.query.financial_status || '';
+  const startDate = req.query.start_date || '';
+  const endDate = req.query.end_date || '';
+  
+  // Build WHERE clause for filters
+  let whereConditions = [];
+  let params = [];
+  
+  if (search) {
+    whereConditions.push(`(
+      o.order_number LIKE ? OR 
+      o.customer_name LIKE ? OR 
+      o.customer_email LIKE ?
+    )`);
+    const searchPattern = `%${search}%`;
+    params.push(searchPattern, searchPattern, searchPattern);
+  }
+  
+  if (fulfillmentStatus) {
+    whereConditions.push('o.fulfillment_status = ?');
+    params.push(fulfillmentStatus);
+  }
+  
+  if (financialStatus) {
+    whereConditions.push('o.financial_status = ?');
+    params.push(financialStatus);
+  }
+  
+  if (startDate) {
+    whereConditions.push('o.created_at >= ?');
+    params.push(startDate);
+  }
+  
+  if (endDate) {
+    whereConditions.push('o.created_at <= ?');
+    params.push(endDate);
+  }
+  
+  const whereClause = whereConditions.length > 0 
+    ? 'WHERE ' + whereConditions.join(' AND ')
+    : '';
+  
+  // First, get the total count
+  db.get(`
+    SELECT COUNT(*) as total 
+    FROM orders o 
+    ${whereClause}
+  `, params, (err, countResult) => {
     if (err) {
-      console.error('Error fetching orders:', err);
-      return res.status(500).json({ error: 'Failed to fetch orders' });
+      console.error('Error counting orders:', err);
+      return res.status(500).json({ error: 'Failed to count orders' });
     }
     
-    // Parse line items JSON
+    const totalCount = countResult.total;
+    const totalPages = Math.ceil(totalCount / limit);
+    
+    // Then get paginated orders
+    const queryParams = [...params, limit, offset];
+    
+    db.all(`
+      SELECT 
+        o.*,
+        GROUP_CONCAT(
+          json_object(
+            'id', oi.id,
+            'shopify_id', oi.shopify_id,
+            'product_id', oi.product_id,
+            'variant_id', oi.variant_id,
+            'name', oi.name,
+            'variant_title', oi.variant_title,
+            'sku', oi.sku,
+            'quantity', oi.quantity,
+            'price', oi.price,
+            'cost', oi.cost,
+            'fulfillment_status', oi.fulfillment_status,
+            'image', oi.image
+          )
+        ) as line_items_json
+      FROM orders o
+      LEFT JOIN order_items oi ON o.id = oi.order_id
+      ${whereClause}
+      GROUP BY o.id
+      ORDER BY o.created_at DESC
+      LIMIT ? OFFSET ?
+    `, queryParams, (err, rows) => {
+      if (err) {
+        console.error('Error fetching orders:', err);
+        return res.status(500).json({ error: 'Failed to fetch orders' });
+      }
+      
+      // Parse line items JSON
     const orders = rows.map(row => {
       const order = { ...row };
       if (order.line_items_json) {
@@ -1317,7 +1386,19 @@ app.get('/api/orders', (req, res) => {
       return order;
     });
     
-    res.json(orders);
+    // Return paginated response with metadata
+    res.json({
+      orders: orders,
+      pagination: {
+        page: page,
+        limit: limit,
+        total: totalCount,
+        totalPages: totalPages,
+        hasNextPage: page < totalPages,
+        hasPrevPage: page > 1
+      }
+    });
+  });
   });
 });
 
