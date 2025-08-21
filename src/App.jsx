@@ -12,6 +12,7 @@ import {
 import CreativePerformance from "./components/CreativePerformance";
 // import Products from "./components/Products"; // OLD - REMOVED
 import ProductsAdvanced from "./components/products"; // Final working version
+import ProductPerformance from "./components/product-performance"; // Product Performance Dashboard
 import ProductVariantsDemo from "./components/ProductVariantsDemo";
 import FlowBuilder from "./components/FlowBuilder";
 import Analytics from "./components/Analytics";
@@ -83,6 +84,12 @@ function Sidebar({ isCollapsed, onToggle, currentView, onViewChange, isDarkMode,
       label: 'Products',
       icon: Package,
       active: currentView === 'products'
+    },
+    {
+      id: 'product-performance',
+      label: 'Product Performance',
+      icon: TrendingUp,
+      active: currentView === 'product-performance'
     },
     {
       id: 'flowbuilder',
@@ -2122,6 +2129,8 @@ export default function App() {
       )}
       
       {currentView === 'products' && <ProductsAdvanced />}
+      
+      {currentView === 'product-performance' && <ProductPerformance />}
       
       {currentView === 'flowbuilder' && <FlowBuilder />}
       
