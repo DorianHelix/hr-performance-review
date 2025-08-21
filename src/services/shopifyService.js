@@ -62,9 +62,7 @@ class ShopifyService {
         },
         body: JSON.stringify({
           storeDomain: this.credentials.storeDomain,
-          accessToken: this.credentials.accessToken,
-          limit: options.limit || 250,
-          since_id: options.since_id || null
+          accessToken: this.credentials.accessToken
         })
       });
 

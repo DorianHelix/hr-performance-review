@@ -559,37 +559,80 @@ app.post('/api/shopify/test', async (req, res) => {
 
 // Fetch products from Shopify with all available fields
 app.post('/api/shopify/products', async (req, res) => {
-  const { storeDomain, accessToken, limit = 250, since_id = null, saveToDb = false } = req.body;
+  const { storeDomain, accessToken, saveToDb = false } = req.body;
   
   if (!storeDomain || !accessToken) {
     return res.status(400).json({ error: 'Store domain and access token are required' });
   }
   
   try {
-    // Fetch ALL fields including metafields, SEO, and collections
-    let url = `https://${storeDomain}.myshopify.com/admin/api/2024-01/products.json?limit=${limit}`;
-    if (since_id) {
-      url += `&since_id=${since_id}`;
-    }
+    let allProducts = [];
+    let hasNextPage = true;
+    let pageInfo = null;
+    const pageSize = 250; // Maximum allowed by Shopify
     
-    const response = await fetch(url, {
-      headers: {
-        'X-Shopify-Access-Token': accessToken,
-        'Content-Type': 'application/json'
+    console.log('Starting to fetch all products from Shopify...');
+    
+    // Fetch all products using pagination
+    while (hasNextPage) {
+      let url;
+      if (pageInfo) {
+        // Use cursor-based pagination for subsequent pages
+        url = `https://${storeDomain}.myshopify.com/admin/api/2024-01/products.json?limit=${pageSize}&page_info=${pageInfo}`;
+      } else {
+        // First page
+        url = `https://${storeDomain}.myshopify.com/admin/api/2024-01/products.json?limit=${pageSize}`;
       }
-    });
-    
-    if (!response.ok) {
-      const error = await response.text();
-      return res.status(response.status).json({ 
-        error: 'Failed to fetch products from Shopify', 
-        details: error,
-        status: response.status 
+      
+      const response = await fetch(url, {
+        headers: {
+          'X-Shopify-Access-Token': accessToken,
+          'Content-Type': 'application/json'
+        }
       });
+      
+      if (!response.ok) {
+        const error = await response.text();
+        return res.status(response.status).json({ 
+          error: 'Failed to fetch products from Shopify', 
+          details: error,
+          status: response.status 
+        });
+      }
+      
+      const data = await response.json();
+      allProducts = allProducts.concat(data.products);
+      
+      // Check for next page in Link header
+      const linkHeader = response.headers.get('Link');
+      if (linkHeader && linkHeader.includes('rel="next"')) {
+        // Extract page_info from the next link
+        const matches = linkHeader.match(/page_info=([^&>]+)/g);
+        if (matches && matches.length > 0) {
+          // Find the page_info for the "next" relation
+          const nextMatch = linkHeader.split(',').find(link => link.includes('rel="next"'));
+          if (nextMatch) {
+            const pageInfoMatch = nextMatch.match(/page_info=([^&>]+)/);;
+            if (pageInfoMatch) {
+              pageInfo = pageInfoMatch[1];
+            } else {
+              hasNextPage = false;
+            }
+          } else {
+            hasNextPage = false;
+          }
+        } else {
+          hasNextPage = false;
+        }
+      } else {
+        hasNextPage = false;
+      }
+      
+      console.log(`Fetched ${data.products.length} products, total so far: ${allProducts.length}`);
     }
     
-    const data = await response.json();
-    const products = data.products;
+    console.log(`Total products fetched: ${allProducts.length}`);
+    const products = allProducts;
     
     // Fetch inventory item costs for all variants
     // Collect all inventory item IDs
