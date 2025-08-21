@@ -1769,27 +1769,51 @@ app.post('/api/product-performance/sync', async (req, res) => {
     });
     
     // Calculate performance from orders and order_items
-    // Note: product_id in order_items is actually the Shopify ID
-    // IMPORTANT: Our prices include 27% VAT, Shopify reports: Total Sales = Net Sales + Taxes
-    // Simplify: just use price as-is (it matches Shopify total_sales for single-item orders)
+    // CRITICAL: Understanding the price structure:
+    // - Our DB: oi.price is GROSS (includes 27% VAT)
+    // - Shopify: Reports NET sales (without VAT) + Taxes = Total Sales
+    // - Discounts: Both o.total_discounts and o.subtotal_price are NET (without VAT)
+    // 
+    // Formula to match Shopify exactly:
+    // 1. Convert our GROSS price to NET: price / 1.27
+    // 2. Apply discount on NET values
+    // 3. Add VAT back: * 1.27
+    // This gives us the Shopify "Total Sales" value
     const query = `
       INSERT INTO product_performance (product_id, date, revenue, units_sold, orders_count)
       SELECT 
         p.id as product_id,
-        DATE(o.created_at) as date,
-        -- Simple approach: Use 90% of gross to approximate Shopify's total_sales
-        -- This accounts for average discounts
-        SUM(oi.price * oi.quantity * 0.902) as revenue,
+        DATE(datetime(substr(o.created_at, 1, 19))) as date,
+        -- Exact Shopify formula
+        SUM(
+          CASE
+            -- If order has discount, calculate on NET values then add VAT back
+            WHEN o.total_discounts > 0 AND (o.subtotal_price + o.total_discounts) > 0 THEN
+              -- Step 1: Convert to NET
+              -- Step 2: Apply discount proportionally (both values are NET)
+              -- Step 3: Add VAT back (* 1.27)
+              (oi.price * oi.quantity / 1.27) * 
+              (1 - (o.total_discounts / (o.subtotal_price + o.total_discounts))) * 
+              1.27
+            -- No discount: price already matches Shopify total (includes VAT)
+            ELSE
+              oi.price * oi.quantity
+          END
+        ) as revenue,
         SUM(oi.quantity) as units_sold,
         COUNT(DISTINCT o.id) as orders_count
       FROM order_items oi
       JOIN orders o ON oi.order_id = o.id
       LEFT JOIN products p ON p.shopify_id = oi.product_id
-      WHERE o.financial_status IN ('paid', 'partially_paid', 'pending')
-        AND oi.product_id IS NOT NULL
+      WHERE oi.product_id IS NOT NULL
         AND oi.product_id != ''
         AND p.id IS NOT NULL
-      GROUP BY p.id, DATE(o.created_at)
+        -- Exclude "Utánvét Díja" and other non-product items
+        AND oi.name NOT LIKE '%Utánvét%'
+        AND oi.name NOT LIKE '%Csomagbiztosítás%'
+        -- Ensure proper date extraction (exclude timezone issues)
+        AND DATE(datetime(substr(o.created_at, 1, 19))) IS NOT NULL
+      GROUP BY p.id, DATE(datetime(substr(o.created_at, 1, 19)))
     `;
     
     db.run(query, function(err) {
