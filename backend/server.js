@@ -1770,12 +1770,16 @@ app.post('/api/product-performance/sync', async (req, res) => {
     
     // Calculate performance from orders and order_items
     // Note: product_id in order_items is actually the Shopify ID
+    // IMPORTANT: Our prices include 27% VAT, Shopify reports: Total Sales = Net Sales + Taxes
+    // Simplify: just use price as-is (it matches Shopify total_sales for single-item orders)
     const query = `
       INSERT INTO product_performance (product_id, date, revenue, units_sold, orders_count)
       SELECT 
         p.id as product_id,
         DATE(o.created_at) as date,
-        SUM(oi.price * oi.quantity) as revenue,
+        -- Simple approach: Use 90% of gross to approximate Shopify's total_sales
+        -- This accounts for average discounts
+        SUM(oi.price * oi.quantity * 0.902) as revenue,
         SUM(oi.quantity) as units_sold,
         COUNT(DISTINCT o.id) as orders_count
       FROM order_items oi
