@@ -85,7 +85,8 @@ function Products() {
         const cached = shopifyService.getCachedProducts();
         if (cached) {
           console.log('Loading Shopify products from cache');
-          setProducts(cached.products);
+          console.log('Cached products count:', cached.products?.length);
+          setProducts(cached.products || []);
           setLastShopifySync(cached.fetchedAt);
           setLoading(false);
         } else if (shopifyService.hasCredentials()) {
@@ -609,6 +610,28 @@ function Products() {
 
   return (
     <div className="h-full flex relative overflow-hidden">
+      {/* DEBUG PANEL - REMOVE AFTER FIXING */}
+      <div className="fixed top-20 left-1/2 transform -translate-x-1/2 z-[100] bg-red-600 text-white p-4 rounded-lg shadow-lg">
+        <div className="text-center">
+          <div className="font-bold">DEBUG INFO</div>
+          <div>Data Source: {dataSource}</div>
+          <div>Products Count: {products.length}</div>
+          <div>Sidebar Collapsed: {isSidebarCollapsed ? 'YES' : 'NO'}</div>
+          <button 
+            onClick={() => handleDataSourceChange('manual')}
+            className="mt-2 px-3 py-1 bg-blue-500 rounded mr-2 hover:bg-blue-600"
+          >
+            Switch to Manual
+          </button>
+          <button 
+            onClick={() => setIsSidebarCollapsed(false)}
+            className="mt-2 px-3 py-1 bg-green-500 rounded hover:bg-green-600"
+          >
+            Show Sidebar
+          </button>
+        </div>
+      </div>
+      
       {/* Main Content */}
       <div className="flex-1 p-4 md:p-6 flex flex-col overflow-hidden transition-all duration-500">
           {/* Collapsible Header */}
@@ -616,6 +639,41 @@ function Products() {
             style={{ maxHeight: isHeaderExpanded ? '300px' : '70px' }}>
             <div className="flex items-center justify-between p-4">
               <div className="flex items-center gap-3">
+                {/* DEBUG: Quick Action Buttons */}
+                <button
+                  onClick={() => {
+                    handleDataSourceChange('manual');
+                    showInfo('Switched to Manual mode');
+                  }}
+                  className="px-3 py-1 bg-blue-600 text-white text-xs rounded hover:bg-blue-700"
+                >
+                  MANUAL
+                </button>
+                <button
+                  onClick={async () => {
+                    if (confirm(`Delete all ${products.length} products from database?`)) {
+                      try {
+                        for (const product of products) {
+                          await API.products.deleteProduct(product.id);
+                        }
+                        localStorage.removeItem('hr_products');
+                        localStorage.removeItem('hr_products_imported');
+                        localStorage.removeItem('shopify_products_cache');
+                        localStorage.removeItem('shopify_products_active');
+                        setProducts([]);
+                        showSuccess('All products deleted!');
+                        window.location.reload();
+                      } catch (error) {
+                        console.error('Error:', error);
+                        showError('Failed to delete products');
+                      }
+                    }
+                  }}
+                  className="px-3 py-1 bg-red-600 text-white text-xs rounded hover:bg-red-700"
+                >
+                  DELETE ALL ({products.length})
+                </button>
+                
                 {/* Sidebar Toggle */}
                 <button
                   onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
@@ -988,6 +1046,11 @@ function Products() {
       <div className={`${isSidebarCollapsed ? 'w-0' : 'w-80'} transition-all duration-500 py-6 pr-6`}>
         <div className={`${isSidebarCollapsed ? 'hidden' : 'block'} h-full overflow-y-auto custom-scrollbar rounded-3xl bg-black/40 backdrop-blur-xl border border-white/10`}>
           <div className="p-6 space-y-6">
+        {/* HELLO TEST */}
+        <div className="p-4 bg-red-600 text-white text-2xl font-bold rounded">
+          HELLO 1 - Products.jsx
+        </div>
+        
         {/* Sidebar Header */}
         <div className="flex items-center justify-between mb-2">
           <h2 className="text-xl font-bold text-white">Controls</h2>
@@ -1002,6 +1065,27 @@ function Products() {
             </div>
             <span className="text-sm font-medium text-white">Data Source</span>
           </div>
+          
+          {/* Quick Toggle for Manual/Imported */}
+          {(dataSource === 'manual' || dataSource === 'imported') && (
+            <div className="mb-3 p-3 rounded-xl bg-white/5 border border-white/10">
+              <div className="flex items-center justify-between">
+                <span className="text-xs text-white/60">Quick Switch</span>
+                <label className="relative inline-flex items-center cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={dataSource === 'imported'}
+                    onChange={(e) => handleDataSourceChange(e.target.checked ? 'imported' : 'manual')}
+                    className="sr-only peer"
+                  />
+                  <div className="w-11 h-6 bg-white/20 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-gradient-to-r peer-checked:from-purple-500 peer-checked:to-pink-500"></div>
+                  <span className="ml-3 text-sm font-medium text-white">
+                    {dataSource === 'imported' ? 'Imported' : 'Manual'}
+                  </span>
+                </label>
+              </div>
+            </div>
+          )}
           
           <div className="space-y-2">
             <button
@@ -1174,78 +1258,116 @@ function Products() {
         </div>
         )}
 
-        {/* Product Actions - Only show when viewing manual products */}
-        {dataSource === 'manual' && (
-        <div className="p-6 rounded-2xl bg-white/5 backdrop-blur-sm border border-white/10 hover:bg-white/10 transition-all">
+        {/* Product Actions - Universal widget for all data sources */}
+        {console.log('Rendering Product Actions widget, products:', products.length, 'dataSource:', dataSource)}
+        <div className="p-6 rounded-2xl bg-gradient-to-br from-red-500/10 to-orange-500/10 backdrop-blur-sm border border-red-400/20 hover:from-red-500/15 hover:to-orange-500/15 transition-all">
           <div className="flex items-center gap-3 mb-4">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-green-500 to-emerald-500 flex items-center justify-center">
-              <PlusCircle size={20} className="text-white" />
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-red-500 to-orange-500 flex items-center justify-center">
+              <Archive size={20} className="text-white" />
             </div>
             <h3 className="text-lg font-semibold text-white">Product Actions</h3>
           </div>
           
           <div className="space-y-3">
-            <button
-              onClick={() => setShowAddModal(true)}
-              className="w-full glass-button py-3 font-medium hover:scale-105 transition-transform flex items-center justify-center gap-2"
-            >
-              <Plus size={20} />
-              Add Product
-            </button>
+            {/* Add Product - Only for manual data source */}
+            {dataSource === 'manual' && (
+              <>
+                <button
+                  onClick={() => setShowAddModal(true)}
+                  className="w-full glass-button py-3 font-medium hover:scale-105 transition-transform flex items-center justify-center gap-2"
+                >
+                  <Plus size={20} />
+                  Add Product
+                </button>
+                
+                <button
+                  onClick={() => setShowBulkImportModal(true)}
+                  className="w-full glass-button py-3 font-medium hover:scale-105 transition-transform flex items-center justify-center gap-2"
+                >
+                  <Upload size={20} />
+                  Bulk Import
+                </button>
+              </>
+            )}
             
-            <button
-              onClick={() => setShowBulkImportModal(true)}
-              className="w-full glass-button py-3 font-medium hover:scale-105 transition-transform flex items-center justify-center gap-2"
-            >
-              <Upload size={20} />
-              Bulk Import
-            </button>
-            
-            <button
-              onClick={() => {
-                const data = JSON.stringify(products, null, 2);
-                const blob = new Blob([data], { type: 'application/json' });
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = `products-export-${new Date().toISOString().split('T')[0]}.json`;
-                a.click();
-              }}
-              className="w-full glass-button py-3 font-medium hover:scale-105 transition-transform flex items-center justify-center gap-2"
-            >
-              <Archive size={20} />
-              Export Data
-            </button>
-            
+            {/* Export Data - Always available when there are products */}
             {products.length > 0 && (
+              <button
+                onClick={() => {
+                  const data = JSON.stringify(products, null, 2);
+                  const blob = new Blob([data], { type: 'application/json' });
+                  const url = URL.createObjectURL(blob);
+                  const a = document.createElement('a');
+                  a.href = url;
+                  a.download = `products-export-${new Date().toISOString().split('T')[0]}.json`;
+                  a.click();
+                  showSuccess(`Exported ${products.length} products`);
+                }}
+                className="w-full glass-button py-3 font-medium hover:scale-105 transition-transform flex items-center justify-center gap-2"
+              >
+                <FileDown size={20} />
+                Export Products
+              </button>
+            )}
+            
+            {/* Delete All Products - Always visible for debugging */}
+            {console.log('Products in state:', products.length)}
+            {products.length > 0 ? (
               <button
                 onClick={() => {
                   showConfirm(
                     'Delete All Products',
-                    'Are you sure you want to delete ALL products? This action cannot be undone.',
-                    () => {
-                      setProducts([]);
-                      if (showImportedProducts) {
-                        localStorage.removeItem('hr_products_imported');
-                      } else {
+                    `Are you sure you want to delete all ${products.length} products? This action cannot be undone.`,
+                    async () => {
+                      try {
+                        // Delete all products from database
+                        for (const product of products) {
+                          await API.products.deleteProduct(product.id);
+                        }
+                        // Clear all product-related localStorage
                         localStorage.removeItem('hr_products');
+                        localStorage.removeItem('hr_products_imported');
+                        localStorage.removeItem('shopify_products_cache');
+                        localStorage.removeItem('shopify_products_active');
+                        // Reset state
+                        setProducts([]);
+                        showSuccess('All products have been deleted successfully');
+                      } catch (error) {
+                        console.error('Error deleting products:', error);
+                        showError('Failed to delete all products from database');
                       }
-                      showSuccess('All products deleted successfully');
                     },
                     'danger',
                     'Delete All',
                     'Cancel'
                   );
                 }}
-                className="w-full py-3 font-medium transition-all flex items-center justify-center gap-2 rounded-2xl border bg-red-900/80 hover:bg-red-800 border-red-700/50 text-white hover:scale-105"
+                className="w-full py-3 font-medium transition-all flex items-center justify-center gap-2 rounded-2xl border bg-gradient-to-r from-red-500/20 to-orange-500/20 border-red-400/30 hover:from-red-500/30 hover:to-orange-500/30 hover:scale-105"
               >
                 <Trash2 size={20} />
                 Delete All Products
               </button>
+            ) : (
+              <button
+                onClick={() => {
+                  showInfo('Debug: No products in state. Trying to reload...');
+                  window.location.reload();
+                }}
+                className="w-full py-3 font-medium transition-all flex items-center justify-center gap-2 rounded-2xl border bg-gradient-to-r from-yellow-500/20 to-orange-500/20 border-yellow-400/30 hover:from-yellow-500/30 hover:to-orange-500/30 hover:scale-105"
+              >
+                <RefreshCw size={20} />
+                Reload Products (Debug)
+              </button>
+            )}
+            
+            {/* Display info when no products */}
+            {products.length === 0 && (
+              <div className="text-center text-white/50 py-4 text-sm">
+                No products available
+              </div>
             )}
           </div>
         </div>
-        )}
 
         {/* Statistics Section - Always visible */}
         <div className="space-y-4">

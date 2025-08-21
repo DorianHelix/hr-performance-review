@@ -5,7 +5,7 @@ import {
   DollarSign, TrendingUp, AlertTriangle, Box, Tag,
   BarChart3, ShoppingCart, Zap, Database, Check,
   Key, Link, Image, Calendar, Hash, Store, Plug, Layers, Menu,
-  Upload, FileText, ArrowRight
+  Upload, FileText, ArrowRight, Trash2
 } from 'lucide-react';
 import shopifyService from '../services/shopifyService';
 import { useToast } from './Toast';
@@ -891,6 +891,33 @@ function ProductsAdvanced() {
             </div>
             
             <div className="flex items-center gap-3">
+              {/* DELETE ALL BUTTON */}
+              <button
+                onClick={async () => {
+                  if (confirm(`Are you sure you want to delete all ${products.length} products?`)) {
+                    try {
+                      // Clear all localStorage
+                      localStorage.removeItem('shopify_products_cache');
+                      localStorage.removeItem('shopify_products_active');
+                      localStorage.removeItem('hr_products');
+                      localStorage.removeItem('hr_products_imported');
+                      // Reset products state
+                      setProducts([]);
+                      showSuccess('All products deleted!');
+                      // Reload page
+                      window.location.reload();
+                    } catch (error) {
+                      console.error('Error:', error);
+                      showError('Failed to delete products');
+                    }
+                  }
+                }}
+                className="glass-button px-3 py-2 flex items-center gap-2 hover:scale-105 transition-transform bg-red-500/20 border-red-400/30 hover:bg-red-500/30"
+              >
+                <X size={16} />
+                Delete All ({products.length})
+              </button>
+              
               {/* Export button */}
               <button
                 onClick={exportData}
@@ -1197,6 +1224,45 @@ function ProductsAdvanced() {
         {/* Right Sidebar */}
         {showSidebar && (
           <div className="w-80 flex-shrink-0 space-y-4">
+            {/* DELETE ALL PRODUCTS SECTION */}
+            <div className="glass-card-large p-4 bg-gradient-to-br from-red-500/10 to-orange-500/10 border border-red-400/20">
+              <div className="flex items-center gap-2 mb-4">
+                <X className="text-red-400" size={20} />
+                <h3 className="font-semibold text-white">Product Actions</h3>
+              </div>
+              
+              <button
+                onClick={async () => {
+                  if (confirm(`Are you sure you want to delete all ${products.length} products?\n\nThis will clear all product data from local storage.`)) {
+                    try {
+                      // Clear all localStorage
+                      localStorage.removeItem('shopify_products_cache');
+                      localStorage.removeItem('shopify_products_active');
+                      localStorage.removeItem('hr_products');
+                      localStorage.removeItem('hr_products_imported');
+                      // Reset products state
+                      setProducts([]);
+                      showSuccess('All products have been deleted successfully!');
+                      // Reload page after a short delay
+                      setTimeout(() => window.location.reload(), 1000);
+                    } catch (error) {
+                      console.error('Error deleting products:', error);
+                      showError('Failed to delete products');
+                    }
+                  }
+                }}
+                disabled={products.length === 0}
+                className="w-full py-3 px-4 bg-red-900/80 hover:bg-red-800 text-white font-semibold rounded-xl transition-all transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 border border-red-700/50"
+              >
+                <Trash2 size={18} />
+                Delete All Products ({products.length})
+              </button>
+              
+              <p className="text-xs text-white/50 mt-3">
+                This action will permanently delete all products from your local storage. This cannot be undone.
+              </p>
+            </div>
+            
             {/* Import CSV Section */}
             <div className="glass-card-large p-4">
               <div className="flex items-center gap-2 mb-4">
