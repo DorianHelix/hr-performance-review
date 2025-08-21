@@ -88,21 +88,26 @@ function DateRangePicker({ label, startDate, endDate, onRangeChange }) {
   }
 
   function handleDateClick(day) {
-    const clickedDate = new Date(Date.UTC(viewY, viewM, day));
+    // Create date in local timezone to avoid date shifting
+    const clickedDate = new Date(viewY, viewM, day, 12, 0, 0); // Use noon to avoid DST issues
     
     if (!isSelectingEnd) {
       // First click - set start date
-      setSelectionStart(clickedDate);
+      const startDate = new Date(viewY, viewM, day, 0, 0, 0, 0);
+      setSelectionStart(startDate);
       setSelectionEnd(null);
       setIsSelectingEnd(true);
     } else {
       // Second click - set end date
+      const endDate = new Date(viewY, viewM, day, 23, 59, 59, 999);
       let finalStart = selectionStart;
-      let finalEnd = clickedDate;
+      let finalEnd = endDate;
       
       // Ensure start is before end
       if (finalEnd < finalStart) {
-        [finalStart, finalEnd] = [finalEnd, finalStart];
+        // Swap and adjust times
+        finalStart = new Date(viewY, viewM, day, 0, 0, 0, 0);
+        finalEnd = new Date(selectionStart.getFullYear(), selectionStart.getMonth(), selectionStart.getDate(), 23, 59, 59, 999);
       }
       
       setSelectionStart(finalStart);
@@ -157,16 +162,80 @@ function DateRangePicker({ label, startDate, endDate, onRangeChange }) {
   for (let i = 0; i < lead; i++) grid.push(null);
   for (let day = 1; day <= daysInMonth(viewY, viewM); day++) grid.push(day);
 
-  // Quick date range options
+  // Quick date range options - using proper date creation to avoid timezone issues
   const quickRanges = [
-    { label: 'Today', getValue: () => { const t = new Date(); t.setHours(0,0,0,0); const e = new Date(); e.setHours(23,59,59,999); return {start: t, end: e}; }},
-    { label: 'Yesterday', getValue: () => { const y = new Date(); y.setDate(y.getDate()-1); y.setHours(0,0,0,0); const e = new Date(y); e.setHours(23,59,59,999); return {start: y, end: e}; }},
-    { label: 'Last 7 Days', getValue: () => { const e = new Date(); const s = new Date(); s.setDate(s.getDate()-7); s.setHours(0,0,0,0); return {start: s, end: e}; }},
-    { label: 'Last 30 Days', getValue: () => { const e = new Date(); const s = new Date(); s.setDate(s.getDate()-30); s.setHours(0,0,0,0); return {start: s, end: e}; }},
-    { label: 'This Month', getValue: () => { const n = new Date(); const s = new Date(n.getFullYear(), n.getMonth(), 1); const e = new Date(n.getFullYear(), n.getMonth()+1, 0); e.setHours(23,59,59,999); return {start: s, end: e}; }},
-    { label: 'Last Month', getValue: () => { const n = new Date(); const s = new Date(n.getFullYear(), n.getMonth()-1, 1); const e = new Date(n.getFullYear(), n.getMonth(), 0); e.setHours(23,59,59,999); return {start: s, end: e}; }},
-    { label: 'Last 90 Days', getValue: () => { const e = new Date(); const s = new Date(); s.setDate(s.getDate()-90); s.setHours(0,0,0,0); return {start: s, end: e}; }},
-    { label: 'This Year', getValue: () => { const n = new Date(); const s = new Date(n.getFullYear(), 0, 1); const e = new Date(n.getFullYear(), 11, 31); e.setHours(23,59,59,999); return {start: s, end: e}; }}
+    { 
+      label: 'Today', 
+      getValue: () => { 
+        const now = new Date();
+        const start = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
+        const end = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
+        return {start, end};
+      }
+    },
+    { 
+      label: 'Yesterday', 
+      getValue: () => { 
+        const now = new Date();
+        const start = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1, 0, 0, 0, 0);
+        const end = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1, 23, 59, 59, 999);
+        return {start, end};
+      }
+    },
+    { 
+      label: 'Last 7 Days', 
+      getValue: () => { 
+        const now = new Date();
+        const end = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
+        const start = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 6, 0, 0, 0, 0);
+        return {start, end};
+      }
+    },
+    { 
+      label: 'Last 30 Days', 
+      getValue: () => { 
+        const now = new Date();
+        const end = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
+        const start = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 29, 0, 0, 0, 0);
+        return {start, end};
+      }
+    },
+    { 
+      label: 'This Month', 
+      getValue: () => { 
+        const now = new Date();
+        const start = new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0, 0);
+        const end = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
+        return {start, end};
+      }
+    },
+    { 
+      label: 'Last Month', 
+      getValue: () => { 
+        const now = new Date();
+        const start = new Date(now.getFullYear(), now.getMonth() - 1, 1, 0, 0, 0, 0);
+        const end = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59, 999);
+        return {start, end};
+      }
+    },
+    { 
+      label: 'Last 90 Days', 
+      getValue: () => { 
+        const now = new Date();
+        const end = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
+        const start = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 89, 0, 0, 0, 0);
+        return {start, end};
+      }
+    },
+    { 
+      label: 'This Year', 
+      getValue: () => { 
+        const now = new Date();
+        const start = new Date(now.getFullYear(), 0, 1, 0, 0, 0, 0);
+        const end = new Date(now.getFullYear(), 11, 31, 23, 59, 59, 999);
+        return {start, end};
+      }
+    }
   ];
 
   function handleQuickRange(range) {
