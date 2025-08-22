@@ -10,6 +10,17 @@ import DateRangePicker from './DateRangePicker';
 import SectionHeader from './SectionHeader';
 import LiquidTooltip from './LiquidTooltip';
 import API from '../api';
+import { 
+  saveScore, 
+  getTestTypes as getCreativeTestTypes, 
+  getPlatformTypes as getCreativePlatformTypes 
+} from '../utils/creativeDataModel';
+import { 
+  getGlobalTestTypes, 
+  getGlobalPlatforms,
+  saveGlobalTestTypes,
+  saveGlobalPlatforms
+} from '../utils/globalTestConfig';
 
 // Platform icons as SVG components
 const FacebookIcon = () => (
@@ -68,13 +79,27 @@ function Experiment() {
   });
 
   const [testTypes, setTestTypes] = useState(() => {
-    const saved = localStorage.getItem('experiment_test_types');
-    return saved ? JSON.parse(saved) : INITIAL_TEST_TYPES;
+    const globalTypes = getGlobalTestTypes();
+    // Convert global format to Experiment format
+    return globalTypes.map(t => ({
+      id: t.id,
+      name: t.name,
+      shortName: t.shortName,
+      color: t.color
+    }));
   });
 
   const [platforms, setPlatforms] = useState(() => {
-    const saved = localStorage.getItem('experiment_platforms');
-    return saved ? JSON.parse(saved) : INITIAL_PLATFORMS;
+    const globalPlatforms = getGlobalPlatforms();
+    // Convert global format to Experiment format with icon components
+    return globalPlatforms.map(p => ({
+      id: p.id,
+      name: p.name,
+      iconComponent: p.id === 'meta' ? FacebookIcon : 
+                   p.id === 'google' ? GoogleIcon : 
+                   p.id === 'tiktok' ? TikTokIcon : 
+                   FacebookIcon // fallback
+    }));
   });
 
   const [products, setProducts] = useState([]);
@@ -109,12 +134,36 @@ function Experiment() {
     localStorage.setItem('experiment_tests', JSON.stringify(tests));
   }, [tests]);
 
+  // Sync test types and platforms to global config when changed
   useEffect(() => {
-    localStorage.setItem('experiment_test_types', JSON.stringify(testTypes));
+    // Convert back to global format and save
+    const globalTypes = testTypes.map(t => ({
+      ...t,
+      key: t.shortName,
+      description: `${t.name} - updated from Experiment`,
+      iconName: 'Target',
+      allowedPlatforms: ['meta', 'google', 'tiktok'], // default allowance
+      order: testTypes.indexOf(t) + 1
+    }));
+    saveGlobalTestTypes(globalTypes);
   }, [testTypes]);
 
   useEffect(() => {
-    localStorage.setItem('experiment_platforms', JSON.stringify(platforms));
+    // Convert back to global format and save
+    const globalPlatforms = platforms.map(p => ({
+      ...p,
+      description: `${p.name} Ads - updated from Experiment`,
+      iconName: p.id === 'meta' ? 'Facebook' : 
+               p.id === 'google' ? 'Chrome' : 
+               p.id === 'tiktok' ? 'Music' : 
+               'Globe',
+      color: p.id === 'meta' ? 'blue' : 
+             p.id === 'google' ? 'yellow' : 
+             p.id === 'tiktok' ? 'pink' : 
+             'blue',
+      order: platforms.indexOf(p) + 1
+    }));
+    saveGlobalPlatforms(globalPlatforms);
   }, [platforms]);
 
   const fetchProducts = async () => {
@@ -188,6 +237,57 @@ function Experiment() {
     setTests(prev => prev.map(t => 
       t.id === testId ? { ...t, status: newStatus, updatedAt: new Date() } : t
     ));
+  };
+
+  const pushToEvaluation = (test) => {
+    try {
+      // Get the test start date for the Creative Performance date key
+      const testStartDate = new Date(test.startDate);
+      const dateKey = testStartDate.toISOString().split('T')[0]; // YYYY-MM-DD format
+      
+      // Since we now use global config, both components should have the same data
+      const globalTestTypes = getGlobalTestTypes();
+      const globalPlatforms = getGlobalPlatforms();
+      
+      const experimentTestType = testTypes.find(t => t.id === test.type);
+      const experimentPlatform = platforms.find(p => p.id === test.platform);
+      
+      // Find matching types in global config (should be exact matches now)
+      const creativeTestType = globalTestTypes.find(t => t.id === experimentTestType?.id);
+      const creativePlatform = globalPlatforms.find(p => p.id === experimentPlatform?.id);
+      
+      if (creativeTestType && creativePlatform && test.product) {
+        // Save a placeholder score (null) to mark that evaluation is ready
+        // The user will need to manually score it in Creative Performance
+        saveScore(
+          test.product, // productId
+          creativeTestType.id, // testTypeId  
+          creativePlatform.id, // platformId
+          dateKey, // dateKey
+          null // score (null means ready for evaluation)
+        );
+        
+        // Show success message
+        alert(`Test "${test.name}" has been pushed to Creative Performance for evaluation on ${testStartDate.toLocaleDateString()}!\n\nProduct: ${products.find(p => p.id === test.product)?.name}\nTest Type: ${creativeTestType.name}\nPlatform: ${creativePlatform.name}`);
+        
+        // Optionally mark the test as evaluated or add a flag
+        setTests(prev => prev.map(t => 
+          t.id === test.id ? { 
+            ...t, 
+            pushedToEvaluation: true, 
+            evaluationDate: new Date(),
+            updatedAt: new Date() 
+          } : t
+        ));
+        
+      } else {
+        alert('Error: Could not map test data to Creative Performance. Please check test type and platform configuration.');
+      }
+      
+    } catch (error) {
+      console.error('Error pushing to evaluation:', error);
+      alert('Error pushing test to evaluation. Please try again.');
+    }
   };
 
   const getStatusColor = (status) => {
@@ -447,6 +547,7 @@ function Experiment() {
               onStatusChange={updateTestStatus}
               getStatusColor={getStatusColor}
               getStatusBadge={getStatusBadge}
+              onPushToEvaluation={pushToEvaluation}
             />
           </div>
         </div>
@@ -1478,7 +1579,7 @@ function TestForm({ test, setTest, testTypes, platforms, products, onSave, onCan
   );
 }
 
-function TestsTable({ tests, testTypes, platforms, products, onEdit, onDelete, onStatusChange, getStatusColor, getStatusBadge }) {
+function TestsTable({ tests, testTypes, platforms, products, onEdit, onDelete, onStatusChange, getStatusColor, getStatusBadge, onPushToEvaluation }) {
   const today = new Date();
 
   const getProgress = (test) => {
@@ -1567,6 +1668,15 @@ function TestsTable({ tests, testTypes, platforms, products, onEdit, onDelete, o
                 </td>
                 <td className="py-3 px-4">
                   <div className="flex items-center gap-2">
+                    {test.status === 'completed' && (
+                      <button
+                        onClick={() => onPushToEvaluation(test)}
+                        className="px-2 py-1 rounded text-xs bg-green-500/20 text-green-400 hover:bg-green-500/30 transition-colors"
+                        title="Push to Creative Performance for evaluation"
+                      >
+                        Push to Evaluation
+                      </button>
+                    )}
                     <button
                       onClick={() => onEdit(test)}
                       className="p-1 rounded hover:bg-white/10 text-blue-400"

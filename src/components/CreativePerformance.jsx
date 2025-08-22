@@ -40,6 +40,19 @@ import PlatformTypesModal from './CreativePerformance/PlatformTypesModal';
 import SettingsModal from './CreativePerformance/SettingsModal';
 import { getIcon } from './CreativePerformance/utils';
 import SectionHeader from './SectionHeader';
+import {
+  initializeCreativeData,
+  getTestTypes,
+  getPlatformTypes,
+  getAllowedPlatforms,
+  getScore,
+  saveScore
+} from '../utils/creativeDataModel';
+import {
+  getGlobalTestTypes,
+  getGlobalPlatforms,
+  getGlobalAllowedPlatforms
+} from '../utils/globalTestConfig';
 
 // Helper functions (copied from main App)
 function scoreToTier(score) {
@@ -106,6 +119,11 @@ function CreativePerformance({
   
   const scrollRef = useRef(null);
   
+  // Initialize data model on mount
+  useEffect(() => {
+    initializeCreativeData();
+  }, []);
+  
   // Local state for Creative-specific features
   const [creativeMode, setCreativeMode] = useState('analytics'); // Changed default to 'analytics'
   const [showCreativeMetrics, setShowCreativeMetrics] = useState(true);
@@ -115,6 +133,12 @@ function CreativePerformance({
   const [showPlatformTypesModal, setShowPlatformTypesModal] = useState(false);
   const [showSettingsModal, setShowSettingsModal] = useState(false);
   const [editingProduct, setEditingProduct] = useState(null);
+  const [testTypes, setTestTypes] = useState(() => getGlobalTestTypes());
+  const [platformTypes, setPlatformTypes] = useState(() => getGlobalPlatforms());
+  const [activeTestType, setActiveTestType] = useState(() => {
+    const types = getGlobalTestTypes();
+    return types[0]?.id || 'vct';
+  });
   const [scoringDesign, setScoringDesign] = useState(() => {
     const saved = localStorage.getItem('hr_creative_scoring_design');
     return saved !== null ? saved : 'liquid'; // 'minimal' or 'liquid'
@@ -169,55 +193,49 @@ function CreativePerformance({
   
   // Calculate metrics from actual table data
   const calculateMetrics = () => {
-    const categoryMetrics = {};
+    const testMetrics = {};
     let overallCount = 0, overallTotal = 0;
     
-    // Initialize metrics for each category
-    categories.forEach(cat => {
-      categoryMetrics[cat.key] = { count: 0, total: 0 };
+    // Initialize metrics for each test type
+    testTypes.forEach(test => {
+      testMetrics[test.id] = { count: 0, total: 0 };
     });
     
-    // Calculate scores
-    filteredEmployees.forEach(emp => {
-      weeks.forEach(week => {
-        categories.forEach(cat => {
-          const score = getCategoryScore ? getCategoryScore(emp.id, week.key, cat.key) : null;
-          if (score !== null) {
-            categoryMetrics[cat.key].count++;
-            categoryMetrics[cat.key].total += score;
-            overallCount++;
-            overallTotal += score;
-          }
+    // Calculate scores for the active test type
+    const activeTest = testTypes.find(t => t.id === activeTestType);
+    if (activeTest) {
+      const allowedPlatforms = getGlobalAllowedPlatforms(activeTestType);
+      
+      filteredEmployees.forEach(emp => {
+        weeks.forEach(week => {
+          allowedPlatforms.forEach(platformId => {
+            const score = getScore(emp.id, activeTestType, platformId, week.key);
+            if (score !== null) {
+              testMetrics[activeTestType].count++;
+              testMetrics[activeTestType].total += score;
+              overallCount++;
+              overallTotal += score;
+            }
+          });
         });
       });
-    });
+    }
     
-    // Build result object with dynamic categories
+    // Build result object with test type data
     const result = {
       overallAvg: overallCount > 0 ? (overallTotal / overallCount).toFixed(1) : '0.0',
-      categoryData: {}
+      testTypeData: {}
     };
     
-    // Add metrics for each category
-    categories.forEach(cat => {
-      const metrics = categoryMetrics[cat.key];
-      result.categoryData[cat.key] = {
+    // Add metrics for each test type
+    testTypes.forEach(test => {
+      const metrics = testMetrics[test.id];
+      result.testTypeData[test.id] = {
         count: metrics.count,
         avg: metrics.count > 0 ? (metrics.total / metrics.count).toFixed(1) : '0.0',
         percent: metrics.count > 0 ? Math.round((metrics.total / metrics.count) * 10) : 0
       };
     });
-    
-    // Keep backward compatibility for VCT, SCT, ACT
-    result.vctCount = result.categoryData.VCT?.count || 0;
-    result.vctAvg = result.categoryData.VCT?.avg || '0.0';
-    result.vctPercent = result.categoryData.VCT?.percent || 0;
-    result.sctCount = result.categoryData.SCT?.count || 0;
-    result.sctAvg = result.categoryData.SCT?.avg || '0.0';
-    result.sctPercent = result.categoryData.SCT?.percent || 0;
-    result.actCount = result.categoryData.ACT?.count || 0;
-    result.actAvg = result.categoryData.ACT?.avg || '0.0';
-    result.actPercent = result.categoryData.ACT?.percent || 0;
     
     return result;
   };
@@ -807,7 +825,7 @@ function CreativePerformance({
                                       }}
                                       onClick={(e) => {
                                         e.stopPropagation();
-                                        const allowedPlatforms = getAllowedPlatforms(activeTestType);
+                                        const allowedPlatforms = getGlobalAllowedPlatforms(activeTestType);
                                         if (setQuickScoreModal && allowedPlatforms.length > 0) {
                                           const firstPlatform = platformTypes.find(p => p.id === allowedPlatforms[0]);
                                           setQuickScoreModal({
@@ -830,7 +848,7 @@ function CreativePerformance({
                         </tr>
                         
                         {/* Expanded platform rows */}
-                        {isExpanded && getAllowedPlatforms(activeTestType).map(platformId => {
+                        {isExpanded && getGlobalAllowedPlatforms(activeTestType).map(platformId => {
                           const platform = platformTypes.find(p => p.id === platformId);
                           if (!platform) return null;
                           const Icon = getIcon(platform.iconName);
@@ -1033,7 +1051,7 @@ function CreativePerformance({
               </h3>
               <div className="space-y-3">
                 <h4 className="text-xs text-white/60 uppercase tracking-wide">Active: {testTypes.find(t => t.id === activeTestType)?.name}</h4>
-                {getAllowedPlatforms(activeTestType).map(platformId => {
+                {getGlobalAllowedPlatforms(activeTestType).map(platformId => {
                   const platform = platformTypes.find(p => p.id === platformId);
                   if (!platform) return null;
                   
@@ -1090,7 +1108,7 @@ function CreativePerformance({
                 <div className="space-y-2">
                   {testTypes.map(test => {
                     const Icon = getIcon(test.iconName);
-                    const allowedPlatforms = getAllowedPlatforms(test.id);
+                    const allowedPlatforms = getGlobalAllowedPlatforms(test.id);
                     return (
                       <div key={test.id} className="glass-card p-3 rounded-xl hover:scale-105 transition-all duration-300">
                         <div className="flex items-start gap-3">

@@ -28,6 +28,12 @@ import { ConfirmProvider } from "./components/ConfirmDialog";
 import ThemeSwitcher from "./components/ThemeSwitcher";
 import { applyTheme } from "./config/themes";
 import API from "./api";
+import { 
+  initializeGlobalTestConfig, 
+  migrateToGlobalConfig,
+  getGlobalTestTypes
+} from "./utils/globalTestConfig";
+import { saveScore as saveCreativeScore } from "./utils/creativeDataModel";
 
 
 /* -----------------------------------------------------------
@@ -487,7 +493,7 @@ function lsWrite(key, value) {
 /* -----------------------------------------------------------
    Quick Score Modal Component
 ----------------------------------------------------------- */
-function QuickScoreModal({ employee, week, category, currentScore, currentReports, onSave, onDelete, onClose }) {
+function QuickScoreModal({ employee, week, category, testType, platform, currentScore, currentReports, onSave, onDelete, onClose }) {
   const [score, setScore] = useState(currentScore || 5);
   const [performanceReport, setPerformanceReport] = useState(currentReports?.performanceReport || '');
   const [mediaBuyerReview, setMediaBuyerReview] = useState(currentReports?.mediaBuyerReview || '');
@@ -537,7 +543,12 @@ function QuickScoreModal({ employee, week, category, currentScore, currentReport
           <div>
             <h3 className="font-semibold text-white">{employee.name}</h3>
             <p className="text-sm text-white/60">
-              Week {week.week}
+              {category 
+                ? `Week ${week.week} - ${category.label}` 
+                : testType && platform 
+                  ? `${testType.name} on ${platform.name}` 
+                  : `Week ${week.week}`
+              }
             </p>
           </div>
           <button onClick={onClose} className="glass-button p-2 rounded-lg hover:scale-110">
@@ -1441,60 +1452,72 @@ function CategoryManagementModal({ categories, onSave, onClose }) {
 /* -----------------------------------------------------------
    Main App Component
 ----------------------------------------------------------- */
-// Default test categories for Creative Product Scoring
-const DEFAULT_TEST_CATEGORIES = [
-  { 
-    id: "test-1",
-    key: "VCT", 
-    label: "Video Creative Test", 
-    short: "VCT", 
-    accent: "border-l-purple-500", 
-    tag: "bg-purple-500", 
-    iconName: "Zap",
-    description: "Video creative performance testing"
-  },
-  { 
-    id: "test-2",
-    key: "SCT", 
-    label: "Static Creative Test", 
-    short: "SCT", 
-    accent: "border-l-blue-500", 
-    tag: "bg-blue-500", 
-    iconName: "Lightbulb",
-    description: "Static creative performance testing"
-  },
-  { 
-    id: "test-3",
-    key: "ACT", 
-    label: "Ad Copy Test", 
-    short: "ACT", 
-    accent: "border-l-green-500", 
-    tag: "bg-green-500", 
-    iconName: "MessageSquare",
-    description: "Ad copy effectiveness testing"
+// Convert global test types to Creative Performance categories format
+const getDefaultTestCategories = () => {
+  const globalTypes = getGlobalTestTypes();
+  return globalTypes.map((type, index) => ({
+    id: `test-${index + 1}`,
+    key: type.key || type.shortName,
+    label: type.name,
+    short: type.shortName,
+    accent: `border-l-${getColorName(type.color)}-500`,
+    tag: `bg-${getColorName(type.color)}-500`,
+    iconName: type.iconName || "Target",
+    description: type.description || `${type.name} performance testing`
+  }));
+};
+
+// Helper function to convert color values
+const getColorName = (color) => {
+  if (typeof color === 'string') {
+    if (color.startsWith('#')) {
+      // Convert hex colors to Tailwind color names
+      const colorMap = {
+        '#60A5FA': 'blue',
+        '#A78BFA': 'purple', 
+        '#34D399': 'green',
+        '#EF4444': 'red',
+        '#F59E0B': 'yellow',
+        '#8B5CF6': 'purple',
+        '#10B981': 'emerald'
+      };
+      return colorMap[color] || 'blue';
+    }
+    return color;
   }
-];
+  return 'blue';
+};
 
 export default function App() {
   const [employees, setEmployees] = useState([]);
-  const [products, setProducts] = useState(() => {
-    // Load products from localStorage
-    const saved = localStorage.getItem('hr_products');
-    return saved ? JSON.parse(saved) : [];
-  });
+  const [products, setProducts] = useState([]);
   const [categories, setCategories] = useState([]);
   const [dbScores, setDbScores] = useState({});
   
-  // Test categories state for Creative component
+  // Test categories state for Creative component - sync with global config
   const [testCategories, setTestCategories] = useState(() => {
     const saved = localStorage.getItem('hr_test_categories');
-    return saved ? JSON.parse(saved) : DEFAULT_TEST_CATEGORIES;
+    return saved ? JSON.parse(saved) : getDefaultTestCategories();
   });
   
   // Save test categories to localStorage when they change
   useEffect(() => {
     localStorage.setItem('hr_test_categories', JSON.stringify(testCategories));
   }, [testCategories]);
+
+  // Sync test categories with global configuration changes
+  useEffect(() => {
+    const handleStorageChange = () => {
+      // Re-sync categories when global test types change
+      const globalCategories = getDefaultTestCategories();
+      setTestCategories(globalCategories);
+    };
+
+    // Listen for localStorage changes (from other tabs/components)
+    window.addEventListener('storage', handleStorageChange);
+    
+    return () => window.removeEventListener('storage', handleStorageChange);
+  }, []);
   
   const [loading, setLoading] = useState(true);
   const [startDate, setStartDate] = useState(() => {
@@ -1555,6 +1578,19 @@ export default function App() {
     return saved ? saved === 'dark' : true; // Default to dark mode
   });
   
+  // Initialize global test configuration on mount
+  useEffect(() => {
+    // Initialize global configuration
+    initializeGlobalTestConfig();
+    
+    // Migrate existing data if needed (only runs once)
+    const migrationDone = localStorage.getItem('global_config_migrated');
+    if (!migrationDone) {
+      migrateToGlobalConfig();
+      localStorage.setItem('global_config_migrated', 'true');
+    }
+  }, []);
+
   // Initialize theme on mount
   useEffect(() => {
     const savedTheme = localStorage.getItem('selectedTheme') || 'default';
@@ -1588,6 +1624,18 @@ export default function App() {
         } else {
           // Fallback to localStorage if database is empty
           setEmployees(lsRead(LS_EMPLOYEES, []));
+        }
+
+        // Load products from database
+        const productsData = await API.products.getAll();
+        if (productsData && productsData.length > 0) {
+          setProducts(productsData);
+          // Also update localStorage for backup
+          localStorage.setItem('hr_products', JSON.stringify(productsData));
+        } else {
+          // Fallback to localStorage if database is empty
+          const savedProducts = localStorage.getItem('hr_products');
+          setProducts(savedProducts ? JSON.parse(savedProducts) : []);
         }
         
         // Load categories from database
@@ -1769,21 +1817,24 @@ export default function App() {
   };
 
   const getCategoryScore = (employeeId, weekKey, categoryKey) => {
+    // Convert employeeId to string to handle both string and number IDs
+    const employeeIdStr = String(employeeId);
+    
     // Only use database scores for products
-    if (employeeId.startsWith('prod-') || employeeId.startsWith('test-prod-')) {
-      const dbKey = `${employeeId}|${weekKey}|${categoryKey}`;
+    if (employeeIdStr.startsWith('prod-') || employeeIdStr.startsWith('test-prod-')) {
+      const dbKey = `${employeeIdStr}|${weekKey}|${categoryKey}`;
       return dbScores[dbKey] || null;
     }
     
     // For employees, check database first, then localStorage
-    const dbKey = `${employeeId}|${weekKey}|${categoryKey}`;
+    const dbKey = `${employeeIdStr}|${weekKey}|${categoryKey}`;
     if (dbScores[dbKey] !== undefined) {
       return dbScores[dbKey];
     }
     
     // Fallback to localStorage for employees only
     const evaluations = lsRead(LS_EVALUATIONS, {});
-    const evalKey = `${employeeId}|${weekKey}`;
+    const evalKey = `${employeeIdStr}|${weekKey}`;
     const scores = evaluations[evalKey];
     return scores?.[categoryKey] || null;
   };
@@ -1798,12 +1849,15 @@ export default function App() {
 
   const saveCategoryScore = async (employeeId, weekKey, categoryKey, score, reports) => {
     try {
+      // Convert employeeId to string to handle both string and number IDs
+      const employeeIdStr = String(employeeId);
+      
       // Determine if this is a product or employee
-      const isProduct = employeeId.startsWith('prod-') || employeeId.startsWith('test-prod-');
+      const isProduct = employeeIdStr.startsWith('prod-') || employeeIdStr.startsWith('test-prod-');
       
       // Save to database
       await API.scores.saveScore({
-        [isProduct ? 'entity_id' : 'employee_id']: employeeId,
+        [isProduct ? 'entity_id' : 'employee_id']: employeeIdStr,
         date: weekKey.replace(/-/g, ''),
         category: categoryKey,
         score: score,
@@ -1842,21 +1896,24 @@ export default function App() {
   
   const deleteCategoryScore = async (employeeId, weekKey, categoryKey) => {
     try {
+      // Convert employeeId to string to handle both string and number IDs
+      const employeeIdStr = String(employeeId);
+      
       // Delete from database - format date properly for API
       const dateForDb = weekKey.replace(/-/g, '');
       
       // Determine if this is a product or employee and use appropriate API
-      const isProduct = employeeId.startsWith('prod-') || employeeId.startsWith('test-prod-');
+      const isProduct = employeeIdStr.startsWith('prod-') || employeeIdStr.startsWith('test-prod-');
       if (isProduct) {
-        await API.scores.deleteScore(employeeId, dateForDb, categoryKey);
+        await API.scores.deleteScore(employeeIdStr, dateForDb, categoryKey);
       } else {
-        await API.scores.deleteEmployeeScore(employeeId, dateForDb, categoryKey);
+        await API.scores.deleteEmployeeScore(employeeIdStr, dateForDb, categoryKey);
       }
       
       console.log('✅ Score deleted from database');
       
       // Immediately remove from cache
-      const dbKey = `${employeeId}|${weekKey}|${categoryKey}`;
+      const dbKey = `${employeeIdStr}|${weekKey}|${categoryKey}`;
       const newScores = {...dbScores};
       delete newScores[dbKey];
       setDbScores(newScores);
@@ -2120,7 +2177,13 @@ export default function App() {
       
       {currentView === 'creative' && (
         <CreativePerformance 
-          employees={products}  // Pass products instead of employees
+          employees={(() => {
+            // Only show products that have been pushed from experiments (have creative scores)
+            const creativeScores = JSON.parse(localStorage.getItem('creativeScores') || '{}');
+            return products.filter(product => {
+              return creativeScores[product.id] && Object.keys(creativeScores[product.id]).length > 0;
+            });
+          })()}  // Pass filtered products that have experiment data
           categories={testCategories}  // Use test categories for creative
           setCategories={setTestCategories}  // Allow updating test categories
           weeks={days}  // Pass days instead of weeks for daily view
@@ -2576,27 +2639,58 @@ export default function App() {
           employee={quickScoreModal.employee}
           week={quickScoreModal.week}
           category={quickScoreModal.category}
+          testType={quickScoreModal.testType}
+          platform={quickScoreModal.platform}
           currentScore={quickScoreModal.currentScore}
-          currentReports={getCategoryReports(
-            quickScoreModal.employee.id,
-            quickScoreModal.week.key,
-            quickScoreModal.category.key
-          )}
+          currentReports={quickScoreModal.category 
+            ? getCategoryReports(
+                quickScoreModal.employee.id,
+                quickScoreModal.week.key,
+                quickScoreModal.category.key
+              )
+            : null
+          }
           onSave={(score, reports) => {
-            saveCategoryScore(
-              quickScoreModal.employee.id,
-              quickScoreModal.week.key,
-              quickScoreModal.category.key,
-              score,
-              reports
-            );
+            if (quickScoreModal.category) {
+              // Regular employee scoring
+              saveCategoryScore(
+                quickScoreModal.employee.id,
+                quickScoreModal.week.key,
+                quickScoreModal.category.key,
+                score,
+                reports
+              );
+            } else if (quickScoreModal.testType && quickScoreModal.platform) {
+              // Creative Performance scoring
+              const dateKey = quickScoreModal.week.key;
+              saveCreativeScore(
+                quickScoreModal.employee.id,
+                quickScoreModal.testType.id,
+                quickScoreModal.platform.id,
+                dateKey,
+                score
+              );
+            }
           }}
           onDelete={() => {
-            deleteCategoryScore(
-              quickScoreModal.employee.id,
-              quickScoreModal.week.key,
-              quickScoreModal.category.key
-            );
+            if (quickScoreModal.category) {
+              // Regular employee scoring
+              deleteCategoryScore(
+                quickScoreModal.employee.id,
+                quickScoreModal.week.key,
+                quickScoreModal.category.key
+              );
+            } else if (quickScoreModal.testType && quickScoreModal.platform) {
+              // Creative Performance score deletion - set to null
+              const dateKey = quickScoreModal.week.key;
+              saveCreativeScore(
+                quickScoreModal.employee.id,
+                quickScoreModal.testType.id,
+                quickScoreModal.platform.id,
+                dateKey,
+                null
+              );
+            }
           }}
           onClose={() => setQuickScoreModal(null)}
         />
