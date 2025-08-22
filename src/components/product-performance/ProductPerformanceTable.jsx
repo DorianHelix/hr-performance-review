@@ -169,7 +169,9 @@ const ProductPerformanceTable = ({
                 <input
                   type="checkbox"
                   checked={allSelected}
-                  indeterminate={someSelected}
+                  ref={el => {
+                    if (el) el.indeterminate = someSelected;
+                  }}
                   onChange={(e) => onSelectAll(e.target.checked)}
                   className="rounded"
                 />

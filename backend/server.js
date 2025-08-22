@@ -1292,12 +1292,12 @@ app.get('/api/orders', (req, res) => {
   }
   
   if (startDate) {
-    whereConditions.push('o.created_at >= ?');
+    whereConditions.push('DATE(o.created_at) >= ?');
     params.push(startDate);
   }
   
   if (endDate) {
-    whereConditions.push('o.created_at <= ?');
+    whereConditions.push('DATE(o.created_at) <= ?');
     params.push(endDate);
   }
   

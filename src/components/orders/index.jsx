@@ -30,8 +30,15 @@ function Orders() {
   const [minAmount, setMinAmount] = useState('');
   const [maxAmount, setMaxAmount] = useState('');
   const [customerFilter, setCustomerFilter] = useState('');
-  const [dateRange, setDateRange] = useState('last30days');
-  const [customDateRange, setCustomDateRange] = useState({ start: null, end: null });
+  const [dateRange, setDateRange] = useState('custom');
+  const [customDateRange, setCustomDateRange] = useState(() => {
+    const end = new Date();
+    end.setHours(23, 59, 59, 999);
+    const start = new Date();
+    start.setDate(start.getDate() - 29);
+    start.setHours(0, 0, 0, 0);
+    return { start, end };
+  });
   
   // UI State
   const [showFilters, setShowFilters] = useState(true);
@@ -111,11 +118,13 @@ function Orders() {
       
       // Add date range filter
       const range = getDateRange();
-      if (range.start) {
-        params.append('start_date', range.start.toISOString());
-      }
-      if (range.end) {
-        params.append('end_date', range.end.toISOString());
+      
+      if (range && range.start && range.end) {
+        // Format as YYYY-MM-DD for backend
+        const startDate = range.start.toISOString().slice(0, 10);
+        const endDate = range.end.toISOString().slice(0, 10);
+        params.append('start_date', startDate);
+        params.append('end_date', endDate);
       }
       
       const response = await fetch(`http://localhost:3001/api/orders?${params}`);
@@ -176,47 +185,9 @@ function Orders() {
     }
   };
 
-  // Get date range for filtering
+  // Get date range for filtering  
   const getDateRange = () => {
-    const now = new Date();
-    const today = new Date();
-    const ranges = {
-      today: {
-        start: new Date(today.getFullYear(), today.getMonth(), today.getDate(), 0, 0, 0, 0),
-        end: new Date(today.getFullYear(), today.getMonth(), today.getDate(), 23, 59, 59, 999)
-      },
-      yesterday: {
-        start: new Date(today.getFullYear(), today.getMonth(), today.getDate() - 1, 0, 0, 0, 0),
-        end: new Date(today.getFullYear(), today.getMonth(), today.getDate() - 1, 23, 59, 59, 999)
-      },
-      last7days: {
-        start: new Date(today.getFullYear(), today.getMonth(), today.getDate() - 7),
-        end: new Date()
-      },
-      last30days: {
-        start: new Date(today.getFullYear(), today.getMonth(), today.getDate() - 30),
-        end: new Date()
-      },
-      thisMonth: {
-        start: new Date(now.getFullYear(), now.getMonth(), 1),
-        end: new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999)
-      },
-      lastMonth: {
-        start: new Date(now.getFullYear(), now.getMonth() - 1, 1),
-        end: new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59, 999)
-      },
-      last90days: {
-        start: new Date(today.getFullYear(), today.getMonth(), today.getDate() - 90),
-        end: new Date()
-      },
-      thisYear: {
-        start: new Date(now.getFullYear(), 0, 1),
-        end: new Date(now.getFullYear(), 11, 31, 23, 59, 59, 999)
-      },
-      custom: customDateRange
-    };
-    
-    return ranges[dateRange] || ranges.last30days;
+    return customDateRange;
   };
 
   // Enhance orders with calculated fields

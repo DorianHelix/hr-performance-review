@@ -68,33 +68,16 @@ function OrderHeader({
                 </div>
               )}
               
-              {/* Date Range Selector */}
-              <select
-                value={dateRange}
-                onChange={(e) => onDateRangeChange(e.target.value)}
-                className="glass-input px-3 py-1.5 text-sm min-w-[150px]"
-              >
-                <option value="today">Today</option>
-                <option value="yesterday">Yesterday</option>
-                <option value="last7days">Last 7 Days</option>
-                <option value="last30days">Last 30 Days</option>
-                <option value="thisMonth">This Month</option>
-                <option value="lastMonth">Last Month</option>
-                <option value="last90days">Last 90 Days</option>
-                <option value="thisYear">This Year</option>
-                <option value="custom">Custom Range</option>
-              </select>
-              
+              {/* Date Range Picker */}
               <DateRangePicker
                 startDate={customDateRange?.start}
                 endDate={customDateRange?.end}
                 onRangeChange={(start, end) => {
-                  onCustomDateRangeChange({ start: new Date(start), end: new Date(end) });
-                  if (dateRange === 'custom') {
-                    // Keep custom selected
-                  } else {
-                    onDateRangeChange('custom');
-                  }
+                  // Parse the date strings and set proper times
+                  const newStart = new Date(start + 'T00:00:00');
+                  const newEnd = new Date(end + 'T23:59:59.999');
+                  onCustomDateRangeChange({ start: newStart, end: newEnd });
+                  onDateRangeChange('custom');
                 }}
               />
             </div>

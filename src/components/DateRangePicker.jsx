@@ -26,9 +26,13 @@ function DateRangePicker({ label, startDate, endDate, onRangeChange }) {
       setSelectionStart(start);
       setViewY(start.getFullYear());
       setViewM(start.getMonth());
+    } else {
+      setSelectionStart(null);
     }
     if (endDate) {
       setSelectionEnd(new Date(endDate));
+    } else {
+      setSelectionEnd(null);
     }
   }, [startDate, endDate]);
 
