@@ -5,11 +5,12 @@ import {
   ChevronLeft, ChevronRight, Calendar, Plus, Users, 
   TrendingUp, Clock, FileText, Briefcase, Upload,
   Bot, Save, Edit2, Star, Home, BarChart3, Sun, Moon, Menu, ArrowLeft, Network, Minus, Maximize2, Minimize2,
-  Zap, Lightbulb, RefreshCw, MessageSquare, Sparkles, Package, GitBranch, ShoppingCart
+  Zap, Lightbulb, RefreshCw, MessageSquare, Sparkles, Package, GitBranch, ShoppingCart, Beaker
 } from "lucide-react";
 
 // Import components
 import CreativePerformance from "./components/CreativePerformance";
+import Experiment from "./components/Experiment";
 // import Products from "./components/Products"; // OLD - REMOVED
 import ProductsAdvanced from "./components/products"; // Final working version
 import ProductPerformance from "./components/product-performance"; // Product Performance Dashboard
@@ -73,6 +74,12 @@ function Sidebar({ isCollapsed, onToggle, currentView, onViewChange, isDarkMode,
       label: 'Performance',
       icon: BarChart3,
       active: currentView === 'performance'
+    },
+    {
+      id: 'experiment',
+      label: 'Experiment',
+      icon: Beaker,
+      active: currentView === 'experiment'
     },
     {
       id: 'creative',
@@ -2108,6 +2115,8 @@ export default function App() {
       {currentView === 'dashboard' && <Dashboard />}
       
       {currentView === 'employees' && <Employees isDarkMode={isDarkMode} />}
+      
+      {currentView === 'experiment' && <Experiment />}
       
       {currentView === 'creative' && (
         <CreativePerformance 

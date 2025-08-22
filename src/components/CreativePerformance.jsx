@@ -36,6 +36,7 @@ import API from '../api';
 import LiquidTooltip, { TruncatedTooltip } from './LiquidTooltip';
 import ScoreChartModal from './CreativePerformance/ScoreChartModal';
 import TestTypesModal from './CreativePerformance/TestTypesModal';
+import PlatformTypesModal from './CreativePerformance/PlatformTypesModal';
 import SettingsModal from './CreativePerformance/SettingsModal';
 import { getIcon } from './CreativePerformance/utils';
 import SectionHeader from './SectionHeader';
@@ -111,6 +112,7 @@ function CreativePerformance({
   const [searchTerm, setSearchTerm] = useState('');
   const [chartModal, setChartModal] = useState(null);
   const [showTestTypesModal, setShowTestTypesModal] = useState(false);
+  const [showPlatformTypesModal, setShowPlatformTypesModal] = useState(false);
   const [showSettingsModal, setShowSettingsModal] = useState(false);
   const [editingProduct, setEditingProduct] = useState(null);
   const [scoringDesign, setScoringDesign] = useState(() => {
@@ -246,14 +248,22 @@ function CreativePerformance({
       {/* Test Metrics Cards - Only show in analytics mode and when enabled */}
       {creativeMode === 'analytics' && showCreativeMetrics && showKPICards && (
         <div className="flex gap-2 lg:gap-4 mx-3 lg:mx-6 mb-3 lg:mb-4 overflow-x-auto">
-          {/* Dynamic category cards */}
-          {categories.map(cat => {
-            const catData = metrics.categoryData[cat.key] || { count: 0, avg: '0.0', percent: 0 };
-            const Icon = getIcon(cat.iconName);
-            const avgNum = parseFloat(catData.avg);
+          {/* Dynamic test type cards */}
+          {testTypes.map(test => {
+            const testData = metrics.testTypeData[test.id] || { count: 0, avg: '0.0', percent: 0 };
+            const Icon = getIcon(test.iconName);
+            const avgNum = parseFloat(testData.avg);
+            const isActive = test.id === activeTestType;
             
             return (
-              <div key={cat.key} className="glass-card p-2 lg:p-3 rounded-xl lg:rounded-2xl bg-gradient-to-br from-purple-500/10 to-pink-500/10 relative overflow-hidden flex-shrink-0" style={{minWidth: '140px'}}>
+              <div 
+                key={test.id} 
+                className={`glass-card p-2 lg:p-3 rounded-xl lg:rounded-2xl relative overflow-hidden flex-shrink-0 transition-all cursor-pointer ${
+                  isActive ? 'ring-2 ring-purple-400 bg-gradient-to-br from-purple-500/20 to-pink-500/20' : 'bg-gradient-to-br from-purple-500/10 to-pink-500/10'
+                }`} 
+                style={{minWidth: '140px'}}
+                onClick={() => setActiveTestType(test.id)}
+              >
                 <div className={`absolute inset-0 opacity-20 ${
                   avgNum >= 9 ? 'bg-gradient-to-br from-green-500 to-green-600' :
                   avgNum >= 7 ? 'bg-gradient-to-br from-green-400 to-green-500' :
@@ -263,11 +273,11 @@ function CreativePerformance({
                 }`} />
                 <div className="relative z-10">
                   <div className="flex items-center gap-2 mb-2">
-                    <Icon className={`text-purple-400`} size={16} />
-                    <h3 className="font-semibold text-white text-sm">{cat.short || cat.key}</h3>
+                    <Icon className={`text-${test.color}-400`} size={16} />
+                    <h3 className="font-semibold text-white text-sm">{test.short || test.name}</h3>
                   </div>
                   <div className="flex items-baseline gap-1">
-                    <span className="text-2xl lg:text-3xl font-bold text-white">{catData.avg}</span>
+                    <span className="text-2xl lg:text-3xl font-bold text-white">{testData.avg}</span>
                     <span className="text-xs text-white/50">/ 10</span>
                   </div>
                   <div className={`mt-1 h-1 rounded-full bg-white/10 overflow-hidden`}>
@@ -277,9 +287,9 @@ function CreativePerformance({
                       avgNum >= 5 ? 'bg-yellow-400' :
                       avgNum >= 3 ? 'bg-orange-500' :
                       avgNum > 0 ? 'bg-red-500' : 'bg-gray-500'
-                    }`} style={{width: `${catData.percent}%`}} />
+                    }`} style={{width: `${testData.percent}%`}} />
                   </div>
-                  <div className="text-xs text-white/60 mt-1">{catData.count} tests completed</div>
+                  <div className="text-xs text-white/60 mt-1">{testData.count} tests completed</div>
                 </div>
               </div>
             );
@@ -320,6 +330,25 @@ function CreativePerformance({
       <div className={`grid ${showSidebar ? 'lg:grid-cols-[1fr,18rem]' : 'lg:grid-cols-1'} grid-cols-1 gap-3 lg:gap-6 flex-1 min-h-0 px-3 lg:px-6 pb-3 lg:pb-6`}>
         {/* Main table - Fixed width container with horizontal scroll */}
         <div className="min-w-0 overflow-hidden flex flex-col gap-4">
+          {/* Test Type Toggle Switch */}
+          <div className="glass-card-large p-3 lg:p-4">
+            <div className="flex items-center justify-center gap-2">
+              {testTypes.map((testType, index) => (
+                <button
+                  key={testType.id}
+                  onClick={() => setActiveTestType(testType.id)}
+                  className={`px-4 py-2 rounded-lg font-medium transition-all duration-200 ${
+                    activeTestType === testType.id
+                      ? 'bg-gradient-to-r from-purple-500 to-pink-500 text-white shadow-lg shadow-purple-500/30'
+                      : 'glass-button text-white/70 hover:text-white'
+                  }`}
+                >
+                  {testType.short || testType.name}
+                </button>
+              ))}
+            </div>
+          </div>
+          
           {/* Table Controls Bar */}
           <div className="glass-card-large p-3 lg:p-4">
             <div className="flex flex-wrap gap-2 lg:gap-3 items-center justify-between">
@@ -563,7 +592,7 @@ function CreativePerformance({
                                         cellHeight <= 50 ? 'p-1 rounded-md' : 
                                         'p-1.5 rounded-lg'
                                       } w-full`}>
-                                        {categoryScores.map((item, idx) => {
+                                        {platformScores.map((item, idx) => {
                                           // Get score-based colors
                                           const getBarColor = () => {
                                             const score = item.score;
@@ -588,12 +617,12 @@ function CreativePerformance({
                                               className={`group cursor-pointer hover:scale-[1.02] transition-all ${idx > 0 ? 'mt-1' : ''}`}
                                               onClick={(e) => {
                                                 e.stopPropagation();
-                                                const category = categories.find(c => c.key === item.key);
-                                                if (category && setQuickScoreModal) {
+                                                if (setQuickScoreModal) {
                                                   setQuickScoreModal({
                                                     employee: emp,
                                                     week: week,
-                                                    category: category,
+                                                    testType: activeTest,
+                                                    platform: platformTypes.find(p => p.id === item.key),
                                                     currentScore: item.score
                                                   });
                                                 }
@@ -620,7 +649,7 @@ function CreativePerformance({
                                     ) : (
                                       // Liquid Glass Design
                                       <div className="w-full space-y-1">
-                                        {categoryScores.map((item, idx) => {
+                                        {platformScores.map((item, idx) => {
                                         // Get score-based gradient colors and backgrounds
                                         const getScoreStyle = () => {
                                           const score = item.score;
@@ -778,11 +807,14 @@ function CreativePerformance({
                                       }}
                                       onClick={(e) => {
                                         e.stopPropagation();
-                                        if (setQuickScoreModal && categories.length > 0) {
+                                        const allowedPlatforms = getAllowedPlatforms(activeTestType);
+                                        if (setQuickScoreModal && allowedPlatforms.length > 0) {
+                                          const firstPlatform = platformTypes.find(p => p.id === allowedPlatforms[0]);
                                           setQuickScoreModal({
                                             employee: emp,
                                             week: week,
-                                            category: categories[0],
+                                            testType: activeTest,
+                                            platform: firstPlatform,
                                             currentScore: null
                                           });
                                         }
@@ -797,23 +829,25 @@ function CreativePerformance({
                           })}
                         </tr>
                         
-                        {/* Expanded category rows */}
-                        {isExpanded && categories.map(cat => {
-                          const Icon = getIcon(cat.iconName);
+                        {/* Expanded platform rows */}
+                        {isExpanded && getAllowedPlatforms(activeTestType).map(platformId => {
+                          const platform = platformTypes.find(p => p.id === platformId);
+                          if (!platform) return null;
+                          const Icon = getIcon(platform.iconName);
                           
-                          // Calculate category average for this product
-                          const categoryScores = [];
+                          // Calculate platform average for this product
+                          const platformScores = [];
                           weeks.forEach(week => {
-                            const score = getCategoryScore ? getCategoryScore(emp.id, week.key, cat.key) : null;
-                            if (score !== null) categoryScores.push(score);
+                            const score = getScore(emp.id, activeTestType, platform.id, week.key);
+                            if (score !== null) platformScores.push(score);
                           });
-                          const categoryAvg = categoryScores.length > 0
-                            ? (categoryScores.reduce((sum, s) => sum + s, 0) / categoryScores.length).toFixed(1)
+                          const platformAvg = platformScores.length > 0
+                            ? (platformScores.reduce((sum, s) => sum + s, 0) / platformScores.length).toFixed(1)
                             : null;
                           
                           return (
-                            <tr key={cat.key} className="bg-white/5">
-                              <td className={`product-category-column sticky left-0 z-10 glass-card border-r border-white/10 border-b border-white/10 p-2 pl-12 border-l-4 ${cat.accent}`} style={{ 
+                            <tr key={platform.id} className="bg-white/5">
+                              <td className={`product-platform-column sticky left-0 z-10 glass-card border-r border-white/10 border-b border-white/10 p-2 pl-12 border-l-4 border-l-${platform.color}-500`} style={{ 
                                 minWidth: '20rem', 
                                 maxWidth: '20rem',
                                 backdropFilter: 'blur(4px)',
@@ -823,23 +857,23 @@ function CreativePerformance({
                               }}>
                                 <div className="flex items-center justify-between">
                                   <div className="flex items-center gap-2">
-                                    <div className={`p-1 rounded ${cat.tag}`}>
+                                    <div className={`p-1 rounded bg-${platform.color}-500`}>
                                       <Icon size={12} className="text-white" />
                                     </div>
-                                    <span className="text-sm font-medium text-white/80">{cat.label}</span>
+                                    <span className="text-sm font-medium text-white/80">{platform.name}</span>
                                   </div>
-                                  {categoryAvg && (
+                                  {platformAvg && (
                                     <div className="flex items-center gap-1">
                                       <span className="text-xs text-white/40">Avg:</span>
-                                      <span className="text-xs font-bold text-white/60">{categoryAvg}</span>
+                                      <span className="text-xs font-bold text-white/60">{platformAvg}</span>
                                     </div>
                                   )}
                                 </div>
                               </td>
                               
                               {weeks.map(week => {
-                                const catScore = getCategoryScore ? getCategoryScore(emp.id, week.key, cat.key) : null;
-                                const styles = catScore ? tierStyles(catScore) : {};
+                                const platformScore = getScore(emp.id, activeTestType, platform.id, week.key);
+                                const styles = platformScore ? tierStyles(platformScore) : {};
                                 
                                 return (
                                   <td 
@@ -851,8 +885,9 @@ function CreativePerformance({
                                       setQuickScoreModal && setQuickScoreModal({
                                         employee: emp,
                                         week: week,
-                                        category: cat,
-                                        currentScore: catScore
+                                        testType: activeTest,
+                                        platform: platform,
+                                        currentScore: platformScore
                                       });
                                     }}
                                   >
@@ -861,7 +896,7 @@ function CreativePerformance({
                                       cellHeight <= 50 ? 'py-0.5' : 
                                       'py-1'
                                     }`}>
-                                      {catScore ? (
+                                      {platformScore ? (
                                         scoringDesign === 'minimal' ? (
                                           // Minimal Design for expanded category rows
                                           <div className={`${
@@ -869,7 +904,7 @@ function CreativePerformance({
                                             cellHeight <= 50 ? 'h-6 w-6 text-xs' : 
                                             'h-8 w-8 text-sm'
                                           } rounded-lg ${styles.bg} ${styles.text} font-semibold grid place-items-center`}>
-                                            {catScore}
+                                            {platformScore}
                                           </div>
                                         ) : (
                                           // Liquid Glass Design for expanded category rows
@@ -915,16 +950,16 @@ function CreativePerformance({
                                                 };
                                               };
 
-                                              // Get category-specific accent color
-                                              const getCategoryAccent = (categoryKey) => {
-                                                if (categoryKey === 'VCT') return 'rgba(147, 51, 234, 0.2)';
-                                                if (categoryKey === 'SCT') return 'rgba(59, 130, 246, 0.2)';
-                                                if (categoryKey === 'ACT') return 'rgba(34, 197, 94, 0.2)';
+                                              // Get platform-specific accent color
+                                              const getPlatformAccent = (platformId) => {
+                                                if (platformId === 'meta') return 'rgba(59, 130, 246, 0.2)';
+                                                if (platformId === 'tiktok') return 'rgba(236, 72, 153, 0.2)';
+                                                if (platformId === 'youtube') return 'rgba(239, 68, 68, 0.2)';
                                                 return 'rgba(156, 163, 175, 0.2)';
                                               };
 
-                                              const scoreStyle = getScoreStyle(catScore);
-                                              const categoryAccent = getCategoryAccent(cat.key);
+                                              const scoreStyle = getScoreStyle(platformScore);
+                                              const platformAccent = getPlatformAccent(platform.id);
 
                                               return (
                                                 <div
@@ -941,7 +976,7 @@ function CreativePerformance({
                                                   
                                                   {/* Score number */}
                                                   <span className="relative z-10 drop-shadow-lg">
-                                                    {catScore}
+                                                    {platformScore}
                                                   </span>
                                                 </div>
                                               );
@@ -997,19 +1032,37 @@ function CreativePerformance({
                 Test Performance Insights
               </h3>
               <div className="space-y-3">
-                {categories.map(cat => {
-                  const catData = metrics.categoryData[cat.key] || { percent: 0 };
-                  const colorClass = cat.tag.replace('bg-', 'from-').replace('500', '400');
-                  const textColor = cat.tag.replace('bg-', 'text-').replace('500', '400');
+                <h4 className="text-xs text-white/60 uppercase tracking-wide">Active: {testTypes.find(t => t.id === activeTestType)?.name}</h4>
+                {getAllowedPlatforms(activeTestType).map(platformId => {
+                  const platform = platformTypes.find(p => p.id === platformId);
+                  if (!platform) return null;
+                  
+                  // Calculate platform score average for active test type
+                  let platformCount = 0;
+                  let platformTotal = 0;
+                  filteredEmployees.forEach(emp => {
+                    weeks.forEach(week => {
+                      const score = getScore(emp.id, activeTestType, platform.id, week.key);
+                      if (score !== null) {
+                        platformCount++;
+                        platformTotal += score;
+                      }
+                    });
+                  });
+                  
+                  const platformAvg = platformCount > 0 ? (platformTotal / platformCount).toFixed(1) : '0.0';
+                  const platformPercent = platformCount > 0 ? Math.round((platformTotal / platformCount) * 10) : 0;
+                  const textColor = `text-${platform.color}-400`;
+                  const colorClass = `from-${platform.color}-400`;
                   
                   return (
-                    <div key={cat.key} className="text-sm text-white/80">
+                    <div key={platform.id} className="text-sm text-white/80">
                       <div className="flex justify-between mb-2">
-                        <span>{cat.label}</span>
-                        <span className={`font-bold ${textColor}`}>{catData.percent}%</span>
+                        <span>{platform.name}</span>
+                        <span className={`font-bold ${textColor}`}>{platformPercent}%</span>
                       </div>
                       <div className="w-full bg-white/10 rounded-full h-2">
-                        <div className={`bg-gradient-to-r ${colorClass} to-pink-400 h-2 rounded-full`} style={{width: `${catData.percent}%`}}></div>
+                        <div className={`bg-gradient-to-r ${colorClass} to-pink-400 h-2 rounded-full`} style={{width: `${platformPercent}%`}}></div>
                       </div>
                     </div>
                   );
@@ -1019,38 +1072,84 @@ function CreativePerformance({
           )}
 
 
-          {/* Test Types - Only in Configuration mode */}
+          {/* Test Types & Platform Types - Only in Configuration mode */}
           {creativeMode === 'configuration' && (
-            <div className="glass-card-large p-4 lg:p-5">
-              <div className="flex items-center justify-between mb-3">
-                <h3 className="font-semibold text-white">Test Types</h3>
-                <button
-                  onClick={() => setShowTestTypesModal(true)}
-                  className="glass-button p-2 hover:scale-110"
-                >
-                  <Settings size={16} />
-                </button>
-              </div>
-              
-              <div className="space-y-2">
-                {categories.map(cat => {
-                  const Icon = getIcon(cat.iconName);
-                  return (
-                    <div key={cat.id} className="glass-card p-3 rounded-xl hover:scale-105 transition-all duration-300">
-                      <div className="flex items-start gap-3">
-                        <div className={`p-2 rounded-xl ${cat.tag} shadow-lg`}>
-                          <Icon size={16} className="text-white" />
-                        </div>
-                        <div className="flex-1">
-                          <div className="font-semibold text-white">{cat.label}</div>
-                          <div className="text-xs text-white/60 mt-1">{cat.description}</div>
+            <>
+              {/* Test Types Section */}
+              <div className="glass-card-large p-4 lg:p-5">
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="font-semibold text-white">Test Types</h3>
+                  <button
+                    onClick={() => setShowTestTypesModal(true)}
+                    className="glass-button p-2 hover:scale-110"
+                  >
+                    <Settings size={16} />
+                  </button>
+                </div>
+                
+                <div className="space-y-2">
+                  {testTypes.map(test => {
+                    const Icon = getIcon(test.iconName);
+                    const allowedPlatforms = getAllowedPlatforms(test.id);
+                    return (
+                      <div key={test.id} className="glass-card p-3 rounded-xl hover:scale-105 transition-all duration-300">
+                        <div className="flex items-start gap-3">
+                          <div className={`p-2 rounded-xl bg-${test.color}-500 shadow-lg`}>
+                            <Icon size={16} className="text-white" />
+                          </div>
+                          <div className="flex-1">
+                            <div className="font-semibold text-white">{test.name}</div>
+                            <div className="text-xs text-white/60 mt-1">{test.description}</div>
+                            <div className="flex gap-1 mt-2">
+                              {allowedPlatforms.map(pid => {
+                                const platform = platformTypes.find(p => p.id === pid);
+                                return platform ? (
+                                  <span key={pid} className={`text-xs px-2 py-0.5 rounded-full bg-${platform.color}-500/20 text-${platform.color}-300`}>
+                                    {platform.name}
+                                  </span>
+                                ) : null;
+                              })}
+                            </div>
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  );
-                })}
+                    );
+                  })}
+                </div>
               </div>
-            </div>
+              
+              {/* Platform Types Section */}
+              <div className="glass-card-large p-4 lg:p-5">
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="font-semibold text-white">Platform Types</h3>
+                  <button
+                    onClick={() => setShowPlatformTypesModal(true)}
+                    className="glass-button p-2 hover:scale-110"
+                  >
+                    <Settings size={16} />
+                  </button>
+                </div>
+                
+                <div className="space-y-2">
+                  {platformTypes.map(platform => {
+                    const Icon = getIcon(platform.iconName);
+                    return (
+                      <div key={platform.id} className="glass-card p-3 rounded-xl hover:scale-105 transition-all duration-300">
+                        <div className="flex items-start gap-3">
+                          <div className={`p-2 rounded-xl bg-${platform.color}-500 shadow-lg`}>
+                            <Icon size={16} className="text-white" />
+                          </div>
+                          <div className="flex-1">
+                            <div className="font-semibold text-white">{platform.name}</div>
+                            <div className="text-xs text-white/60 mt-1">{platform.description}</div>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            </>
           )}
 
           {/* Performance Scale - Only in Configuration mode */}
@@ -1103,9 +1202,15 @@ function CreativePerformance({
       {/* Test Types Configuration Modal */}
       {showTestTypesModal && (
         <TestTypesModal 
-          categories={categories}
-          setCategories={setCategories}
           onClose={() => setShowTestTypesModal(false)}
+          onUpdate={(updated) => setTestTypes(updated)}
+        />
+      )}
+      
+      {/* Platform Types Configuration Modal */}
+      {showPlatformTypesModal && (
+        <PlatformTypesModal 
+          onClose={() => setShowPlatformTypesModal(false)}
         />
       )}
       
