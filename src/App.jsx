@@ -1515,7 +1515,6 @@ export default function App() {
         scoreMap[dbKey] = score.score;
       });
       setDbScores(scoreMap);
-      console.log('✅ Loaded scores from database:', Object.keys(scoreMap).length);
     } catch (error) {
       console.error('Error loading scores from database:', error);
     }
@@ -1525,10 +1524,10 @@ export default function App() {
   useEffect(() => {
     loadScoresFromDatabase();
     
-    // Refresh scores every 5 seconds to sync with database
+    // Refresh scores every 30 seconds to sync with database
     const interval = setInterval(() => {
       loadScoresFromDatabase();
-    }, 5000);
+    }, 30000);
     
     return () => clearInterval(interval);
   }, [startDate, endDate]);

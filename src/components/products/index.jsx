@@ -11,6 +11,8 @@ import shopifyService from '../../services/shopifyService';
 import { useToast } from '../Toast';
 import SectionHeader from '../SectionHeader';
 import Papa from 'papaparse';
+import ProductsTable from './ProductsTable';
+import ProductsPagination from './ProductsPagination';
 
 // Column definitions with all Shopify fields
 const ALL_COLUMNS = [
@@ -133,6 +135,10 @@ function ProductsAdvanced() {
   const [expandedRows, setExpandedRows] = useState({});
   const [shopifyConnected, setShopifyConnected] = useState(false);
   const [showShopifySettings, setShowShopifySettings] = useState(false);
+  
+  // Pagination states
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage] = useState(50);
   const [shopifyCredentials, setShopifyCredentials] = useState({
     storeDomain: '',
     accessToken: ''
@@ -394,6 +400,21 @@ function ProductsAdvanced() {
     return filtered;
   }, [enhancedProducts, searchTerm, selectedView, customViews, statusFilter, categoryFilter]);
 
+  // Paginated products
+  const paginatedProducts = useMemo(() => {
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const endIndex = startIndex + itemsPerPage;
+    return filteredProducts.slice(startIndex, endIndex);
+  }, [filteredProducts, currentPage, itemsPerPage]);
+
+  // Calculate total pages
+  const totalPages = Math.ceil(filteredProducts.length / itemsPerPage);
+
+  // Reset to page 1 when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, selectedView, statusFilter, categoryFilter]);
+
   // Handle view change
   const handleViewChange = (viewId) => {
     setSelectedView(viewId);
@@ -608,22 +629,10 @@ function ProductsAdvanced() {
         );
       
       case 'name':
+        if (!value) return '-';
         return (
-          <div className="flex items-center gap-2">
-            {product.hasVariants && (
-              <button
-                onClick={() => toggleRowExpansion(product.id)}
-                className="p-1 hover:bg-white/10 rounded transition-colors"
-              >
-                {expandedRows[product.id] ? 
-                  <ChevronDown size={16} className="text-blue-400" /> : 
-                  <ChevronRight size={16} className="text-blue-400" />
-                }
-              </button>
-            )}
-            <div className="font-medium text-white">
-              {value || '-'}
-            </div>
+          <div className="font-medium text-white">
+            {value}
           </div>
         );
       
@@ -645,6 +654,7 @@ function ProductsAdvanced() {
           let avgValue = 0;
           if (columnKey === 'price') {
             avgValue = product.variants.reduce((sum, v) => sum + (v.price || 0), 0) / product.variants.length;
+            if (avgValue === 0) return '-';
             return (
               <span className="text-white/80">
                 <span className="text-xs text-white/50">avg: </span>
@@ -653,6 +663,7 @@ function ProductsAdvanced() {
             );
           } else if (columnKey === 'cost') {
             avgValue = product.variants.reduce((sum, v) => sum + (v.cost || 0), 0) / product.variants.length;
+            if (avgValue === 0) return '-';
             return (
               <span className="text-white/80">
                 <span className="text-xs text-white/50">avg: </span>
@@ -663,6 +674,7 @@ function ProductsAdvanced() {
             const validPrices = product.variants.filter(v => v.comparePrice);
             if (validPrices.length === 0) return '-';
             avgValue = validPrices.reduce((sum, v) => sum + v.comparePrice, 0) / validPrices.length;
+            if (avgValue === 0) return '-';
             return (
               <span className="text-white/80">
                 <span className="text-xs text-white/50">avg: </span>
@@ -671,7 +683,8 @@ function ProductsAdvanced() {
             );
           }
         }
-        return value ? `${Math.round(parseFloat(value))} Ft` : '-';
+        if (!value || value === 0) return '-';
+        return `${Math.round(parseFloat(value))} Ft`;
       
       case 'profit':
         // Calculate profit for products with variants
@@ -679,14 +692,16 @@ function ProductsAdvanced() {
           const avgPrice = product.variants.reduce((sum, v) => sum + (v.price || 0), 0) / product.variants.length;
           const avgCost = product.variants.reduce((sum, v) => sum + (v.cost || 0), 0) / product.variants.length;
           const profit = avgPrice - avgCost;
-          return profit > 0 ? (
+          if (profit <= 0) return '-';
+          return (
             <span className="text-white/80">
               <span className="text-xs text-white/50">avg: </span>
               {Math.round(profit)} Ft
             </span>
-          ) : '-';
+          );
         }
-        return value ? `${Math.round(parseFloat(value))} Ft` : '-';
+        if (!value || value === 0) return '-';
+        return `${Math.round(parseFloat(value))} Ft`;
       
       case 'stockValue':
         // Calculate stock value for products
@@ -698,7 +713,8 @@ function ProductsAdvanced() {
         } else {
           stockValue = (product.stock || 0) * (product.cost || 0);
         }
-        return stockValue > 0 ? `${Math.round(stockValue).toLocaleString()} Ft` : '-';
+        if (stockValue === 0) return '-';
+        return `${Math.round(stockValue).toLocaleString()} Ft`;
       
       case 'margin':
         // Calculate margin for products with variants
@@ -735,9 +751,9 @@ function ProductsAdvanced() {
       case 'stock':
       case 'totalStock':
         const stockVal = value || 0;
+        if (stockVal === 0) return '-';
         return (
           <span className={`font-medium ${
-            stockVal === 0 ? 'text-red-400' :
             stockVal < 10 ? 'text-yellow-400' : 
             'text-green-400'
           }`}>
@@ -1122,146 +1138,29 @@ function ProductsAdvanced() {
           </div>
         )}
         
-        {/* Products Table */}
-        <div className="flex-1 glass-card-large overflow-hidden">
-        {loading ? (
-          <div className="flex items-center justify-center h-full">
-            <RefreshCw size={32} className="animate-spin text-blue-400" />
+        {/* Products Table with Pagination */}
+        <div className="flex-1 flex flex-col glass-card-large overflow-hidden">
+          <div className="flex-1 overflow-auto">
+            <ProductsTable 
+              products={paginatedProducts}
+              visibleColumns={visibleColumns}
+              expandedRows={expandedRows}
+              onToggleExpand={toggleRowExpansion}
+              renderColumnValue={renderColumnValue}
+              loading={loading}
+            />
           </div>
-        ) : filteredProducts.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-full text-white/50">
-            <Package size={48} className="mb-4" />
-            <p>No products found</p>
-            {!shopifyConnected && (
-              <p className="text-sm mt-2">Connect to Shopify to import products</p>
-            )}
-          </div>
-        ) : (
-          <div className="overflow-auto h-full">
-            <table className="w-full">
-              <thead className="sticky top-0 glass-card">
-                <tr className="border-b border-white/10">
-                  {visibleColumns.map(colKey => {
-                    const column = ALL_COLUMNS.find(c => c.key === colKey);
-                    if (!column) return null;
-                    return (
-                      <th key={colKey} className="text-left p-3 text-white/70 text-sm font-medium whitespace-nowrap">
-                        {column.label}
-                      </th>
-                    );
-                  })}
-                </tr>
-              </thead>
-              <tbody>
-                {filteredProducts.map(product => (
-                  <React.Fragment key={product.id}>
-                    <tr className="border-b border-white/5 hover:bg-white/5 transition-colors">
-                      {visibleColumns.map(colKey => (
-                        <td key={colKey} className="p-3 text-white/80 text-sm">
-                          {renderColumnValue(product, colKey)}
-                        </td>
-                      ))}
-                    </tr>
-                    
-                    {/* Expanded variants row */}
-                    {product.hasVariants && expandedRows[product.id] && product.variants && (
-                      <tr className="bg-black/20">
-                        <td colSpan={visibleColumns.length} className="p-0">
-                          <div className="p-4 bg-gradient-to-r from-blue-500/5 to-purple-500/5">
-                            <table className="w-full">
-                              <thead>
-                                <tr className="text-xs text-white/50 border-b border-white/10">
-                                  <th className="text-left pb-2 px-3">Variant ID</th>
-                                  <th className="text-left pb-2 px-3">Variant</th>
-                                  <th className="text-left pb-2 px-3">SKU</th>
-                                  <th className="text-right pb-2 px-3">Price</th>
-                                  <th className="text-right pb-2 px-3">Cost</th>
-                                  <th className="text-right pb-2 px-3">Margin</th>
-                                  <th className="text-right pb-2 px-3">Stock</th>
-                                  <th className="text-right pb-2 px-3">Stock Value</th>
-                                  <th className="text-left pb-2 px-3">Barcode</th>
-                                </tr>
-                              </thead>
-                              <tbody>
-                                {product.variants.map((variant, idx) => {
-                                  const margin = variant.cost && variant.price ? 
-                                    ((variant.price - variant.cost) / variant.price * 100).toFixed(1) : '-';
-                                  const stockValue = (variant.stock || 0) * (variant.cost || 0);
-                                  return (
-                                    <tr key={variant.id} className={`text-sm ${idx > 0 ? 'border-t border-white/5' : ''}`}>
-                                      <td className="py-2 px-3 text-white/50 font-mono text-xs">
-                                        {variant.shopifyId || variant.id}
-                                      </td>
-                                      <td className="py-2 px-3">
-                                        <div className="flex items-center gap-2">
-                                          <span className="text-white/80 font-medium">{variant.name}</span>
-                                          <div className="flex gap-1">
-                                            {variant.option1 && (
-                                              <span className="px-2 py-0.5 bg-blue-500/20 text-blue-300 rounded text-xs">
-                                                {variant.option1}
-                                              </span>
-                                            )}
-                                            {variant.option2 && (
-                                              <span className="px-2 py-0.5 bg-purple-500/20 text-purple-300 rounded text-xs">
-                                                {variant.option2}
-                                              </span>
-                                            )}
-                                            {variant.option3 && (
-                                              <span className="px-2 py-0.5 bg-pink-500/20 text-pink-300 rounded text-xs">
-                                                {variant.option3}
-                                              </span>
-                                            )}
-                                          </div>
-                                        </div>
-                                      </td>
-                                      <td className="py-2 px-3 text-white/60">{variant.sku || '-'}</td>
-                                      <td className="py-2 px-3 text-right text-green-400 font-medium">
-                                        {Math.round(variant.price)} Ft
-                                      </td>
-                                      <td className="py-2 px-3 text-right text-white/60">
-                                        {variant.cost ? `${Math.round(variant.cost)} Ft` : '-'}
-                                      </td>
-                                      <td className="py-2 px-3 text-right">
-                                        {margin !== '-' && (
-                                          <span className={`font-medium ${
-                                            parseFloat(margin) > 50 ? 'text-green-400' :
-                                            parseFloat(margin) > 30 ? 'text-yellow-400' :
-                                            'text-red-400'
-                                          }`}>
-                                            {margin}%
-                                          </span>
-                                        )}
-                                      </td>
-                                      <td className="py-2 px-3 text-right">
-                                        <span className={`font-medium ${
-                                          variant.stock === 0 ? 'text-red-400' :
-                                          variant.stock < 10 ? 'text-yellow-400' :
-                                          'text-green-400'
-                                        }`}>
-                                          {variant.stock || 0}
-                                        </span>
-                                      </td>
-                                      <td className="py-2 px-3 text-right text-blue-400 font-medium">
-                                        {stockValue > 0 ? `${Math.round(stockValue).toLocaleString()} Ft` : '-'}
-                                      </td>
-                                      <td className="py-2 px-3 text-white/40 text-xs">
-                                        {variant.barcode || '-'}
-                                      </td>
-                                    </tr>
-                                  );
-                                })}
-                              </tbody>
-                            </table>
-                          </div>
-                        </td>
-                      </tr>
-                    )}
-                  </React.Fragment>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
+          
+          {/* Pagination */}
+          {filteredProducts.length > 0 && (
+            <ProductsPagination 
+              currentPage={currentPage}
+              totalPages={totalPages}
+              totalItems={filteredProducts.length}
+              itemsPerPage={itemsPerPage}
+              onPageChange={setCurrentPage}
+            />
+          )}
         </div>
         
           {/* Custom Views Management */}

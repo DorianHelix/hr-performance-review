@@ -6,15 +6,12 @@ function ThemeSwitcher({ isDarkMode, onThemeToggle, isCollapsed }) {
   const [showThemes, setShowThemes] = useState(false);
   const [currentTheme, setCurrentTheme] = useState(() => {
     const saved = localStorage.getItem('selectedTheme') || 'default';
-    console.log('ThemeSwitcher: Initial theme:', saved);
     return saved;
   });
   
   const themes = getAvailableThemes();
-  console.log('ThemeSwitcher: Available themes:', themes);
   
   useEffect(() => {
-    console.log('ThemeSwitcher: Applying theme:', currentTheme);
     applyTheme(currentTheme);
   }, [currentTheme]);
   
