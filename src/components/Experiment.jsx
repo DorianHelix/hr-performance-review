@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { 
   Plus, Settings, Calendar, DollarSign, 
   Target, Beaker, ChevronRight, X, 
@@ -119,10 +119,11 @@ function Experiment() {
 
   const fetchProducts = async () => {
     try {
-      const response = await API.getProducts();
-      setProducts(response.data || []);
+      const response = await API.products.getAll();
+      setProducts(response || []);
     } catch (error) {
       console.error('Failed to fetch products:', error);
+      // Fallback to sample products if API fails
       setProducts([
         { id: 1, name: 'Sample Product 1', sku: 'SKU001' },
         { id: 2, name: 'Sample Product 2', sku: 'SKU002' }
@@ -229,14 +230,131 @@ function Experiment() {
     });
   }, [tests, searchQuery, selectedDateRange]);
 
+  // Calculate KPI metrics
+  const calculateKPIs = () => {
+    const now = new Date();
+    const activeTests = tests.filter(t => t.status === TEST_STATUSES.RUNNING).length;
+    const completedTests = tests.filter(t => t.status === TEST_STATUSES.COMPLETED).length;
+    const scheduledTests = tests.filter(t => t.status === TEST_STATUSES.SCHEDULED).length;
+    
+    const totalBudget = tests.reduce((sum, t) => sum + (parseFloat(t.budget) || 0), 0);
+    const activeBudget = tests
+      .filter(t => t.status === TEST_STATUSES.RUNNING)
+      .reduce((sum, t) => sum + (parseFloat(t.budget) || 0), 0);
+    
+    const successRate = completedTests > 0 ? 
+      Math.round((tests.filter(t => t.status === TEST_STATUSES.COMPLETED && t.winnerAdId).length / completedTests) * 100) : 0;
+    
+    const avgTestDuration = tests.length > 0 ?
+      Math.round(tests.reduce((sum, t) => {
+        const start = new Date(t.startDate);
+        const end = new Date(t.endDate);
+        return sum + Math.ceil((end - start) / (1000 * 60 * 60 * 24));
+      }, 0) / tests.length) : 0;
+    
+    return {
+      activeTests,
+      completedTests,
+      scheduledTests,
+      totalBudget,
+      activeBudget,
+      successRate,
+      avgTestDuration
+    };
+  };
+  
+  const kpis = calculateKPIs();
+
   return (
-    <div className="min-h-screen w-full">
-      <div className="p-8">
-        <SectionHeader 
-          title="Experiments"
-          subtitle="A/B Testing & Campaign Management"
-          icon={Beaker}
-        />
+    <div className="min-h-screen w-full flex">
+      {/* Main Content */}
+      <div className={`flex-1 p-8 transition-all duration-300 ${showTestForm ? 'mr-96' : ''}`}>
+        <div className="flex items-center justify-between mb-6">
+          <SectionHeader 
+            title="Experiments"
+            subtitle="A/B Testing & Campaign Management"
+            icon={Beaker}
+          />
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => setShowTestForm(true)}
+              className="bg-gradient-to-r from-blue-500 to-purple-600 text-white px-4 py-2 rounded-xl flex items-center gap-2 hover:opacity-90 transition-opacity"
+            >
+              <Plus className="w-4 h-4" />
+              New Test
+            </button>
+            <button
+              onClick={() => setShowConfigModal(true)}
+              className="glass-button px-4 py-2 rounded-xl flex items-center gap-2 hover:bg-white/10 transition-colors"
+            >
+              <Settings className="w-4 h-4" />
+              Configuration
+            </button>
+          </div>
+        </div>
+
+        {/* KPI Cards */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+          {/* Active Tests */}
+          <div className="glass-card p-4 rounded-2xl bg-gradient-to-br from-green-500/10 to-green-600/10">
+            <div className="flex items-center justify-between mb-2">
+              <Activity className="w-5 h-5 text-green-400" />
+              <span className="text-xs text-green-400 font-medium">ACTIVE</span>
+            </div>
+            <div className="text-2xl font-bold text-white">{kpis.activeTests}</div>
+            <div className="text-xs text-gray-400 mt-1">Running tests</div>
+            <div className="mt-3 h-1 bg-white/10 rounded-full overflow-hidden">
+              <div 
+                className="h-full bg-gradient-to-r from-green-400 to-green-600"
+                style={{ width: `${(kpis.activeTests / Math.max(tests.length, 1)) * 100}%` }}
+              />
+            </div>
+          </div>
+
+          {/* Total Budget */}
+          <div className="glass-card p-4 rounded-2xl bg-gradient-to-br from-blue-500/10 to-blue-600/10">
+            <div className="flex items-center justify-between mb-2">
+              <DollarSign className="w-5 h-5 text-blue-400" />
+              <span className="text-xs text-blue-400 font-medium">BUDGET</span>
+            </div>
+            <div className="text-2xl font-bold text-white">{kpis.totalBudget.toLocaleString()}</div>
+            <div className="text-xs text-gray-400 mt-1">Total Ft allocated</div>
+            <div className="mt-3 flex items-center gap-2 text-xs">
+              <span className="text-blue-400">{kpis.activeBudget.toLocaleString()} Ft</span>
+              <span className="text-gray-500">active</span>
+            </div>
+          </div>
+
+          {/* Success Rate */}
+          <div className="glass-card p-4 rounded-2xl bg-gradient-to-br from-purple-500/10 to-purple-600/10">
+            <div className="flex items-center justify-between mb-2">
+              <TrendingUp className="w-5 h-5 text-purple-400" />
+              <span className="text-xs text-purple-400 font-medium">SUCCESS</span>
+            </div>
+            <div className="text-2xl font-bold text-white">{kpis.successRate}%</div>
+            <div className="text-xs text-gray-400 mt-1">Win rate</div>
+            <div className="mt-3 h-1 bg-white/10 rounded-full overflow-hidden">
+              <div 
+                className="h-full bg-gradient-to-r from-purple-400 to-purple-600"
+                style={{ width: `${kpis.successRate}%` }}
+              />
+            </div>
+          </div>
+
+          {/* Avg Duration */}
+          <div className="glass-card p-4 rounded-2xl bg-gradient-to-br from-orange-500/10 to-orange-600/10">
+            <div className="flex items-center justify-between mb-2">
+              <Clock className="w-5 h-5 text-orange-400" />
+              <span className="text-xs text-orange-400 font-medium">DURATION</span>
+            </div>
+            <div className="text-2xl font-bold text-white">{kpis.avgTestDuration}</div>
+            <div className="text-xs text-gray-400 mt-1">Avg days per test</div>
+            <div className="mt-3 flex items-center gap-2 text-xs">
+              <span className="text-orange-400">{kpis.scheduledTests}</span>
+              <span className="text-gray-500">scheduled</span>
+            </div>
+          </div>
+        </div>
 
         {/* Gantt Chart Section */}
         <div className="mb-8">
@@ -304,49 +422,13 @@ function Experiment() {
               tests={filteredTests}
               testTypes={testTypes}
               platforms={platforms}
+              products={products}
               dateRange={selectedDateRange}
               colorMode={ganttColorMode}
             />
           </div>
         </div>
 
-        {/* Test Form Section */}
-        <div className="mb-8">
-          <div className="glass-card p-6 rounded-3xl">
-            <div className="flex items-center justify-between mb-6">
-              <h3 className="text-xl font-semibold flex items-center gap-2">
-                <Plus className="w-5 h-5 text-green-400" />
-                {editingTest ? 'Edit Test' : 'Create New Test'}
-              </h3>
-              {!showTestForm && (
-                <button
-                  onClick={() => setShowTestForm(true)}
-                  className="glass-button px-4 py-2 rounded-xl flex items-center gap-2 bg-green-500/20 hover:bg-green-500/30"
-                >
-                  <Plus className="w-4 h-4" />
-                  New Test
-                </button>
-              )}
-            </div>
-
-            {showTestForm && (
-              <TestForm
-                test={newTest}
-                setTest={setNewTest}
-                testTypes={testTypes}
-                platforms={platforms}
-                products={products}
-                onSave={handleSaveTest}
-                onCancel={() => {
-                  setShowTestForm(false);
-                  setEditingTest(null);
-                  resetTestForm();
-                }}
-                isEditing={!!editingTest}
-              />
-            )}
-          </div>
-        </div>
 
         {/* Tests Table Section */}
         <div className="glass-card rounded-3xl overflow-hidden">
@@ -380,11 +462,43 @@ function Experiment() {
           />
         )}
       </div>
+
+      {/* Right Sidebar for Test Creation */}
+      <div className={`fixed right-0 top-0 h-full w-96 bg-gray-900/98 backdrop-blur-xl border-l border-white/20 transform transition-transform duration-300 shadow-2xl z-50 ${
+        showTestForm ? 'translate-x-0' : 'translate-x-full'
+      }`}>
+        <TestFormSidebar
+          test={newTest}
+          setTest={setNewTest}
+          testTypes={testTypes}
+          platforms={platforms}
+          products={products}
+          onSave={handleSaveTest}
+          onClose={() => {
+            setShowTestForm(false);
+            setEditingTest(null);
+            resetTestForm();
+          }}
+          isEditing={!!editingTest}
+        />
+      </div>
+
+      {/* Floating Action Button */}
+      <button
+        onClick={() => {
+          setShowTestForm(true);
+          console.log('Opening test form sidebar');
+        }}
+        className="fixed bottom-8 right-8 w-16 h-16 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center shadow-2xl hover:scale-110 transition-all z-40 group"
+        title="Create New Test"
+      >
+        <Plus className="w-7 h-7 text-white group-hover:rotate-90 transition-transform" />
+      </button>
     </div>
   );
 }
 
-function GanttChart({ tests, testTypes, platforms, dateRange, colorMode }) {
+function GanttChart({ tests, testTypes, platforms, products, dateRange, colorMode }) {
   const startDate = new Date(dateRange.start);
   const endDate = new Date(dateRange.end);
   const totalDays = Math.ceil((endDate - startDate) / (1000 * 60 * 60 * 24));
@@ -467,12 +581,40 @@ function GanttChart({ tests, testTypes, platforms, dateRange, colorMode }) {
             
             if (!position.visible) return null;
 
+            const product = products.find(p => p.id === test.product);
+            
             return (
-              <div key={test.id} className="flex items-center" style={{ height: `${rowHeight}px` }}>
-                <div className="w-48 px-4 text-sm truncate">{test.name}</div>
+              <div key={test.id} className="flex items-center group/row" style={{ height: `${rowHeight}px` }}>
+                <div className="w-48 px-4 flex items-center gap-3">
+                  {/* Product Image */}
+                  {product?.featuredImage && (
+                    <div className="relative">
+                      <img 
+                        src={product.featuredImage} 
+                        alt={product.name}
+                        className="w-10 h-10 rounded-lg object-cover border border-white/20 group-hover/row:scale-110 transition-transform"
+                      />
+                      {/* Product Type Badge on Image */}
+                      {product.type && (
+                        <span className={`absolute -top-1 -right-1 text-[8px] px-1 rounded ${
+                          product.type === 'Bundle' ? 'bg-purple-500' : 
+                          product.type === 'Master' ? 'bg-blue-500' : 'bg-gray-500'
+                        } text-white font-bold`}>
+                          {product.type[0]}
+                        </span>
+                      )}
+                    </div>
+                  )}
+                  <div className="flex-1 min-w-0">
+                    <div className="text-sm truncate font-medium">{test.name}</div>
+                    {product && (
+                      <div className="text-xs text-gray-400 truncate">{product.name}</div>
+                    )}
+                  </div>
+                </div>
                 <div className="relative flex-1" style={{ height: `${rowHeight - 10}px` }}>
                   <div
-                    className="absolute top-1 rounded-xl p-2 text-xs text-white shadow-lg transition-all hover:scale-105 cursor-pointer"
+                    className="absolute top-1 rounded-xl p-2 text-xs text-white shadow-lg transition-all hover:scale-105 cursor-pointer group"
                     style={{
                       left: `${position.left}px`,
                       width: `${position.width}px`,
@@ -494,6 +636,19 @@ function GanttChart({ tests, testTypes, platforms, dateRange, colorMode }) {
                         <div className="font-semibold">{test.budget} Ft</div>
                       </div>
                     </div>
+                    
+                    {/* Hover Product Image Preview */}
+                    {product?.featuredImage && (
+                      <div className="absolute -top-20 left-1/2 transform -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50">
+                        <div className="glass-card p-2 rounded-xl">
+                          <img 
+                            src={product.featuredImage} 
+                            alt={product.name}
+                            className="w-16 h-16 rounded-lg object-cover"
+                          />
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
@@ -505,11 +660,418 @@ function GanttChart({ tests, testTypes, platforms, dateRange, colorMode }) {
   );
 }
 
+function TestFormSidebar({ test, setTest, testTypes, platforms, products, onSave, onClose, isEditing }) {
+  const [adIdInput, setAdIdInput] = useState('');
+  const [bulkAdIds, setBulkAdIds] = useState('');
+  const [showBulkInput, setShowBulkInput] = useState(false);
+  const [productSearch, setProductSearch] = useState('');
+  const [showProductDropdown, setShowProductDropdown] = useState(false);
+  const productDropdownRef = useRef(null);
+  
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (productDropdownRef.current && !productDropdownRef.current.contains(event.target)) {
+        setShowProductDropdown(false);
+      }
+    };
+    
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const handleAddAdId = () => {
+    if (adIdInput && test.adIds.length < 50) {
+      setTest(prev => ({
+        ...prev,
+        adIds: [...prev.adIds, adIdInput]
+      }));
+      setAdIdInput('');
+    }
+  };
+
+  const handleBulkAddAdIds = () => {
+    const ids = bulkAdIds.split(/[\n,]/).map(id => id.trim()).filter(id => id);
+    const uniqueIds = [...new Set([...test.adIds, ...ids])].slice(0, 50);
+    setTest(prev => ({
+      ...prev,
+      adIds: uniqueIds
+    }));
+    setBulkAdIds('');
+    setShowBulkInput(false);
+  };
+
+  const handleRemoveAdId = (index) => {
+    setTest(prev => ({
+      ...prev,
+      adIds: prev.adIds.filter((_, i) => i !== index),
+      winnerAdId: prev.adIds[index] === prev.winnerAdId ? '' : prev.winnerAdId
+    }));
+  };
+
+  const handleSetWinner = (adId) => {
+    setTest(prev => ({
+      ...prev,
+      winnerAdId: prev.winnerAdId === adId ? '' : adId
+    }));
+  };
+
+  const filteredProducts = useMemo(() => {
+    if (!productSearch) return products;
+    return products.filter(p => 
+      p.name.toLowerCase().includes(productSearch.toLowerCase()) ||
+      p.sku?.toLowerCase().includes(productSearch.toLowerCase())
+    );
+  }, [products, productSearch]);
+
+  return (
+    <div className="h-full flex flex-col">
+      {/* Header */}
+      <div className="p-6 border-b border-white/10">
+        <div className="flex items-center justify-between">
+          <h2 className="text-xl font-bold">
+            {isEditing ? 'Edit Test' : 'Create New Test'}
+          </h2>
+          <button
+            onClick={onClose}
+            className="p-2 rounded-xl hover:bg-white/10 transition-colors"
+          >
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+      </div>
+
+      {/* Form Content */}
+      <div className="flex-1 overflow-y-auto p-6">
+        <div className="space-y-6">
+          {/* Test Name */}
+          <div>
+            <label className="block text-sm font-medium mb-2">Test Name *</label>
+            <input
+              type="text"
+              value={test.name}
+              onChange={(e) => setTest(prev => ({ ...prev, name: e.target.value }))}
+              className="glass-input w-full px-4 py-3 rounded-xl"
+              placeholder="Enter test name..."
+            />
+          </div>
+
+          {/* Test Type */}
+          <div>
+            <label className="block text-sm font-medium mb-2">Test Type *</label>
+            <select
+              value={test.type}
+              onChange={(e) => setTest(prev => ({ ...prev, type: e.target.value }))}
+              className="glass-input w-full px-4 py-3 rounded-xl appearance-none"
+            >
+              <option value="">Select type...</option>
+              {testTypes.map(type => (
+                <option key={type.id} value={type.id}>
+                  {type.name} ({type.shortName})
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Platform */}
+          <div>
+            <label className="block text-sm font-medium mb-2">Platform *</label>
+            <select
+              value={test.platform}
+              onChange={(e) => setTest(prev => ({ ...prev, platform: e.target.value }))}
+              className="glass-input w-full px-4 py-3 rounded-xl appearance-none"
+            >
+              <option value="">Select platform...</option>
+              {platforms.map(platform => (
+                <option key={platform.id} value={platform.id}>
+                  {platform.name}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Product Selection */}
+          <div>
+            <label className="block text-sm font-medium mb-2">Product *</label>
+            <div className="relative" ref={productDropdownRef}>
+              <div
+                className="glass-input w-full px-4 py-3 rounded-xl cursor-pointer flex items-center justify-between"
+                onClick={() => setShowProductDropdown(!showProductDropdown)}
+              >
+                {test.product ? (
+                  products.find(p => p.id === test.product)?.name || 'Select product...'
+                ) : (
+                  <span className="text-gray-400">Select product...</span>
+                )}
+                <ChevronDown className={`w-4 h-4 text-gray-400 transition-transform ${showProductDropdown ? 'rotate-180' : ''}`} />
+              </div>
+              
+              {/* Dropdown */}
+              {showProductDropdown && (
+                <div className="absolute z-50 mt-2 w-full glass-card rounded-xl border border-white/20 overflow-hidden" style={{ backgroundColor: 'rgba(17, 24, 39, 0.98)' }}>
+                  <div className="p-3 border-b border-white/10">
+                    <div className="relative">
+                      <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+                      <input
+                        type="text"
+                        placeholder="Search products..."
+                        value={productSearch}
+                        onChange={(e) => setProductSearch(e.target.value)}
+                        className="glass-input w-full pl-10 pr-4 py-2 rounded-lg"
+                        onClick={(e) => e.stopPropagation()}
+                      />
+                    </div>
+                  </div>
+                  
+                  <div className="max-h-64 overflow-y-auto">
+                    {filteredProducts.length > 0 ? (
+                      filteredProducts.map(product => (
+                        <div
+                          key={product.id}
+                          onClick={() => {
+                            setTest(prev => ({ ...prev, product: product.id }));
+                            setShowProductDropdown(false);
+                            setProductSearch('');
+                          }}
+                          className={`px-4 py-3 hover:bg-white/10 cursor-pointer transition-all ${
+                            test.product === product.id ? 'bg-blue-500/20' : ''
+                          }`}
+                        >
+                          <div className="flex items-center justify-between">
+                            <div className="flex-1">
+                              <div className="font-medium text-white">{product.name}</div>
+                              {product.sku && (
+                                <div className="text-xs text-gray-400 mt-1">SKU: {product.sku}</div>
+                              )}
+                            </div>
+                            {product.type && (
+                              <span className={`ml-3 px-2 py-1 rounded-full text-xs font-medium ${
+                                product.type === 'Bundle' ? 
+                                  'bg-purple-500/20 text-purple-300' : 
+                                product.type === 'Master' ? 
+                                  'bg-blue-500/20 text-blue-300' :
+                                  'bg-gray-500/20 text-gray-300'
+                              }`}>
+                                {product.type}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      ))
+                    ) : productSearch ? (
+                      <div className="p-4 text-center text-gray-400">
+                        No products found
+                      </div>
+                    ) : null}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Date Range */}
+          <div>
+            <label className="block text-sm font-medium mb-2">Test Duration *</label>
+            <DateRangePicker
+              startDate={test.startDate}
+              endDate={test.endDate}
+              onStartDateChange={(date) => setTest(prev => ({ ...prev, startDate: date }))}
+              onEndDateChange={(date) => setTest(prev => ({ ...prev, endDate: date }))}
+            />
+          </div>
+
+          {/* Budget */}
+          <div>
+            <label className="block text-sm font-medium mb-2">Budget (Ft) *</label>
+            <input
+              type="number"
+              value={test.budget}
+              onChange={(e) => setTest(prev => ({ ...prev, budget: e.target.value }))}
+              className="glass-input w-full px-4 py-3 rounded-xl"
+              placeholder="Enter budget..."
+            />
+          </div>
+
+          {/* Ad IDs Section */}
+          <div>
+            <div className="flex items-center justify-between mb-2">
+              <label className="text-sm font-medium">
+                Ad IDs ({test.adIds.length}/50)
+              </label>
+              <button
+                onClick={() => setShowBulkInput(!showBulkInput)}
+                className="text-sm text-blue-400 hover:text-blue-300"
+              >
+                {showBulkInput ? 'Single Add' : 'Bulk Add'}
+              </button>
+            </div>
+
+            {!showBulkInput ? (
+              <div className="flex gap-2 mb-4">
+                <input
+                  type="text"
+                  value={adIdInput}
+                  onChange={(e) => setAdIdInput(e.target.value)}
+                  onKeyPress={(e) => e.key === 'Enter' && handleAddAdId()}
+                  className="glass-input flex-1 px-4 py-2 rounded-xl"
+                  placeholder="Enter Ad ID..."
+                  disabled={test.adIds.length >= 50}
+                />
+                <button
+                  onClick={handleAddAdId}
+                  disabled={!adIdInput || test.adIds.length >= 50}
+                  className="glass-button px-4 py-2 rounded-xl disabled:opacity-50"
+                >
+                  <Plus className="w-4 h-4" />
+                </button>
+              </div>
+            ) : (
+              <div className="space-y-2 mb-4">
+                <textarea
+                  value={bulkAdIds}
+                  onChange={(e) => setBulkAdIds(e.target.value)}
+                  className="glass-input w-full px-4 py-2 rounded-xl"
+                  rows={4}
+                  placeholder="Enter Ad IDs (one per line or comma-separated)..."
+                />
+                <button
+                  onClick={handleBulkAddAdIds}
+                  className="glass-button px-4 py-2 rounded-xl w-full"
+                >
+                  Add All
+                </button>
+              </div>
+            )}
+            
+            {/* Ad IDs List */}
+            {test.adIds.length > 0 && (
+              <div className="space-y-2 max-h-32 overflow-y-auto">
+                {test.adIds.map((adId, index) => (
+                  <div
+                    key={index}
+                    className={`glass-card p-2 rounded-lg flex items-center justify-between group ${
+                      test.winnerAdId === adId ? 'ring-2 ring-green-400' : ''
+                    }`}
+                  >
+                    <span className="text-xs truncate flex-1">{adId}</span>
+                    <div className="flex items-center gap-1">
+                      <button
+                        onClick={() => handleSetWinner(adId)}
+                        className={`p-1 rounded ${
+                          test.winnerAdId === adId ? 'text-green-400' : 'text-gray-400 hover:text-green-400'
+                        }`}
+                        title="Mark as winner hypothesis"
+                      >
+                        <Check className="w-3 h-3" />
+                      </button>
+                      <button
+                        onClick={() => handleRemoveAdId(index)}
+                        className="p-1 text-gray-400 hover:text-red-400"
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Winner Selection */}
+          {test.adIds.length > 0 && (
+            <div>
+              <label className="block text-sm font-medium mb-2">
+                Winner Hypothesis
+              </label>
+              <select
+                value={test.winnerAdId}
+                onChange={(e) => setTest(prev => ({ ...prev, winnerAdId: e.target.value }))}
+                className="glass-input w-full px-4 py-2 rounded-xl appearance-none"
+              >
+                <option value="">No winner selected</option>
+                {test.adIds.map(adId => (
+                  <option key={adId} value={adId}>{adId}</option>
+                ))}
+              </select>
+              {test.winnerAdId && (
+                <div className="mt-2 text-sm text-green-400">
+                  ✓ Winner: {test.winnerAdId}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Hypothesis */}
+          <div>
+            <label className="block text-sm font-medium mb-2">Hypothesis</label>
+            <textarea
+              value={test.hypothesis}
+              onChange={(e) => setTest(prev => ({ ...prev, hypothesis: e.target.value }))}
+              className="glass-input w-full px-4 py-3 rounded-xl"
+              rows={4}
+              placeholder="Enter your hypothesis..."
+            />
+          </div>
+
+          {/* Status */}
+          <div>
+            <label className="block text-sm font-medium mb-2">Status</label>
+            <select
+              value={test.status}
+              onChange={(e) => setTest(prev => ({ ...prev, status: e.target.value }))}
+              className="glass-input w-full px-4 py-3 rounded-xl appearance-none"
+            >
+              {Object.values(TEST_STATUSES).map(status => (
+                <option key={status} value={status}>
+                  {status.charAt(0).toUpperCase() + status.slice(1)}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+      </div>
+
+      {/* Footer Actions */}
+      <div className="p-6 border-t border-white/10">
+        <div className="flex gap-3">
+          <button
+            onClick={onClose}
+            className="flex-1 glass-button px-4 py-3 rounded-xl"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={onSave}
+            className="flex-1 bg-gradient-to-r from-blue-500 to-purple-600 text-white px-4 py-3 rounded-xl hover:opacity-90 transition-opacity"
+          >
+            <Save className="w-4 h-4 inline mr-2" />
+            {isEditing ? 'Update Test' : 'Create Test'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function TestForm({ test, setTest, testTypes, platforms, products, onSave, onCancel, isEditing }) {
   const [adIdInput, setAdIdInput] = useState('');
   const [bulkAdIds, setBulkAdIds] = useState('');
   const [showBulkInput, setShowBulkInput] = useState(false);
   const [productSearch, setProductSearch] = useState('');
+  const [showProductDropdown, setShowProductDropdown] = useState(false);
+  const productDropdownRef = useRef(null);
+  
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (productDropdownRef.current && !productDropdownRef.current.contains(event.target)) {
+        setShowProductDropdown(false);
+      }
+    };
+    
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   const handleAddAdId = () => {
     if (adIdInput && test.adIds.length < 50) {
@@ -608,30 +1170,145 @@ function TestForm({ test, setTest, testTypes, platforms, products, onSave, onCan
           </div>
         </div>
 
-        {/* Product with Search */}
+        {/* Product with Search - Liquid Glass Design */}
         <div>
           <label className="block text-sm font-medium mb-2">Product *</label>
-          <div className="relative">
-            <input
-              type="text"
-              placeholder="Search products..."
-              value={productSearch}
-              onChange={(e) => setProductSearch(e.target.value)}
-              className="glass-input w-full px-4 py-2 rounded-xl mb-2"
-            />
-            <select
-              value={test.product}
-              onChange={(e) => setTest(prev => ({ ...prev, product: e.target.value }))}
-              className="glass-input w-full px-4 py-3 rounded-xl appearance-none pr-10 cursor-pointer backdrop-blur-md bg-white/5 border border-white/20 hover:bg-white/10 transition-all"
-              size={productSearch ? Math.min(5, filteredProducts.length + 1) : 1}
-            >
-              <option value="" className="bg-gray-900">Select product...</option>
-              {filteredProducts.map(product => (
-                <option key={product.id} value={product.id} className="bg-gray-900 py-2">
-                  {product.name} ({product.sku})
-                </option>
-              ))}
-            </select>
+          <div className="relative" ref={productDropdownRef}>
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none z-10" />
+              <input
+                type="text"
+                placeholder="Search or select product..."
+                value={productSearch}
+                onChange={(e) => {
+                  setProductSearch(e.target.value);
+                  setShowProductDropdown(true);
+                }}
+                onFocus={() => setShowProductDropdown(true)}
+                className="glass-input w-full pl-10 pr-4 py-3 rounded-xl backdrop-blur-md bg-white/5 border border-white/20 hover:bg-white/10 transition-all"
+              />
+            </div>
+            
+            {/* Dropdown Results */}
+            {showProductDropdown && (
+              <div className="absolute z-50 w-full mt-2 max-h-64 overflow-y-auto glass-card rounded-xl border border-white/20 backdrop-blur-xl bg-gray-900/90" style={{ backgroundColor: 'rgba(17, 24, 39, 0.95)' }}>
+                {filteredProducts.length > 0 ? (
+                  <div className="p-2">
+                    {filteredProducts.map(product => (
+                      <div
+                        key={product.id}
+                        onClick={() => {
+                          setTest(prev => ({ ...prev, product: product.id }));
+                          setProductSearch('');
+                          setShowProductDropdown(false);
+                        }}
+                        className={`p-3 rounded-lg cursor-pointer transition-all hover:bg-white/10 mb-1 ${
+                          test.product === product.id ? 'bg-white/15 ring-1 ring-blue-400' : ''
+                        }`}
+                      >
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="flex-1 min-w-0">
+                            <div className="font-medium text-white truncate">{product.name}</div>
+                            {product.sku && (
+                              <div className="text-xs text-gray-400 mt-1">SKU: {product.sku}</div>
+                            )}
+                          </div>
+                          {/* Product Type Badge */}
+                          <div className={`flex-shrink-0 px-2 py-1 rounded-full text-xs font-medium ${
+                            product.type === 'Bundle' ? 
+                              'bg-purple-500/20 text-purple-300 border border-purple-500/30' : 
+                            product.type === 'Master' ? 
+                              'bg-blue-500/20 text-blue-300 border border-blue-500/30' :
+                              'bg-gray-500/20 text-gray-300 border border-gray-500/30'
+                          }`}>
+                            {product.type || 'Product'}
+                          </div>
+                        </div>
+                        {/* Price and Stock Info */}
+                        <div className="flex items-center gap-4 mt-2 text-xs">
+                          {product.price && (
+                            <span className="text-green-400">
+                              {product.price.toLocaleString()} Ft
+                            </span>
+                          )}
+                          {product.stock !== undefined && (
+                            <span className={product.stock > 0 ? 'text-gray-400' : 'text-red-400'}>
+                              Stock: {product.stock}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : productSearch ? (
+                  <div className="p-4 text-center text-gray-400">
+                    No products found
+                  </div>
+                ) : null}
+                
+                {/* Clear Selection Button */}
+                {test.product && (
+                  <div className="border-t border-white/10 p-2">
+                    <button
+                      onClick={() => {
+                        setTest(prev => ({ ...prev, product: '' }));
+                        setProductSearch('');
+                      }}
+                      className="w-full glass-button px-3 py-2 rounded-lg text-sm hover:bg-red-500/20 text-red-400"
+                    >
+                      Clear Selection
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
+            
+            {/* Selected Product Display */}
+            {test.product && !showProductDropdown && (
+              <div 
+                className="mt-2 glass-card p-3 rounded-xl border border-blue-500/30 bg-blue-500/10 cursor-pointer hover:bg-blue-500/15 transition-all"
+                onClick={() => setShowProductDropdown(true)}
+              >
+                <div className="flex items-center justify-between">
+                  <div className="flex-1">
+                    <div className="text-sm">
+                      <span className="text-gray-400">Selected: </span>
+                      <span className="text-white font-medium">
+                        {products.find(p => p.id === test.product)?.name}
+                      </span>
+                    </div>
+                    {(() => {
+                      const selectedProduct = products.find(p => p.id === test.product);
+                      return selectedProduct && (
+                        <div className="flex items-center gap-3 mt-1">
+                          <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
+                            selectedProduct.type === 'Bundle' ? 
+                              'bg-purple-500/20 text-purple-300' : 
+                            selectedProduct.type === 'Master' ? 
+                              'bg-blue-500/20 text-blue-300' :
+                              'bg-gray-500/20 text-gray-300'
+                          }`}>
+                            {selectedProduct.type || 'Product'}
+                          </span>
+                          {selectedProduct.sku && (
+                            <span className="text-xs text-gray-400">SKU: {selectedProduct.sku}</span>
+                          )}
+                        </div>
+                      );
+                    })()}
+                  </div>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setTest(prev => ({ ...prev, product: '' }));
+                    }}
+                    className="p-1 rounded hover:bg-white/10 text-gray-400 hover:text-white"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         </div>
 
