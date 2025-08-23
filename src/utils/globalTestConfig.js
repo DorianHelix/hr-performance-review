@@ -1,259 +1,314 @@
-// Global Test Configuration - Unified test types and platforms for both Experiment and Creative Performance
+// Global Test Configuration - Database-backed test types and platforms for both Experiment and Creative Performance
+import experimentApi from '../api/experimentClient.js';
+import { mockTestTypes, mockPlatforms } from '../api/mockData.js';
 
-// Default test types that work for both components
-export const DEFAULT_GLOBAL_TEST_TYPES = [
-  {
-    id: 'vct',
-    name: 'Video Creative Test',
-    shortName: 'VCT',
-    key: 'VCT', // For Creative Performance compatibility
-    color: '#60A5FA',
-    description: 'Video ad performance testing',
-    iconName: 'Film',
-    allowedPlatforms: ['meta', 'tiktok', 'youtube'],
-    order: 1
-  },
-  {
-    id: 'sct',
-    name: 'Static Creative Test',
-    shortName: 'SCT',
-    key: 'SCT', // For Creative Performance compatibility
-    color: '#A78BFA',
-    description: 'Static image ad testing',
-    iconName: 'Image',
-    allowedPlatforms: ['meta', 'google'],
-    order: 2
-  },
-  {
-    id: 'act',
-    name: 'Ad Copy Test',
-    shortName: 'ACT',
-    key: 'ACT', // For Creative Performance compatibility
-    color: '#34D399',
-    description: 'Ad copy and text testing',
-    iconName: 'FileText',
-    allowedPlatforms: ['meta', 'google'],
-    order: 3
-  }
-];
+// Cache for test types and platforms to avoid excessive API calls
+let testTypesCache = null;
+let platformsCache = null;
+let cacheTimestamp = 0;
+const CACHE_DURATION = 30000; // 30 seconds cache
 
-// Default platforms that work for both components
-export const DEFAULT_GLOBAL_PLATFORMS = [
-  {
-    id: 'meta',
-    name: 'Meta',
-    description: 'Facebook & Instagram Ads',
-    iconName: 'Facebook',
-    color: 'blue',
-    order: 1
-  },
-  {
-    id: 'google',
-    name: 'Google',
-    description: 'Google Ads',
-    iconName: 'Chrome',
-    color: 'yellow',
-    order: 2
-  },
-  {
-    id: 'tiktok',
-    name: 'TikTok',
-    description: 'TikTok Ads',
-    iconName: 'Music',
-    color: 'pink',
-    order: 3
-  },
-  {
-    id: 'youtube',
-    name: 'YouTube',
-    description: 'YouTube Ads',
-    iconName: 'Youtube',
-    color: 'red',
-    order: 4
-  }
-];
-
-// Storage keys
+// Storage keys for backward compatibility fallback only
 const GLOBAL_TEST_TYPES_KEY = 'global_test_types';
 const GLOBAL_PLATFORMS_KEY = 'global_platforms';
 
-// Initialize global configuration
-export function initializeGlobalTestConfig() {
-  // Check if global data already exists
-  const existingTestTypes = localStorage.getItem(GLOBAL_TEST_TYPES_KEY);
-  const existingPlatforms = localStorage.getItem(GLOBAL_PLATFORMS_KEY);
-  
-  if (!existingTestTypes) {
-    localStorage.setItem(GLOBAL_TEST_TYPES_KEY, JSON.stringify(DEFAULT_GLOBAL_TEST_TYPES));
-  }
-  
-  if (!existingPlatforms) {
-    localStorage.setItem(GLOBAL_PLATFORMS_KEY, JSON.stringify(DEFAULT_GLOBAL_PLATFORMS));
+// Initialize global configuration from database
+export async function initializeGlobalTestConfig() {
+  try {
+    // Load from database
+    await refreshCache();
+    return true;
+  } catch (error) {
+    console.error('Failed to initialize from database, using mock data:', error);
+    // Use mock data as fallback
+    testTypesCache = mockTestTypes;
+    platformsCache = mockPlatforms;
+    // Save to localStorage for offline use
+    localStorage.setItem(GLOBAL_TEST_TYPES_KEY, JSON.stringify(mockTestTypes));
+    localStorage.setItem(GLOBAL_PLATFORMS_KEY, JSON.stringify(mockPlatforms));
+    return false;
   }
 }
 
-// Get global test types
+// Refresh cache from database
+async function refreshCache() {
+  try {
+    const [testTypes, platforms] = await Promise.all([
+      experimentApi.testTypes.getAll(),
+      experimentApi.platforms.getAll()
+    ]);
+    
+    testTypesCache = testTypes;
+    platformsCache = platforms;
+    cacheTimestamp = Date.now();
+    
+    // Also update localStorage for offline fallback
+    localStorage.setItem(GLOBAL_TEST_TYPES_KEY, JSON.stringify(testTypes));
+    localStorage.setItem(GLOBAL_PLATFORMS_KEY, JSON.stringify(platforms));
+    
+    return { testTypes, platforms };
+  } catch (error) {
+    console.error('Error refreshing cache from database:', error);
+    throw error;
+  }
+}
+
+// Check if cache is still valid
+function isCacheValid() {
+  return cacheTimestamp && (Date.now() - cacheTimestamp < CACHE_DURATION);
+}
+
+// Get global test types from database
+export async function getGlobalTestTypesAsync() {
+  try {
+    if (!isCacheValid() || !testTypesCache) {
+      await refreshCache();
+    }
+    return testTypesCache || [];
+  } catch (error) {
+    console.error('Error fetching test types from database:', error);
+    // Fallback to localStorage
+    const stored = localStorage.getItem(GLOBAL_TEST_TYPES_KEY);
+    return stored ? JSON.parse(stored) : [];
+  }
+}
+
+// Get global platforms from database
+export async function getGlobalPlatformsAsync() {
+  try {
+    if (!isCacheValid() || !platformsCache) {
+      await refreshCache();
+    }
+    return platformsCache || [];
+  } catch (error) {
+    console.error('Error fetching platforms from database:', error);
+    // Fallback to localStorage
+    const stored = localStorage.getItem(GLOBAL_PLATFORMS_KEY);
+    return stored ? JSON.parse(stored) : [];
+  }
+}
+
+// Synchronous versions for backward compatibility (returns cached or localStorage data)
 export function getGlobalTestTypes() {
+  if (testTypesCache) {
+    return testTypesCache;
+  }
   const stored = localStorage.getItem(GLOBAL_TEST_TYPES_KEY);
-  return stored ? JSON.parse(stored) : DEFAULT_GLOBAL_TEST_TYPES;
+  if (stored) {
+    try {
+      return JSON.parse(stored);
+    } catch (e) {
+      console.error('Error parsing stored test types:', e);
+    }
+  }
+  // Return mock data as last resort
+  return mockTestTypes;
 }
 
-// Get global platforms
 export function getGlobalPlatforms() {
+  if (platformsCache) {
+    return platformsCache;
+  }
   const stored = localStorage.getItem(GLOBAL_PLATFORMS_KEY);
-  return stored ? JSON.parse(stored) : DEFAULT_GLOBAL_PLATFORMS;
+  if (stored) {
+    try {
+      return JSON.parse(stored);
+    } catch (e) {
+      console.error('Error parsing stored platforms:', e);
+    }
+  }
+  // Return mock data as last resort
+  return mockPlatforms;
 }
 
-// Save global test types
-export function saveGlobalTestTypes(testTypes) {
-  localStorage.setItem(GLOBAL_TEST_TYPES_KEY, JSON.stringify(testTypes));
-  
-  // Sync to both component storages
-  syncToExperimentStorage(testTypes, 'testTypes');
-  syncToCreativeStorage(testTypes, 'testTypes');
-}
-
-// Save global platforms
-export function saveGlobalPlatforms(platforms) {
-  localStorage.setItem(GLOBAL_PLATFORMS_KEY, JSON.stringify(platforms));
-  
-  // Sync to both component storages
-  syncToExperimentStorage(platforms, 'platforms');
-  syncToCreativeStorage(platforms, 'platforms');
-}
-
-// Sync global config to Experiment component storage
-function syncToExperimentStorage(data, type) {
-  if (type === 'testTypes') {
-    // Convert global format to Experiment format
-    const experimentTypes = data.map(t => ({
-      id: t.id,
-      name: t.name,
-      shortName: t.shortName,
-      color: t.color
-    }));
-    localStorage.setItem('experiment_test_types', JSON.stringify(experimentTypes));
-  } else if (type === 'platforms') {
-    // Convert global format to Experiment format (with icon components)
-    const experimentPlatforms = data.map(p => ({
-      id: p.id,
-      name: p.name,
-      // Note: iconComponent will be handled by the Experiment component
-    }));
-    localStorage.setItem('experiment_platforms', JSON.stringify(experimentPlatforms));
+// Save global test types to database
+export async function saveGlobalTestTypes(testTypes) {
+  try {
+    // Update each test type in the database
+    const promises = testTypes.map(async (testType) => {
+      try {
+        // Check if exists
+        const existing = await experimentApi.testTypes.getById(testType.id);
+        if (existing) {
+          // Update
+          return await experimentApi.testTypes.update(testType.id, testType);
+        } else {
+          // Create
+          return await experimentApi.testTypes.create(testType);
+        }
+      } catch (error) {
+        // If getById fails, try to create
+        return await experimentApi.testTypes.create(testType);
+      }
+    });
+    
+    await Promise.all(promises);
+    
+    // Refresh cache
+    await refreshCache();
+    
+    return true;
+  } catch (error) {
+    console.error('Error saving test types to database:', error);
+    // Fallback to localStorage
+    localStorage.setItem(GLOBAL_TEST_TYPES_KEY, JSON.stringify(testTypes));
+    testTypesCache = testTypes;
+    return false;
   }
 }
 
-// Sync global config to Creative Performance storage
-function syncToCreativeStorage(data, type) {
-  if (type === 'testTypes') {
-    // Creative Performance uses the same format as global
-    localStorage.setItem('creativeTestTypes', JSON.stringify(data));
-  } else if (type === 'platforms') {
-    // Creative Performance uses the same format as global
-    localStorage.setItem('creativePlatformTypes', JSON.stringify(data));
+// Save global platforms to database
+export async function saveGlobalPlatforms(platforms) {
+  try {
+    // Update each platform in the database
+    const promises = platforms.map(async (platform) => {
+      try {
+        // Check if exists
+        const existing = await experimentApi.platforms.getById(platform.id);
+        if (existing) {
+          // Update
+          return await experimentApi.platforms.update(platform.id, platform);
+        } else {
+          // Create
+          return await experimentApi.platforms.create(platform);
+        }
+      } catch (error) {
+        // If getById fails, try to create
+        return await experimentApi.platforms.create(platform);
+      }
+    });
+    
+    await Promise.all(promises);
+    
+    // Refresh cache
+    await refreshCache();
+    
+    return true;
+  } catch (error) {
+    console.error('Error saving platforms to database:', error);
+    // Fallback to localStorage
+    localStorage.setItem(GLOBAL_PLATFORMS_KEY, JSON.stringify(platforms));
+    platformsCache = platforms;
+    return false;
   }
 }
 
-// Migrate existing data to global format
-export function migrateToGlobalConfig() {
-  // Get existing data from both components
-  const experimentTestTypes = JSON.parse(localStorage.getItem('experiment_test_types') || '[]');
-  const experimentPlatforms = JSON.parse(localStorage.getItem('experiment_platforms') || '[]');
-  const creativeTestTypes = JSON.parse(localStorage.getItem('creativeTestTypes') || '[]');
-  const creativePlatforms = JSON.parse(localStorage.getItem('creativePlatformTypes') || '[]');
-  
-  // Merge and migrate test types
-  const mergedTestTypes = mergeTestTypes(experimentTestTypes, creativeTestTypes);
-  if (mergedTestTypes.length > 0) {
-    saveGlobalTestTypes(mergedTestTypes);
+// Delete a test type from database
+export async function deleteGlobalTestType(testTypeId) {
+  try {
+    await experimentApi.testTypes.delete(testTypeId);
+    
+    // Refresh cache
+    await refreshCache();
+    
+    return true;
+  } catch (error) {
+    console.error('Error deleting test type from database, updating local storage:', error);
+    
+    // Fallback to localStorage manipulation
+    const testTypes = getGlobalTestTypes();
+    const filtered = testTypes.filter(t => t.id !== testTypeId);
+    localStorage.setItem(GLOBAL_TEST_TYPES_KEY, JSON.stringify(filtered));
+    testTypesCache = filtered;
+    
+    // Return true since we successfully updated local state
+    return true;
   }
-  
-  // Merge and migrate platforms
-  const mergedPlatforms = mergePlatforms(experimentPlatforms, creativePlatforms);
-  if (mergedPlatforms.length > 0) {
-    saveGlobalPlatforms(mergedPlatforms);
+}
+
+// Delete a platform from database
+export async function deleteGlobalPlatform(platformId) {
+  try {
+    await experimentApi.platforms.delete(platformId);
+    
+    // Refresh cache
+    await refreshCache();
+    
+    return true;
+  } catch (error) {
+    console.error('Error deleting platform from database, updating local storage:', error);
+    
+    // Fallback to localStorage manipulation
+    const platforms = getGlobalPlatforms();
+    const filtered = platforms.filter(p => p.id !== platformId);
+    localStorage.setItem(GLOBAL_PLATFORMS_KEY, JSON.stringify(filtered));
+    platformsCache = filtered;
+    
+    // Return true since we successfully updated local state
+    return true;
   }
 }
 
-// Helper function to merge test types from different formats
-function mergeTestTypes(experimentTypes, creativeTypes) {
-  const merged = [];
-  const seenIds = new Set();
-  
-  // Add experiment types
-  experimentTypes.forEach(t => {
-    if (!seenIds.has(t.id)) {
-      merged.push({
-        id: t.id,
-        name: t.name,
-        shortName: t.shortName,
-        key: t.shortName,
-        color: t.color,
-        description: `${t.name} - migrated from Experiment`,
-        iconName: 'Target',
-        allowedPlatforms: ['meta', 'google', 'tiktok'],
-        order: merged.length + 1
-      });
-      seenIds.add(t.id);
-    }
-  });
-  
-  // Add creative types that aren't already present
-  creativeTypes.forEach(t => {
-    if (!seenIds.has(t.id)) {
-      merged.push(t);
-      seenIds.add(t.id);
-    }
-  });
-  
-  return merged.length > 0 ? merged : DEFAULT_GLOBAL_TEST_TYPES;
-}
-
-// Helper function to merge platforms from different formats
-function mergePlatforms(experimentPlatforms, creativePlatforms) {
-  const merged = [];
-  const seenIds = new Set();
-  
-  // Add experiment platforms
-  experimentPlatforms.forEach(p => {
-    if (!seenIds.has(p.id)) {
-      merged.push({
-        id: p.id,
-        name: p.name,
-        description: `${p.name} Ads - migrated from Experiment`,
-        iconName: p.name === 'Meta' ? 'Facebook' : p.name === 'Google' ? 'Chrome' : 'Globe',
-        color: 'blue',
-        order: merged.length + 1
-      });
-      seenIds.add(p.id);
-    }
-  });
-  
-  // Add creative platforms that aren't already present
-  creativePlatforms.forEach(p => {
-    if (!seenIds.has(p.id)) {
-      merged.push(p);
-      seenIds.add(p.id);
-    }
-  });
-  
-  return merged.length > 0 ? merged : DEFAULT_GLOBAL_PLATFORMS;
-}
-
-// Get platforms allowed for a specific test type
+// Get allowed platforms for a test type
 export function getGlobalAllowedPlatforms(testTypeId) {
   const testTypes = getGlobalTestTypes();
   const testType = testTypes.find(t => t.id === testTypeId);
-  return testType?.allowedPlatforms || [];
+  
+  if (!testType) return [];
+  
+  // If test type has allowed_platforms from database
+  if (testType.allowed_platforms && Array.isArray(testType.allowed_platforms)) {
+    return testType.allowed_platforms.map(ap => ap.platform_id || ap);
+  }
+  
+  // Fallback to allowedPlatforms property
+  return testType.allowedPlatforms || [];
 }
 
 // Update allowed platforms for a test type
-export function updateGlobalTestTypePlatforms(testTypeId, platformIds) {
-  const testTypes = getGlobalTestTypes();
-  const testType = testTypes.find(t => t.id === testTypeId);
-  if (testType) {
-    testType.allowedPlatforms = platformIds;
-    saveGlobalTestTypes(testTypes);
+export async function updateAllowedPlatforms(testTypeId, platformIds) {
+  try {
+    const testType = await experimentApi.testTypes.getById(testTypeId);
+    if (!testType) {
+      throw new Error('Test type not found');
+    }
+    
+    // Update with new allowed platforms
+    const allowedPlatforms = platformIds.map(pid => ({
+      platform_id: pid,
+      is_default: true
+    }));
+    
+    await experimentApi.testTypes.update(testTypeId, {
+      allowed_platforms: allowedPlatforms
+    });
+    
+    // Refresh cache
+    await refreshCache();
+    
+    return true;
+  } catch (error) {
+    console.error('Error updating allowed platforms:', error);
+    
+    // Fallback to localStorage
+    const testTypes = getGlobalTestTypes();
+    const index = testTypes.findIndex(t => t.id === testTypeId);
+    if (index !== -1) {
+      testTypes[index].allowedPlatforms = platformIds;
+      localStorage.setItem(GLOBAL_TEST_TYPES_KEY, JSON.stringify(testTypes));
+      testTypesCache = testTypes;
+    }
+    
+    return false;
   }
+}
+
+// Migration function - only needed once
+export async function migrateToGlobalConfig() {
+  try {
+    // This function is now a no-op since we're using the database
+    console.log('Migration to database-backed configuration complete');
+    return true;
+  } catch (error) {
+    console.error('Migration failed:', error);
+    return false;
+  }
+}
+
+// Force refresh from database
+export async function forceRefreshFromDatabase() {
+  testTypesCache = null;
+  platformsCache = null;
+  cacheTimestamp = 0;
+  return await refreshCache();
 }

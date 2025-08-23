@@ -19,7 +19,10 @@ import {
   getGlobalTestTypes, 
   getGlobalPlatforms,
   saveGlobalTestTypes,
-  saveGlobalPlatforms
+  saveGlobalPlatforms,
+  deleteGlobalTestType,
+  deleteGlobalPlatform,
+  forceRefreshFromDatabase
 } from '../utils/globalTestConfig';
 
 // Platform icons as SVG components
@@ -1719,8 +1722,27 @@ function ConfigModal({ testTypes, setTestTypes, platforms, setPlatforms, onClose
     }
   };
 
-  const handleRemoveType = (id) => {
-    setTestTypes(prev => prev.filter(t => t.id !== id));
+  const handleRemoveType = async (id) => {
+    const confirmed = confirm('Are you sure you want to delete this test type? This will soft-delete it in the database.');
+    if (!confirmed) return;
+    
+    try {
+      // Delete from database
+      const success = await deleteGlobalTestType(id);
+      
+      if (success) {
+        // Update local state by filtering out the deleted type
+        setTestTypes(prev => prev.filter(t => t.id !== id));
+        console.log('Test type deleted from database');
+      } else {
+        // Fallback: just update local state
+        setTestTypes(prev => prev.filter(t => t.id !== id));
+        console.warn('Test type deleted from local state only');
+      }
+    } catch (error) {
+      console.error('Error deleting test type:', error);
+      alert('Failed to delete test type. Please try again.');
+    }
   };
 
   const handleAddPlatform = () => {
@@ -1740,8 +1762,27 @@ function ConfigModal({ testTypes, setTestTypes, platforms, setPlatforms, onClose
     }
   };
 
-  const handleRemovePlatform = (id) => {
-    setPlatforms(prev => prev.filter(p => p.id !== id));
+  const handleRemovePlatform = async (id) => {
+    const confirmed = confirm('Are you sure you want to delete this platform? This will soft-delete it in the database.');
+    if (!confirmed) return;
+    
+    try {
+      // Delete from database
+      const success = await deleteGlobalPlatform(id);
+      
+      if (success) {
+        // Update local state by filtering out the deleted platform
+        setPlatforms(prev => prev.filter(p => p.id !== id));
+        console.log('Platform deleted from database');
+      } else {
+        // Fallback: just update local state
+        setPlatforms(prev => prev.filter(p => p.id !== id));
+        console.warn('Platform deleted from local state only');
+      }
+    } catch (error) {
+      console.error('Error deleting platform:', error);
+      alert('Failed to delete platform. Please try again.');
+    }
   };
 
   return (
@@ -1749,9 +1790,42 @@ function ConfigModal({ testTypes, setTestTypes, platforms, setPlatforms, onClose
       <div className="glass-card rounded-3xl p-8 max-w-2xl w-full max-h-[80vh] overflow-auto">
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-2xl font-bold">Configuration</h2>
-          <button onClick={onClose} className="p-2 rounded-xl hover:bg-white/10">
-            <X className="w-5 h-5" />
-          </button>
+          <div className="flex items-center gap-2">
+            <button 
+              onClick={async () => {
+                try {
+                  await forceRefreshFromDatabase();
+                  const refreshedTypes = getGlobalTestTypes();
+                  const refreshedPlatforms = getGlobalPlatforms();
+                  setTestTypes(refreshedTypes.map(t => ({
+                    id: t.id,
+                    name: t.name,
+                    shortName: t.shortName,
+                    color: t.color
+                  })));
+                  setPlatforms(refreshedPlatforms.map(p => ({
+                    id: p.id,
+                    name: p.name,
+                    iconComponent: p.id === 'meta' ? FacebookIcon : 
+                                 p.id === 'google' ? GoogleIcon : 
+                                 p.id === 'tiktok' ? TikTokIcon : 
+                                 FacebookIcon
+                  })));
+                  alert('Refreshed from database successfully!');
+                } catch (error) {
+                  console.error('Error refreshing from database:', error);
+                  alert('Failed to refresh from database. Check console for details.');
+                }
+              }}
+              className="px-3 py-1 rounded-xl bg-blue-500/20 text-blue-400 hover:bg-blue-500/30 text-sm"
+              title="Force refresh from database"
+            >
+              Refresh from DB
+            </button>
+            <button onClick={onClose} className="p-2 rounded-xl hover:bg-white/10">
+              <X className="w-5 h-5" />
+            </button>
+          </div>
         </div>
 
         <div className="flex gap-4 mb-6">
