@@ -986,10 +986,12 @@ function CreativePerformance({
                                     onClick={(e) => {
                                       e.stopPropagation();
                                       if (hasScore && setQuickScoreModal) {
+                                        // Get the active test type
+                                        const currentTestType = testTypes.find(t => t.id === activeTestType);
                                         setQuickScoreModal({
                                           employee: emp,
                                           week: week,
-                                          testType: activeTest,
+                                          testType: currentTestType,
                                           platform: platform,
                                           currentScore: platformScore,
                                           isExperiment: isExperiment
