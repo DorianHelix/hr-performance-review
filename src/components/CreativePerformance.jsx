@@ -201,25 +201,24 @@ function CreativePerformance({
       testMetrics[test.id] = { count: 0, total: 0 };
     });
     
-    // Calculate scores for the active test type
-    const activeTest = testTypes.find(t => t.id === activeTestType);
-    if (activeTest) {
-      const allowedPlatforms = getGlobalAllowedPlatforms(activeTestType);
+    // Calculate scores for all test types
+    testTypes.forEach(testType => {
+      const allowedPlatforms = getGlobalAllowedPlatforms(testType.id);
       
       filteredEmployees.forEach(emp => {
         weeks.forEach(week => {
           allowedPlatforms.forEach(platformId => {
-            const score = getScore(emp.id, activeTestType, platformId, week.key);
-            if (score !== null) {
-              testMetrics[activeTestType].count++;
-              testMetrics[activeTestType].total += score;
+            const score = getScore(emp.id, testType.id, platformId, week.key);
+            if (score !== null && score !== undefined) {
+              testMetrics[testType.id].count++;
+              testMetrics[testType.id].total += score;
               overallCount++;
               overallTotal += score;
             }
           });
         });
       });
-    }
+    });
     
     // Build result object with test type data
     const result = {
@@ -1162,7 +1161,7 @@ function CreativePerformance({
                   filteredEmployees.forEach(emp => {
                     weeks.forEach(week => {
                       const score = getScore(emp.id, activeTestType, platform.id, week.key);
-                      if (score !== null) {
+                      if (score !== null && score !== undefined) {
                         platformCount++;
                         platformTotal += score;
                       }
@@ -1178,7 +1177,7 @@ function CreativePerformance({
                     <div key={platform.id} className="text-sm text-white/80">
                       <div className="flex justify-between mb-2">
                         <span>{platform.name}</span>
-                        <span className={`font-bold ${textColor}`}>{platformPercent}%</span>
+                        <span className={`font-bold ${textColor}`}>{platformAvg}/10</span>
                       </div>
                       <div className="w-full bg-white/10 rounded-full h-2">
                         <div className={`bg-gradient-to-r ${colorClass} to-pink-400 h-2 rounded-full`} style={{width: `${platformPercent}%`}}></div>
