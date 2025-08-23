@@ -1715,9 +1715,31 @@ function ConfigModal({ testTypes, setTestTypes, platforms, setPlatforms, onClose
   const [newType, setNewType] = useState({ name: '', shortName: '', color: '#60A5FA' });
   const [newPlatform, setNewPlatform] = useState({ name: '', icon: '' });
 
-  const handleAddType = () => {
+  const handleAddType = async () => {
     if (newType.name && newType.shortName) {
-      setTestTypes(prev => [...prev, { ...newType, id: Date.now().toString() }]);
+      const newTestType = { 
+        ...newType, 
+        id: newType.shortName.toLowerCase().replace(/\s+/g, '-'),
+        key: newType.shortName,
+        description: `${newType.name} testing`,
+        iconName: 'Target',
+        allowedPlatforms: ['meta', 'google', 'tiktok'], // Default platforms
+        order: testTypes.length + 1
+      };
+      
+      // Add to local state
+      const updatedTypes = [...testTypes, newTestType];
+      setTestTypes(updatedTypes);
+      
+      // Save to global configuration (database/localStorage)
+      await saveGlobalTestTypes(updatedTypes.map(t => ({
+        ...t,
+        allowed_platforms: t.allowedPlatforms?.map(p => ({ platform_id: p, is_default: true }))
+      })));
+      
+      // Force refresh to sync all components
+      await forceRefreshFromDatabase();
+      
       setNewType({ name: '', shortName: '', color: '#60A5FA' });
     }
   };
@@ -1745,7 +1767,7 @@ function ConfigModal({ testTypes, setTestTypes, platforms, setPlatforms, onClose
     }
   };
 
-  const handleAddPlatform = () => {
+  const handleAddPlatform = async () => {
     if (newPlatform.name) {
       const iconMap = {
         'Facebook': FacebookIcon,
@@ -1753,11 +1775,36 @@ function ConfigModal({ testTypes, setTestTypes, platforms, setPlatforms, onClose
         'Google': GoogleIcon,
         'TikTok': TikTokIcon
       };
-      setPlatforms(prev => [...prev, { 
+      
+      const newPlatformData = { 
         ...newPlatform, 
-        id: Date.now().toString(),
+        id: newPlatform.name.toLowerCase().replace(/\s+/g, '-'),
+        description: `${newPlatform.name} Ads`,
+        icon_name: newPlatform.name,
+        iconName: newPlatform.name,
+        color: 'blue',
+        display_order: platforms.length + 1,
+        order: platforms.length + 1,
         iconComponent: iconMap[newPlatform.name] || null
-      }]);
+      };
+      
+      // Add to local state
+      const updatedPlatforms = [...platforms, newPlatformData];
+      setPlatforms(updatedPlatforms);
+      
+      // Save to global configuration (database/localStorage)
+      await saveGlobalPlatforms(updatedPlatforms.map(p => ({
+        id: p.id,
+        name: p.name,
+        description: p.description || `${p.name} Ads`,
+        icon_name: p.icon_name || p.iconName || p.name,
+        color: p.color || 'blue',
+        display_order: p.display_order || p.order || 1
+      })));
+      
+      // Force refresh to sync all components
+      await forceRefreshFromDatabase();
+      
       setNewPlatform({ name: '', icon: '' });
     }
   };

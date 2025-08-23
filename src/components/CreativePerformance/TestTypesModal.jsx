@@ -7,11 +7,45 @@ import {
   getPlatformTypes,
   updateTestTypePlatforms
 } from '../../utils/creativeDataModel';
+import { 
+  getGlobalTestTypes,
+  getGlobalPlatforms,
+  saveGlobalTestTypes,
+  deleteGlobalTestType,
+  forceRefreshFromDatabase
+} from '../../utils/globalTestConfig';
 import { getIcon } from './utils';
 
 function TestTypesModal({ onClose, onUpdate }) {
-  const [testTypes, setTestTypes] = useState(() => getTestTypes());
-  const [platformTypes] = useState(() => getPlatformTypes());
+  // Use global configuration instead of local
+  const [testTypes, setTestTypes] = useState(() => {
+    const globalTypes = getGlobalTestTypes();
+    return globalTypes.map(t => ({
+      id: t.id,
+      key: t.key || t.shortName,
+      name: t.name,
+      short: t.shortName || t.short_name,
+      description: t.description,
+      iconName: t.iconName || t.icon_name || 'Target',
+      color: t.color || 'blue',
+      allowedPlatforms: t.allowed_platforms ? 
+        t.allowed_platforms.map(ap => ap.platform_id || ap) : 
+        (t.allowedPlatforms || []),
+      order: t.display_order || t.order || 1
+    }));
+  });
+  
+  const [platformTypes] = useState(() => {
+    const globalPlatforms = getGlobalPlatforms();
+    return globalPlatforms.map(p => ({
+      id: p.id,
+      name: p.name,
+      description: p.description,
+      iconName: p.iconName || p.icon_name,
+      color: p.color || 'blue'
+    }));
+  });
+  
   const [editingId, setEditingId] = useState(null);
   const [newTest, setNewTest] = useState({
     name: '',
@@ -33,7 +67,7 @@ function TestTypesModal({ onClose, onUpdate }) {
     'pink', 'orange', 'indigo', 'teal', 'gray'
   ];
 
-  const handleAdd = () => {
+  const handleAdd = async () => {
     if (!newTest.name || !newTest.short) return;
     
     const test = {
@@ -41,16 +75,37 @@ function TestTypesModal({ onClose, onUpdate }) {
       key: newTest.short.toUpperCase().slice(0, 3),
       name: newTest.name,
       short: newTest.short,
+      shortName: newTest.short,
+      short_name: newTest.short,
       description: newTest.description,
       iconName: newTest.iconName,
+      icon_name: newTest.iconName,
       color: newTest.color,
       allowedPlatforms: newTest.allowedPlatforms,
+      allowed_platforms: newTest.allowedPlatforms.map(p => ({ platform_id: p, is_default: true })),
+      display_order: testTypes.length + 1,
       order: testTypes.length + 1
     };
     
     const updated = [...testTypes, test];
     setTestTypes(updated);
-    saveTestTypes(updated);
+    
+    // Save to global configuration
+    const globalFormat = updated.map(t => ({
+      id: t.id,
+      name: t.name,
+      short_name: t.short || t.shortName,
+      shortName: t.short || t.shortName,
+      description: t.description,
+      color: t.color,
+      icon_name: t.iconName,
+      iconName: t.iconName,
+      display_order: t.order || t.display_order,
+      allowed_platforms: t.allowedPlatforms?.map(p => ({ platform_id: p, is_default: true })) || []
+    }));
+    
+    await saveGlobalTestTypes(globalFormat);
+    await forceRefreshFromDatabase();
     
     setNewTest({
       name: '',
@@ -82,12 +137,17 @@ function TestTypesModal({ onClose, onUpdate }) {
     });
   };
 
-  const confirmDelete = () => {
+  const confirmDelete = async () => {
     if (showDeleteConfirm) {
-      deleteTestType(showDeleteConfirm.id);
+      // Delete from global configuration
+      await deleteGlobalTestType(showDeleteConfirm.id);
+      
       const updated = testTypes.filter(t => t.id !== showDeleteConfirm.id);
       setTestTypes(updated);
       setShowDeleteConfirm(null);
+      
+      // Force refresh to sync
+      await forceRefreshFromDatabase();
       
       if (onUpdate) onUpdate(updated);
     }
