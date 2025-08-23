@@ -1,0 +1,444 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Fix Shopify Connection</title>
+    <style>
+        body {
+            background: #0a0a0a;
+            color: #fff;
+            font-family: -apple-system, system-ui, sans-serif;
+            padding: 40px;
+            max-width: 900px;
+            margin: 0 auto;
+        }
+        h1 {
+            background: linear-gradient(to right, #60a5fa, #a78bfa);
+            background-clip: text;
+            -webkit-background-clip: text;
+            color: transparent;
+        }
+        .section {
+            background: #1a1a1a;
+            border: 1px solid #333;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        .section h2 {
+            color: #60a5fa;
+            margin-top: 0;
+        }
+        button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #fff;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 500;
+            margin: 5px;
+        }
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+        button.danger {
+            background: linear-gradient(135deg, #f43f5e 0%, #dc2626 100%);
+        }
+        button.success {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+        }
+        pre {
+            background: #0a0a0a;
+            padding: 15px;
+            border-radius: 6px;
+            overflow-x: auto;
+            border: 1px solid #333;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        .status {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 6px;
+        }
+        .status.success {
+            background: rgba(16, 185, 129, 0.2);
+            border: 1px solid #10b981;
+            color: #10b981;
+        }
+        .status.error {
+            background: rgba(244, 63, 94, 0.2);
+            border: 1px solid #f43f5e;
+            color: #f43f5e;
+        }
+        .status.info {
+            background: rgba(96, 165, 250, 0.2);
+            border: 1px solid #60a5fa;
+            color: #60a5fa;
+        }
+        input {
+            width: 100%;
+            padding: 10px;
+            background: #2a2a2a;
+            border: 1px solid #444;
+            border-radius: 4px;
+            color: #fff;
+            margin: 10px 0;
+        }
+        .grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+    </style>
+</head>
+<body>
+    <h1>🔧 Fix Shopify Connection</h1>
+    
+    <div id="mainStatus"></div>
+    
+    <div class="section">
+        <h2>📊 Current Status</h2>
+        <div id="currentStatus">Checking...</div>
+    </div>
+    
+    <div class="grid">
+        <div class="section">
+            <h2>📱 LocalStorage Credentials</h2>
+            <pre id="localStorageData">Loading...</pre>
+            <button onclick="clearLocalStorage()" class="danger">Clear LocalStorage</button>
+            <button onclick="loadFromLocalStorage()">Reload</button>
+        </div>
+        
+        <div class="section">
+            <h2>💾 Database Settings</h2>
+            <pre id="databaseData">Loading...</pre>
+            <button onclick="loadFromDatabase()">Reload from DB</button>
+        </div>
+    </div>
+    
+    <div class="section">
+        <h2>🔐 Set/Update Credentials</h2>
+        <input type="text" id="storeDomain" placeholder="Store domain (e.g., my-store or my-store.myshopify.com)" />
+        <input type="password" id="accessToken" placeholder="Access token (shpat_xxxxx)" />
+        <button onclick="testCredentials()" class="success">Test Connection</button>
+        <button onclick="saveToAll()">Save to Both LocalStorage & Database</button>
+        <button onclick="syncProducts()">Sync Products from Shopify</button>
+    </div>
+    
+    <div class="section">
+        <h2>🛠️ Debug Actions</h2>
+        <button onclick="checkBackend()">Check Backend Health</button>
+        <button onclick="checkProducts()">Check Products in Database</button>
+        <button onclick="testDirectAPI()">Test Direct Shopify API</button>
+        <button onclick="migrateCredentials()">Migrate Credentials to Database</button>
+    </div>
+    
+    <script>
+        let currentCredentials = {};
+        
+        async function loadFromLocalStorage() {
+            const shopifyCredentials = localStorage.getItem('shopify_credentials');
+            const appSettings = localStorage.getItem('appSettings');
+            
+            const data = {
+                shopify_credentials: shopifyCredentials ? JSON.parse(shopifyCredentials) : null,
+                appSettings: appSettings ? JSON.parse(appSettings) : null
+            };
+            
+            document.getElementById('localStorageData').textContent = JSON.stringify(data, null, 2);
+            
+            if (data.shopify_credentials) {
+                currentCredentials = data.shopify_credentials;
+                document.getElementById('storeDomain').value = data.shopify_credentials.storeDomain || '';
+                document.getElementById('accessToken').value = data.shopify_credentials.accessToken || '';
+            }
+            
+            return data;
+        }
+        
+        async function loadFromDatabase() {
+            try {
+                const response = await fetch('http://localhost:3001/api/settings');
+                const data = await response.json();
+                document.getElementById('databaseData').textContent = JSON.stringify(data, null, 2);
+                
+                if (data.shopify_store_domain) {
+                    document.getElementById('storeDomain').value = data.shopify_store_domain;
+                }
+                if (data.shopify_access_token) {
+                    document.getElementById('accessToken').value = data.shopify_access_token;
+                }
+                
+                return data;
+            } catch (error) {
+                document.getElementById('databaseData').textContent = 'Error: ' + error.message;
+                return null;
+            }
+        }
+        
+        async function checkStatus() {
+            const localStorage = await loadFromLocalStorage();
+            const database = await loadFromDatabase();
+            
+            const status = [];
+            
+            if (localStorage.shopify_credentials) {
+                status.push('✅ LocalStorage has credentials');
+            } else {
+                status.push('❌ LocalStorage missing credentials');
+            }
+            
+            if (database && (database.shopify_store_domain || database.shopify_access_token)) {
+                status.push('✅ Database has credentials');
+            } else {
+                status.push('❌ Database missing credentials');
+            }
+            
+            document.getElementById('currentStatus').innerHTML = status.join('<br>');
+        }
+        
+        function clearLocalStorage() {
+            localStorage.removeItem('shopify_credentials');
+            localStorage.removeItem('shopify_products_cache');
+            showStatus('LocalStorage cleared', 'success');
+            loadFromLocalStorage();
+        }
+        
+        function showStatus(message, type = 'info') {
+            const status = document.getElementById('mainStatus');
+            status.className = `status ${type}`;
+            status.textContent = message;
+            setTimeout(() => {
+                status.textContent = '';
+                status.className = '';
+            }, 5000);
+        }
+        
+        async function testCredentials() {
+            const storeDomain = document.getElementById('storeDomain').value;
+            const accessToken = document.getElementById('accessToken').value;
+            
+            if (!storeDomain || !accessToken) {
+                showStatus('Please enter both domain and token', 'error');
+                return;
+            }
+            
+            // Clean the domain
+            const cleanDomain = storeDomain
+                .replace('https://', '')
+                .replace('http://', '')
+                .replace('.myshopify.com', '');
+            
+            try {
+                const response = await fetch('http://localhost:3001/api/shopify/test', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        storeDomain: cleanDomain,
+                        accessToken: accessToken
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (response.ok && result.success) {
+                    showStatus(`✅ Connection successful! Shop: ${result.shop.name}`, 'success');
+                } else {
+                    showStatus(`❌ Connection failed: ${result.error || result.details}`, 'error');
+                    console.error('Full error:', result);
+                }
+            } catch (error) {
+                showStatus(`❌ Error: ${error.message}`, 'error');
+            }
+        }
+        
+        async function saveToAll() {
+            const storeDomain = document.getElementById('storeDomain').value;
+            const accessToken = document.getElementById('accessToken').value;
+            
+            if (!storeDomain || !accessToken) {
+                showStatus('Please enter both domain and token', 'error');
+                return;
+            }
+            
+            // Clean the domain
+            const cleanDomain = storeDomain
+                .replace('https://', '')
+                .replace('http://', '')
+                .replace('.myshopify.com', '');
+            
+            // Save to localStorage in the format shopifyService expects
+            const credentials = {
+                storeDomain: cleanDomain,
+                accessToken: accessToken,
+                savedAt: new Date().toISOString()
+            };
+            localStorage.setItem('shopify_credentials', JSON.stringify(credentials));
+            
+            // Also save to database
+            try {
+                const response = await fetch('http://localhost:3001/api/shopify/products', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        storeDomain: cleanDomain,
+                        accessToken: accessToken,
+                        saveToDb: true
+                    })
+                });
+                
+                if (response.ok) {
+                    showStatus('✅ Credentials saved to both LocalStorage and Database!', 'success');
+                    checkStatus();
+                } else {
+                    showStatus('⚠️ Saved to LocalStorage but database save failed', 'error');
+                }
+            } catch (error) {
+                showStatus('⚠️ Saved to LocalStorage but database save failed: ' + error.message, 'error');
+            }
+        }
+        
+        async function syncProducts() {
+            const storeDomain = document.getElementById('storeDomain').value;
+            const accessToken = document.getElementById('accessToken').value;
+            
+            if (!storeDomain || !accessToken) {
+                showStatus('Please enter both domain and token', 'error');
+                return;
+            }
+            
+            const cleanDomain = storeDomain
+                .replace('https://', '')
+                .replace('http://', '')
+                .replace('.myshopify.com', '');
+            
+            try {
+                showStatus('Syncing products...', 'info');
+                
+                const response = await fetch('http://localhost:3001/api/shopify/products', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        storeDomain: cleanDomain,
+                        accessToken: accessToken,
+                        saveToDb: true
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (response.ok && result.success) {
+                    showStatus(`✅ Successfully synced ${result.count} products!`, 'success');
+                } else {
+                    showStatus(`❌ Sync failed: ${result.error}`, 'error');
+                }
+            } catch (error) {
+                showStatus(`❌ Error: ${error.message}`, 'error');
+            }
+        }
+        
+        async function checkBackend() {
+            try {
+                const response = await fetch('http://localhost:3001/api/health');
+                if (response.ok) {
+                    showStatus('✅ Backend is running', 'success');
+                } else {
+                    showStatus('❌ Backend responded but with error', 'error');
+                }
+            } catch (error) {
+                showStatus('❌ Backend is not reachable: ' + error.message, 'error');
+            }
+        }
+        
+        async function checkProducts() {
+            try {
+                const response = await fetch('http://localhost:3001/api/products');
+                const products = await response.json();
+                showStatus(`Found ${products.length} products in database`, 'info');
+                console.log('Products:', products);
+            } catch (error) {
+                showStatus('❌ Error checking products: ' + error.message, 'error');
+            }
+        }
+        
+        async function testDirectAPI() {
+            const storeDomain = document.getElementById('storeDomain').value;
+            const accessToken = document.getElementById('accessToken').value;
+            
+            if (!storeDomain || !accessToken) {
+                showStatus('Please enter both domain and token', 'error');
+                return;
+            }
+            
+            showStatus('Testing direct API call to backend...', 'info');
+            console.log('Testing with:', { storeDomain, accessToken: accessToken.substring(0, 10) + '...' });
+            
+            // Try different domain formats
+            const formats = [
+                storeDomain,
+                storeDomain.replace('.myshopify.com', ''),
+                storeDomain + '.myshopify.com'
+            ];
+            
+            for (const format of formats) {
+                console.log('Trying format:', format);
+                try {
+                    const response = await fetch('http://localhost:3001/api/shopify/test', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            storeDomain: format,
+                            accessToken: accessToken
+                        })
+                    });
+                    
+                    const result = await response.json();
+                    if (response.ok && result.success) {
+                        showStatus(`✅ Success with format: ${format}`, 'success');
+                        return;
+                    }
+                } catch (error) {
+                    console.error('Failed with format:', format, error);
+                }
+            }
+            
+            showStatus('❌ All formats failed - check console for details', 'error');
+        }
+        
+        async function migrateCredentials() {
+            const localData = await loadFromLocalStorage();
+            
+            if (!localData.shopify_credentials) {
+                showStatus('No credentials in localStorage to migrate', 'error');
+                return;
+            }
+            
+            try {
+                // Save to database via settings endpoint
+                const response = await fetch('http://localhost:3001/api/settings', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        shopify_store_domain: localData.shopify_credentials.storeDomain,
+                        shopify_access_token: localData.shopify_credentials.accessToken
+                    })
+                });
+                
+                if (response.ok) {
+                    showStatus('✅ Credentials migrated to database!', 'success');
+                    loadFromDatabase();
+                } else {
+                    showStatus('❌ Migration failed', 'error');
+                }
+            } catch (error) {
+                showStatus('❌ Migration error: ' + error.message, 'error');
+            }
+        }
+        
+        // Initial load
+        checkStatus();
+    </script>
+</body>
+</html>
