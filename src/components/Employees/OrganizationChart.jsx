@@ -36,6 +36,32 @@ function lsWrite(key, value) {
 // Constants
 const LS_ORG_STRUCTURE = "hr_org_structure";
 const LS_EMPLOYEES = "hr_weekly_employees";
+const LS_UNIT_LIBRARY = "hr_unit_library";
+const LS_HIERARCHY_RULES = "hr_hierarchy_rules";
+
+// Default hierarchy rules - what can be placed under what
+const DEFAULT_HIERARCHY_RULES = {
+  'executive': ['executive', 'management', 'department', 'division', 'team'],
+  'management': ['management', 'department', 'team', 'squad'],
+  'department': ['team', 'squad', 'pod'],
+  'division': ['executive', 'management', 'department', 'team', 'squad'],
+  'team': ['pod'],
+  'squad': ['pod'],
+  'pod': [],
+  'tribe': ['squad', 'team']
+};
+
+// Unit types available
+const UNIT_TYPES = [
+  { value: 'executive', label: 'Executive', icon: Building2 },
+  { value: 'management', label: 'Management', icon: Briefcase },
+  { value: 'division', label: 'Division', icon: Layers },
+  { value: 'department', label: 'Department', icon: Building2 },
+  { value: 'tribe', label: 'Tribe', icon: Network },
+  { value: 'squad', label: 'Squad', icon: Users },
+  { value: 'team', label: 'Team', icon: Users },
+  { value: 'pod', label: 'Pod', icon: Package }
+];
 
 // Organizational Templates
 const ORG_TEMPLATES = {
@@ -236,10 +262,70 @@ function DraggableOrgUnit({ unit, onEdit, onDelete }) {
   );
 }
 
+// Root Drop Zone for empty state
+function RootDropZone({ children, onDrop }) {
+  const [{ isOver, canDrop }, drop] = useDrop({
+    accept: [ItemTypes.ORG_UNIT],
+    drop: (item, monitor) => {
+      if (!monitor.didDrop()) {
+        onDrop(item);
+      }
+    },
+    collect: (monitor) => ({
+      isOver: monitor.isOver({ shallow: true }),
+      canDrop: monitor.canDrop()
+    })
+  });
+
+  const isHighlighted = isOver && canDrop;
+
+  return (
+    <div
+      ref={drop}
+      className={`h-full w-full transition-all ${
+        isHighlighted ? 'ring-2 ring-blue-400 bg-blue-400/5 rounded-lg' : ''
+      }`}
+    >
+      {children}
+    </div>
+  );
+}
+
 // Org Chart Node Component with Drop Zone
-function OrgChartNode({ node, employees, onDrop, onEdit, onDelete, onAddChild, level = 0 }) {
+function OrgChartNode({ node, employees, onDrop, onEdit, onDelete, onAddChild, level = 0, hierarchyRules }) {
+  // Make the node draggable (except root node)
+  const [{ isDragging }, drag] = useDrag({
+    type: ItemTypes.ORG_UNIT,
+    item: { type: ItemTypes.ORG_UNIT, unit: node, isFromChart: true },
+    canDrag: level > 0, // Can't drag the root node
+    collect: (monitor) => ({
+      isDragging: monitor.isDragging()
+    })
+  });
+  
   const [{ isOver, canDrop }, drop] = useDrop({
     accept: [ItemTypes.EMPLOYEE, ItemTypes.ORG_UNIT],
+    canDrop: (item, monitor) => {
+      if (item.type === ItemTypes.ORG_UNIT) {
+        // Don't allow dropping on itself
+        if (item.unit.id === node.id) return false;
+        
+        // Check if this would create a circular reference
+        const wouldCreateCircle = (checkNode, targetId) => {
+          if (checkNode.id === targetId) return true;
+          if (checkNode.children) {
+            return checkNode.children.some(child => wouldCreateCircle(child, targetId));
+          }
+          return false;
+        };
+        if (item.unit.children && wouldCreateCircle(item.unit, node.id)) return false;
+        
+        // Check hierarchy rules
+        const allowedChildren = hierarchyRules[node.type] || [];
+        return allowedChildren.includes(item.unit.type);
+      }
+      return true; // Employees can go anywhere
+    },
     drop: (item, monitor) => {
       if (!monitor.didDrop()) {
         onDrop(item, node);
@@ -252,6 +338,7 @@ function OrgChartNode({ node, employees, onDrop, onEdit, onDelete, onAddChild, l
   });
 
   const [isExpanded, setIsExpanded] = useState(true);
+  const [showEmployees, setShowEmployees] = useState(false);
   const nodeEmployees = employees.filter(emp => emp.orgUnitId === node.id);
   const totalSalary = nodeEmployees.reduce((sum, emp) => sum + (parseFloat(emp.totalSalary) || 0), 0);
   
@@ -266,14 +353,23 @@ function OrgChartNode({ node, employees, onDrop, onEdit, onDelete, onAddChild, l
   };
 
   const isHighlighted = isOver && canDrop;
+  
+  // Combine drag and drop refs
+  const dragDropRef = (el) => {
+    if (level > 0) drag(el); // Only make draggable if not root
+    drop(el);
+  };
 
   return (
     <div className="flex flex-col items-center">
       <div
-        ref={drop}
+        ref={dragDropRef}
         className={`relative group transition-all ${
           isHighlighted ? 'scale-105' : ''
+        } ${
+          isDragging ? 'opacity-50 cursor-move' : ''
         }`}
+        style={{ cursor: level > 0 ? 'move' : 'default' }}
       >
         <div
           className={`
@@ -367,53 +463,65 @@ function OrgChartNode({ node, employees, onDrop, onEdit, onDelete, onAddChild, l
             )}
           </div>
 
-          {/* Employee Avatars */}
+          {/* Employee Avatars and List */}
           {nodeEmployees.length > 0 && (
             <div className="mt-3 pt-3 border-t border-white/10">
-              <div className="flex -space-x-2">
-                {nodeEmployees.slice(0, 5).map((emp, idx) => (
-                  <div
-                    key={emp.id}
-                    className="w-6 h-6 rounded-full bg-gradient-to-br from-blue-400 to-purple-600 flex items-center justify-center border-2 border-white/20"
-                    title={emp.name}
-                  >
-                    <span className="text-[10px] font-medium text-white">
-                      {emp.name?.charAt(0)?.toUpperCase()}
-                    </span>
-                  </div>
-                ))}
-                {nodeEmployees.length > 5 && (
-                  <div className="w-6 h-6 rounded-full bg-white/20 flex items-center justify-center border-2 border-white/20">
-                    <span className="text-[10px] font-medium text-white">+{nodeEmployees.length - 5}</span>
-                  </div>
-                )}
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-xs text-white/60">Team Members</span>
+                <button
+                  onClick={() => setShowEmployees(!showEmployees)}
+                  className="text-xs text-blue-400 hover:text-blue-300 flex items-center gap-1"
+                >
+                  {showEmployees ? (
+                    <><ChevronDown size={12} /> Hide</>  
+                  ) : (
+                    <><ChevronRight size={12} /> Show All</>  
+                  )}
+                </button>
               </div>
+              
+              {!showEmployees ? (
+                <div className="flex -space-x-2">
+                  {nodeEmployees.slice(0, 5).map((emp, idx) => (
+                    <div
+                      key={emp.id}
+                      className="w-6 h-6 rounded-full bg-gradient-to-br from-blue-400 to-purple-600 flex items-center justify-center border-2 border-white/20"
+                      title={emp.name}
+                    >
+                      <span className="text-[10px] font-medium text-white">
+                        {emp.name?.charAt(0)?.toUpperCase()}
+                      </span>
+                    </div>
+                  ))}
+                  {nodeEmployees.length > 5 && (
+                    <div className="w-6 h-6 rounded-full bg-white/20 flex items-center justify-center border-2 border-white/20">
+                      <span className="text-[10px] font-medium text-white">+{nodeEmployees.length - 5}</span>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className="space-y-1 max-h-32 overflow-y-auto">
+                  {nodeEmployees.map(emp => (
+                    <div key={emp.id} className="flex items-center gap-2 p-1 rounded bg-white/5">
+                      <div className="w-5 h-5 rounded-full bg-gradient-to-br from-blue-400 to-purple-600 flex items-center justify-center">
+                        <span className="text-[8px] font-medium text-white">
+                          {emp.name?.charAt(0)?.toUpperCase()}
+                        </span>
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs text-white truncate">{emp.name}</p>
+                        <p className="text-[10px] text-white/50 truncate">{emp.role}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           )}
         </div>
       </div>
 
-      {/* Render Children */}
-      {isExpanded && node.children && node.children.length > 0 && (
-        <div className="flex gap-4 mt-8">
-          {node.children.map((child) => (
-            <TreeNode
-              key={child.id}
-              label={
-                <OrgChartNode
-                  node={child}
-                  employees={employees}
-                  onDrop={onDrop}
-                  onEdit={onEdit}
-                  onDelete={onDelete}
-                  onAddChild={onAddChild}
-                  level={level + 1}
-                />
-              }
-            />
-          ))}
-        </div>
-      )}
+      {/* Render Children - No TreeNode wrapper needed here */}
     </div>
   );
 }
@@ -422,6 +530,7 @@ function OrgChartNode({ node, employees, onDrop, onEdit, onDelete, onAddChild, l
 function OrganizationChart({ isDarkMode }) {
   const [employees, setEmployees] = useState(() => lsRead(LS_EMPLOYEES, []));
   const [orgStructure, setOrgStructure] = useState(() => lsRead(LS_ORG_STRUCTURE, null));
+  const [unitLibrary, setUnitLibrary] = useState(() => lsRead(LS_UNIT_LIBRARY, []));
   const [showCreateUnit, setShowCreateUnit] = useState(false);
   const [editingUnit, setEditingUnit] = useState(null);
   const [parentForNewUnit, setParentForNewUnit] = useState(null);
@@ -430,12 +539,49 @@ function OrganizationChart({ isDarkMode }) {
   const [expandedSections, setExpandedSections] = useState({
     templates: true,
     units: true,
-    employees: true
+    employees: true,
+    configuration: false
   });
+  const [allUnits, setAllUnits] = useState([]);
+  const [hierarchyRules, setHierarchyRules] = useState(() => 
+    lsRead(LS_HIERARCHY_RULES, DEFAULT_HIERARCHY_RULES)
+  );
+  const [showConfigModal, setShowConfigModal] = useState(false);
 
-  // Save org structure to localStorage
+  // Save to localStorage
   useEffect(() => {
     lsWrite(LS_ORG_STRUCTURE, orgStructure);
+  }, [orgStructure]);
+  
+  useEffect(() => {
+    lsWrite(LS_UNIT_LIBRARY, unitLibrary);
+  }, [unitLibrary]);
+  
+  useEffect(() => {
+    lsWrite(LS_HIERARCHY_RULES, hierarchyRules);
+  }, [hierarchyRules]);
+  
+  // Extract all units from the structure for display
+  useEffect(() => {
+    const extractUnits = (node, units = []) => {
+      if (!node) return units;
+      
+      units.push({
+        id: node.id,
+        name: node.name,
+        type: node.type,
+        color: node.color,
+        hasChildren: node.children && node.children.length > 0
+      });
+      
+      if (node.children) {
+        node.children.forEach(child => extractUnits(child, units));
+      }
+      
+      return units;
+    };
+    
+    setAllUnits(extractUnits(orgStructure));
   }, [orgStructure]);
 
   // Handle drop on org chart
@@ -443,30 +589,103 @@ function OrganizationChart({ isDarkMode }) {
     console.log('Dropping item:', item, 'on target:', targetNode);
     
     if (item.type === ItemTypes.ORG_UNIT) {
-      // Add organizational unit as child of target node
-      const newUnit = { 
-        ...item.unit, 
-        id: `${item.unit.type}-${uid()}`,
-        children: []
-      };
+      const isFromLibrary = unitLibrary.some(u => u.id === item.unit.id);
+      const isFromChart = item.isFromChart;
       
-      const addUnitToNode = (node) => {
-        if (node.id === targetNode.id) {
-          return {
-            ...node,
-            children: [...(node.children || []), newUnit]
-          };
+      if (isFromLibrary) {
+        // Remove from library if it's being placed in the structure
+        setUnitLibrary(prev => prev.filter(u => u.id !== item.unit.id));
+        
+        // Create a clean new unit without duplication
+        const newUnit = { 
+          ...item.unit, 
+          id: item.unit.id,
+          children: []
+        };
+        
+        // If no structure exists, this becomes the root
+        if (!orgStructure || targetNode.id === 'root') {
+          setOrgStructure(newUnit);
+          return;
         }
-        if (node.children) {
-          return {
-            ...node,
-            children: node.children.map(addUnitToNode)
-          };
+        
+        // Add as child of target node
+        const addUnitToNode = (node) => {
+          if (node.id === targetNode.id) {
+            // Check if unit already exists as child
+            const alreadyExists = node.children?.some(child => child.id === newUnit.id);
+            if (alreadyExists) return node;
+            
+            return {
+              ...node,
+              children: [...(node.children || []), newUnit]
+            };
+          }
+          if (node.children) {
+            return {
+              ...node,
+              children: node.children.map(addUnitToNode)
+            };
+          }
+          return node;
+        };
+        
+        setOrgStructure(addUnitToNode(orgStructure));
+      } else if (isFromChart) {
+        // Moving an existing unit within the chart
+        const unitToMove = item.unit;
+        
+        // First, find and extract the unit with its children
+        let extractedUnit = null;
+        const removeUnit = (node) => {
+          if (!node) return null;
+          
+          // Check if this node should be removed
+          if (node.id === unitToMove.id) {
+            extractedUnit = node; // Save the full unit with children
+            return null; // Remove from tree
+          }
+          
+          // Process children
+          if (node.children) {
+            const newChildren = node.children
+              .map(child => removeUnit(child))
+              .filter(child => child !== null);
+            
+            return {
+              ...node,
+              children: newChildren
+            };
+          }
+          
+          return node;
+        };
+        
+        // Then add it to the new location
+        const addUnit = (node) => {
+          if (node.id === targetNode.id) {
+            // Add the moved unit as a child of the target
+            return {
+              ...node,
+              children: [...(node.children || []), extractedUnit || unitToMove]
+            };
+          }
+          if (node.children) {
+            return {
+              ...node,
+              children: node.children.map(addUnit)
+            };
+          }
+          return node;
+        };
+        
+        // Apply both operations
+        let newStructure = removeUnit(orgStructure);
+        if (newStructure) {
+          newStructure = addUnit(newStructure);
+          setOrgStructure(newStructure);
         }
-        return node;
-      };
-      
-      setOrgStructure(addUnitToNode(orgStructure || { id: 'root', name: 'Organization', type: 'root', children: [] }));
+      }
     } else if (item.type === ItemTypes.EMPLOYEE) {
       // Assign employee to organizational unit
       const updatedEmployees = employees.map(emp => {
@@ -492,16 +711,26 @@ function OrganizationChart({ isDarkMode }) {
 
   // Handle delete unit
   const handleDeleteUnit = (unitToDelete) => {
-    const removeUnit = (node) => {
-      if (node.children) {
-        return {
-          ...node,
-          children: node.children.filter(child => child.id !== unitToDelete.id).map(removeUnit)
-        };
-      }
-      return node;
-    };
-    setOrgStructure(removeUnit(orgStructure));
+    // If it's the root node, clear the structure
+    if (orgStructure && orgStructure.id === unitToDelete.id) {
+      // Move it back to library
+      setUnitLibrary(prev => [...prev, { ...unitToDelete, children: [] }]);
+      setOrgStructure(null);
+    } else {
+      const removeUnit = (node) => {
+        if (node.children) {
+          return {
+            ...node,
+            children: node.children.filter(child => child.id !== unitToDelete.id).map(removeUnit)
+          };
+        }
+        return node;
+      };
+      
+      // Move deleted unit back to library (without children)
+      setUnitLibrary(prev => [...prev, { ...unitToDelete, children: [] }]);
+      setOrgStructure(removeUnit(orgStructure));
+    }
     
     // Clear employee assignments for deleted unit
     const updatedEmployees = employees.map(emp => {
@@ -523,22 +752,32 @@ function OrganizationChart({ isDarkMode }) {
   // Create or update unit
   const saveUnit = (unitData) => {
     if (editingUnit) {
-      // Update existing unit
-      const updateUnit = (node) => {
-        if (node.id === editingUnit.id) {
-          return { ...node, ...unitData };
-        }
-        if (node.children) {
-          return {
-            ...node,
-            children: node.children.map(updateUnit)
-          };
-        }
-        return node;
-      };
-      setOrgStructure(updateUnit(orgStructure));
+      // Check if editing a unit in the library
+      const isInLibrary = unitLibrary.some(u => u.id === editingUnit.id);
+      
+      if (isInLibrary) {
+        // Update in library
+        setUnitLibrary(prev => prev.map(u => 
+          u.id === editingUnit.id ? { ...u, ...unitData } : u
+        ));
+      } else {
+        // Update in structure
+        const updateUnit = (node) => {
+          if (node.id === editingUnit.id) {
+            return { ...node, ...unitData };
+          }
+          if (node.children) {
+            return {
+              ...node,
+              children: node.children.map(updateUnit)
+            };
+          }
+          return node;
+        };
+        setOrgStructure(updateUnit(orgStructure));
+      }
     } else if (parentForNewUnit) {
-      // Add as child of specific parent
+      // Add as child of specific parent in the structure
       const newUnit = {
         id: `${unitData.type}-${uid()}`,
         ...unitData,
@@ -562,13 +801,13 @@ function OrganizationChart({ isDarkMode }) {
       };
       setOrgStructure(addUnitToParent(orgStructure));
     } else {
-      // Create root unit or replace structure
+      // Add to unit library (not to structure)
       const newUnit = {
         id: `${unitData.type}-${uid()}`,
         ...unitData,
         children: []
       };
-      setOrgStructure(newUnit);
+      setUnitLibrary(prev => [...prev, newUnit]);
     }
     
     setShowCreateUnit(false);
@@ -578,6 +817,8 @@ function OrganizationChart({ isDarkMode }) {
 
   // Apply template
   const applyTemplate = (template) => {
+    // Clear the library when applying a template
+    setUnitLibrary([]);
     setOrgStructure(template.structure);
   };
 
@@ -617,10 +858,22 @@ function OrganizationChart({ isDarkMode }) {
             </div>
             <div className="flex gap-3">
               <button
-                onClick={() => setOrgStructure(null)}
+                onClick={() => {
+                  // Clear both structure and library for fresh start
+                  setOrgStructure(null);
+                  setUnitLibrary([]);
+                  localStorage.removeItem('hr_org_structure');
+                  localStorage.removeItem('hr_unit_library');
+                }}
                 className="px-4 py-2 rounded-xl bg-red-500/20 border border-red-500/30 text-red-400 hover:bg-red-500/30 transition-colors"
               >
-                Clear Structure
+                Clear All
+              </button>
+              <button
+                onClick={() => setOrgStructure(null)}
+                className="px-4 py-2 rounded-xl bg-orange-500/20 border border-orange-500/30 text-orange-400 hover:bg-orange-500/30 transition-colors"
+              >
+                Clear Structure Only
               </button>
             </div>
           </div>
@@ -628,7 +881,7 @@ function OrganizationChart({ isDarkMode }) {
 
         <div className="flex-1 flex min-h-0">
           {/* Main Org Chart Area */}
-          <div className="flex-1 p-6 overflow-auto">
+          <div className="flex-1 p-6 overflow-hidden">
             <div className="h-full glass-card-large p-6">
               <div className="mb-4 flex items-center justify-between">
                 <h2 className="text-lg font-semibold text-white">Organization Structure</h2>
@@ -644,25 +897,34 @@ function OrganizationChart({ isDarkMode }) {
                 </div>
               </div>
               
-              <div className="h-[calc(100%-3rem)] overflow-auto">
+              <div className="h-[calc(100%-3rem)] overflow-auto" style={{ overflowX: 'auto', overflowY: 'auto' }}>
                 {!orgStructure ? (
-                  <div className="h-full flex items-center justify-center">
-                    <div className="text-center">
-                      <Network size={48} className="text-white/20 mx-auto mb-4" />
-                      <p className="text-white/60 mb-2">No organizational structure defined</p>
-                      <p className="text-white/40 text-sm mb-4">
-                        Start by selecting a template or creating organizational units
-                      </p>
-                      <button
-                        onClick={() => setShowCreateUnit(true)}
-                        className="px-6 py-2 rounded-xl bg-gradient-to-r from-blue-500 to-blue-600 text-white font-medium hover:scale-105 transition-transform"
-                      >
-                        Create First Unit
-                      </button>
+                  <RootDropZone onDrop={(item) => handleOrgChartDrop(item, { id: 'root' })}>
+                    <div className="h-full flex items-center justify-center">
+                      <div className="text-center">
+                        <Network size={48} className="text-white/20 mx-auto mb-4" />
+                        <p className="text-white/60 mb-2">No organizational structure defined</p>
+                        <p className="text-white/40 text-sm mb-4">
+                          Select a template or drag a unit from the library to start
+                        </p>
+                        <div className="space-y-2">
+                          <button
+                            onClick={() => setShowCreateUnit(true)}
+                            className="px-6 py-2 rounded-xl bg-gradient-to-r from-blue-500 to-blue-600 text-white font-medium hover:scale-105 transition-transform"
+                          >
+                            Create Unit for Library
+                          </button>
+                          {unitLibrary.length > 0 && (
+                            <p className="text-xs text-white/40">
+                              {unitLibrary.length} unit{unitLibrary.length > 1 ? 's' : ''} available in library
+                            </p>
+                          )}
+                        </div>
+                      </div>
                     </div>
-                  </div>
+                  </RootDropZone>
                 ) : (
-                  <div className="flex justify-center">
+                  <div className="flex justify-center p-8" style={{ minWidth: 'max-content' }}>
                     <Tree
                       lineWidth="2px"
                       lineColor="rgba(255,255,255,0.2)"
@@ -676,6 +938,7 @@ function OrganizationChart({ isDarkMode }) {
                           onDelete={handleDeleteUnit}
                           onAddChild={handleAddChild}
                           level={0}
+                          hierarchyRules={hierarchyRules}
                         />
                       }
                     >
@@ -691,9 +954,28 @@ function OrganizationChart({ isDarkMode }) {
                               onDelete={handleDeleteUnit}
                               onAddChild={handleAddChild}
                               level={1}
+                              hierarchyRules={hierarchyRules}
                             />
                           }
-                        />
+                        >
+                          {child.children && child.children.map((grandchild) => (
+                            <TreeNode
+                              key={grandchild.id}
+                              label={
+                                <OrgChartNode
+                                  node={grandchild}
+                                  employees={employees}
+                                  onDrop={handleOrgChartDrop}
+                                  onEdit={handleEditUnit}
+                                  onDelete={handleDeleteUnit}
+                                  onAddChild={handleAddChild}
+                                  level={2}
+                                  hierarchyRules={hierarchyRules}
+                                />
+                              }
+                            />
+                          ))}
+                        </TreeNode>
                       ))}
                     </Tree>
                   </div>
@@ -758,13 +1040,89 @@ function OrganizationChart({ isDarkMode }) {
                 )}
               </div>
 
+              {/* Configuration Section */}
+              <div className="glass-card p-4">
+                <button
+                  onClick={() => setExpandedSections({...expandedSections, configuration: !expandedSections.configuration})}
+                  className="w-full flex items-center justify-between text-white mb-3"
+                >
+                  <h3 className="font-semibold flex items-center gap-2">
+                    <Settings2 size={18} />
+                    Hierarchy Configuration
+                  </h3>
+                  {expandedSections.configuration ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
+                </button>
+                
+                {expandedSections.configuration && (
+                  <div className="space-y-3">
+                    <p className="text-xs text-white/60">Configure which unit types can be placed under others</p>
+                    <button
+                      onClick={() => setShowConfigModal(true)}
+                      className="w-full px-3 py-2 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 text-sm text-white"
+                    >
+                      Edit Hierarchy Rules
+                    </button>
+                    <button
+                      onClick={() => {
+                        setHierarchyRules(DEFAULT_HIERARCHY_RULES);
+                        lsWrite(LS_HIERARCHY_RULES, DEFAULT_HIERARCHY_RULES);
+                      }}
+                      className="w-full px-3 py-2 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 text-sm text-white"
+                    >
+                      Reset to Defaults
+                    </button>
+                  </div>
+                )}
+              </div>
+
+              {/* Unit Library Section */}
+              <div className="glass-card p-4">
+                <button
+                  onClick={() => setExpandedSections({...expandedSections, units: !expandedSections.units})}
+                  className="w-full flex items-center justify-between text-white mb-3"
+                >
+                  <h3 className="font-semibold flex items-center gap-2">
+                    <Building2 size={18} />
+                    Unit Library ({unitLibrary.length})
+                  </h3>
+                  {expandedSections.units ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
+                </button>
+                
+                {expandedSections.units && (
+                  <div className="space-y-2">
+                    <p className="text-xs text-white/60 mb-2">
+                      Drag units to the chart to build your organization
+                    </p>
+                    <div className="space-y-2 max-h-64 overflow-y-auto">
+                      {unitLibrary.length === 0 ? (
+                        <p className="text-sm text-white/40 text-center py-4">No units in library. Create units to add them here.</p>
+                      ) : (
+                        unitLibrary.map(unit => (
+                          <DraggableOrgUnit
+                            key={unit.id}
+                            unit={unit}
+                            onEdit={() => {
+                              setEditingUnit(unit);
+                              setShowCreateUnit(true);
+                            }}
+                            onDelete={() => {
+                              setUnitLibrary(prev => prev.filter(u => u.id !== unit.id));
+                            }}
+                          />
+                        ))
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+
               {/* Create Unit Button */}
               <button
                 onClick={() => setShowCreateUnit(true)}
                 className="w-full glass-button py-3 font-medium hover:scale-105 transition-transform flex items-center justify-center gap-2"
               >
                 <Plus size={20} />
-                Create New Unit
+                Add Unit to Library
               </button>
 
               {/* Employees Section */}
@@ -806,6 +1164,18 @@ function OrganizationChart({ isDarkMode }) {
               setEditingUnit(null);
               setParentForNewUnit(null);
             }}
+          />
+        )}
+        
+        {/* Hierarchy Configuration Modal */}
+        {showConfigModal && (
+          <HierarchyConfigModal
+            rules={hierarchyRules}
+            onSave={(newRules) => {
+              setHierarchyRules(newRules);
+              setShowConfigModal(false);
+            }}
+            onClose={() => setShowConfigModal(false)}
           />
         )}
       </div>
@@ -898,6 +1268,94 @@ function CreateUnitModal({ unit, onSave, onClose }) {
             className="px-6 py-2 rounded-xl bg-gradient-to-r from-blue-500 to-blue-600 text-white font-medium hover:scale-105 transition-transform"
           >
             {unit ? 'Update' : 'Create'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Hierarchy Configuration Modal
+function HierarchyConfigModal({ rules, onSave, onClose }) {
+  const [localRules, setLocalRules] = useState(rules);
+
+  const handleToggleRule = (parentType, childType) => {
+    setLocalRules(prev => {
+      const currentAllowed = prev[parentType] || [];
+      const isAllowed = currentAllowed.includes(childType);
+      
+      return {
+        ...prev,
+        [parentType]: isAllowed 
+          ? currentAllowed.filter(t => t !== childType)
+          : [...currentAllowed, childType]
+      };
+    });
+  };
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    onSave(localRules);
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+      <div className="glass-card-large w-full max-w-4xl max-h-[80vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+        <div className="p-6 border-b border-white/20">
+          <h2 className="text-xl font-bold text-white">
+            Configure Hierarchy Rules
+          </h2>
+          <p className="text-sm text-white/60 mt-2">
+            Define which unit types can be placed under each parent type
+          </p>
+        </div>
+        
+        <div className="p-6">
+          <div className="space-y-6">
+            {UNIT_TYPES.map(parentType => (
+              <div key={parentType.value} className="border border-white/10 rounded-lg p-4">
+                <h3 className="font-semibold text-white mb-3 flex items-center gap-2">
+                  <parentType.icon size={18} />
+                  {parentType.label} can contain:
+                </h3>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                  {UNIT_TYPES.map(childType => {
+                    const isAllowed = (localRules[parentType.value] || []).includes(childType.value);
+                    return (
+                      <label
+                        key={childType.value}
+                        className="flex items-center gap-2 cursor-pointer"
+                      >
+                        <input
+                          type="checkbox"
+                          checked={isAllowed}
+                          onChange={() => handleToggleRule(parentType.value, childType.value)}
+                          className="rounded border-white/30 bg-white/10 text-blue-500 focus:ring-blue-500"
+                        />
+                        <span className={`text-sm ${isAllowed ? 'text-white' : 'text-white/50'}`}>
+                          {childType.label}
+                        </span>
+                      </label>
+                    );
+                  })}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+        
+        <div className="p-6 border-t border-white/20 flex justify-end gap-3">
+          <button
+            onClick={onClose}
+            className="px-6 py-2 rounded-xl border bg-red-900/80 hover:bg-red-800 border-red-700/50 text-white font-medium transition-all"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={handleSubmit}
+            className="px-6 py-2 rounded-xl bg-gradient-to-r from-blue-500 to-blue-600 text-white font-medium hover:scale-105 transition-transform"
+          >
+            Save Rules
           </button>
         </div>
       </div>
