@@ -953,11 +953,11 @@ function OrganizationChart({ isDarkMode }) {
           </div>
         </div>
 
-        <div className="flex-1 flex min-h-0">
-          {/* Main Org Chart Area */}
-          <div className={`flex-1 flex flex-col ${showSidebar ? 'p-6' : 'p-4'} min-w-0 transition-all`}>
-            <div className="flex-1 glass-card-large p-4 flex flex-col min-h-0">
-              <div className="flex items-center justify-between mb-4 flex-shrink-0">
+        <div className="flex-1 flex min-h-0 overflow-hidden relative">
+          {/* Main Org Chart Area - Absolutely positioned to prevent expansion */}
+          <div className={`absolute inset-0 ${showSidebar ? 'right-96' : 'right-0'} flex flex-col p-4 transition-all`}>
+            <div className="flex-1 glass-card-large p-4 flex flex-col overflow-hidden">
+              <div className="flex items-center justify-between mb-4 flex-shrink-0 flex-wrap gap-2">
                 <div className="flex items-center gap-3">
                   <button
                     onClick={() => setShowSidebar(!showSidebar)}
@@ -966,9 +966,9 @@ function OrganizationChart({ isDarkMode }) {
                   >
                     {showSidebar ? <ChevronRight size={20} className="text-white/70" /> : <Menu size={20} className="text-white/70" />}
                   </button>
-                  <h2 className="text-lg font-semibold text-white">Organization Structure</h2>
+                  <h2 className="text-base md:text-lg font-semibold text-white">Organization Structure</h2>
                 </div>
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2 md:gap-3">
                   {/* Zoom Controls */}
                   <div className="flex items-center gap-2 bg-black/40 rounded-lg p-1">
                     <button
@@ -996,7 +996,7 @@ function OrganizationChart({ isDarkMode }) {
                         if (scrollContainer) {
                           scrollContainer.scrollTo({
                             top: 0,
-                            left: (scrollContainer.scrollWidth - scrollContainer.clientWidth) / 2,
+                            left: 0,
                             behavior: 'smooth'
                           });
                         }
@@ -1024,7 +1024,7 @@ function OrganizationChart({ isDarkMode }) {
               
               {/* Scrollable chart container with custom scrollbar */}
               <div 
-                className="flex-1 overflow-auto rounded-lg border border-white/10 bg-black/20 relative org-chart-scroll"
+                className="flex-1 min-h-0 overflow-auto rounded-lg border border-white/10 bg-black/20 relative org-chart-scroll"
                 style={{
                   scrollbarWidth: 'thin',
                   scrollbarColor: 'rgba(255, 255, 255, 0.3) rgba(255, 255, 255, 0.1)'
@@ -1057,16 +1057,16 @@ function OrganizationChart({ isDarkMode }) {
                   </RootDropZone>
                 ) : (
                   <div 
-                    className="p-8" 
+                    className="p-8 inline-block" 
                     style={{ 
-                      minWidth: 'max-content', 
                       minHeight: '400px',
                       transform: `scale(${chartZoom})`,
-                      transformOrigin: 'top center',
-                      transition: 'transform 0.2s ease'
+                      transformOrigin: 'top left',
+                      transition: 'transform 0.2s ease',
+                      width: 'max-content'
                     }}
                   >
-                    <div className="flex justify-center">
+                    <div className="flex justify-center" style={{ width: 'max-content' }}>
                       <Tree
                         lineWidth="2px"
                         lineColor="rgba(255,255,255,0.2)"
@@ -1093,9 +1093,9 @@ function OrganizationChart({ isDarkMode }) {
             </div>
           </div>
 
-          {/* Right Sidebar - collapsible and responsive */}
+          {/* Right Sidebar - absolutely positioned to stay in place */}
           {showSidebar && (
-            <div className="w-full md:w-80 lg:w-96 flex-shrink-0 border-l border-white/10 p-4 md:p-6 overflow-y-auto transition-all">
+            <div className="absolute right-0 top-0 bottom-0 w-96 border-l border-white/10 p-4 md:p-6 overflow-y-auto bg-[#1a1a1a] transition-all">
             <div className="space-y-6">
               {/* Search and Filter */}
               <div className="space-y-3">
