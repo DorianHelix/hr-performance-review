@@ -1,7 +1,6 @@
 // Global Test Configuration - Database-backed test types and platforms for both Experiment and Creative Performance
 import experimentApi from '../api/experimentClient.js';
 import { mockTestTypes, mockPlatforms } from '../api/mockData.js';
-import { syncManager, SYNC_EVENTS } from './syncManager.js';
 
 // Cache for test types and platforms to avoid excessive API calls
 let testTypesCache = null;
@@ -20,13 +19,25 @@ export async function initializeGlobalTestConfig() {
     await refreshCache();
     return true;
   } catch (error) {
-    console.error('Failed to initialize from database, using mock data:', error);
-    // Use mock data as fallback
-    testTypesCache = mockTestTypes;
-    platformsCache = mockPlatforms;
-    // Save to localStorage for offline use
-    localStorage.setItem(GLOBAL_TEST_TYPES_KEY, JSON.stringify(mockTestTypes));
-    localStorage.setItem(GLOBAL_PLATFORMS_KEY, JSON.stringify(mockPlatforms));
+    console.error('Failed to initialize from database, using localStorage:', error);
+    
+    // Try to load from localStorage first
+    const storedTypes = localStorage.getItem(GLOBAL_TEST_TYPES_KEY);
+    const storedPlatforms = localStorage.getItem(GLOBAL_PLATFORMS_KEY);
+    
+    if (storedTypes && storedPlatforms) {
+      // Use stored data
+      testTypesCache = JSON.parse(storedTypes);
+      platformsCache = JSON.parse(storedPlatforms);
+    } else {
+      // Use mock data as last resort
+      testTypesCache = mockTestTypes;
+      platformsCache = mockPlatforms;
+      // Save to localStorage for next time
+      localStorage.setItem(GLOBAL_TEST_TYPES_KEY, JSON.stringify(mockTestTypes));
+      localStorage.setItem(GLOBAL_PLATFORMS_KEY, JSON.stringify(mockPlatforms));
+    }
+    
     return false;
   }
 }
@@ -148,11 +159,6 @@ export async function saveGlobalTestTypes(testTypes) {
     // Refresh cache
     await refreshCache();
     
-    // Trigger sync event - but avoid circular reference
-    if (typeof syncManager !== 'undefined' && syncManager.trigger) {
-      syncManager.trigger(SYNC_EVENTS.TEST_TYPE_CHANGED);
-    }
-    
     return true;
   } catch (error) {
     console.error('Error saving test types to database:', error);
@@ -160,12 +166,7 @@ export async function saveGlobalTestTypes(testTypes) {
     localStorage.setItem(GLOBAL_TEST_TYPES_KEY, JSON.stringify(testTypes));
     testTypesCache = testTypes;
     
-    // Still trigger sync for localStorage update
-    if (typeof syncManager !== 'undefined' && syncManager.trigger) {
-      syncManager.trigger(SYNC_EVENTS.TEST_TYPE_CHANGED);
-    }
-    
-    return false;
+    return true; // Return true since we saved to localStorage
   }
 }
 
@@ -195,11 +196,6 @@ export async function saveGlobalPlatforms(platforms) {
     // Refresh cache
     await refreshCache();
     
-    // Trigger sync event
-    if (typeof syncManager !== 'undefined' && syncManager.trigger) {
-      syncManager.trigger(SYNC_EVENTS.PLATFORM_CHANGED);
-    }
-    
     return true;
   } catch (error) {
     console.error('Error saving platforms to database:', error);
@@ -207,12 +203,7 @@ export async function saveGlobalPlatforms(platforms) {
     localStorage.setItem(GLOBAL_PLATFORMS_KEY, JSON.stringify(platforms));
     platformsCache = platforms;
     
-    // Still trigger sync for localStorage update
-    if (typeof syncManager !== 'undefined' && syncManager.trigger) {
-      syncManager.trigger(SYNC_EVENTS.PLATFORM_CHANGED);
-    }
-    
-    return false;
+    return true; // Return true since we saved to localStorage
   }
 }
 

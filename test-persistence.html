@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Data Persistence</title>
+    <style>
+        body {
+            background: #111;
+            color: #fff;
+            font-family: monospace;
+            padding: 20px;
+        }
+        button {
+            background: #333;
+            color: #fff;
+            border: 1px solid #666;
+            padding: 10px 20px;
+            margin: 5px;
+            cursor: pointer;
+        }
+        button:hover {
+            background: #444;
+        }
+        .data {
+            background: #222;
+            padding: 10px;
+            margin: 10px 0;
+            border: 1px solid #444;
+            border-radius: 5px;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        pre {
+            margin: 0;
+        }
+    </style>
+</head>
+<body>
+    <h1>Test Data Persistence</h1>
+    
+    <button onclick="showTestTypes()">Show Test Types</button>
+    <button onclick="showPlatforms()">Show Platforms</button>
+    <button onclick="addTestType()">Add Test Type</button>
+    <button onclick="addPlatform()">Add Platform</button>
+    <button onclick="clearAll()">Clear All Data</button>
+    
+    <div class="data" id="testTypes">
+        <h3>Test Types:</h3>
+        <pre id="testTypesData"></pre>
+    </div>
+    
+    <div class="data" id="platforms">
+        <h3>Platforms:</h3>
+        <pre id="platformsData"></pre>
+    </div>
+    
+    <script>
+        function showTestTypes() {
+            const data = localStorage.getItem('global_test_types');
+            const parsed = data ? JSON.parse(data) : null;
+            document.getElementById('testTypesData').textContent = 
+                parsed ? JSON.stringify(parsed, null, 2) : 'No test types found';
+        }
+        
+        function showPlatforms() {
+            const data = localStorage.getItem('global_platforms');
+            const parsed = data ? JSON.parse(data) : null;
+            document.getElementById('platformsData').textContent = 
+                parsed ? JSON.stringify(parsed, null, 2) : 'No platforms found';
+        }
+        
+        function addTestType() {
+            const testTypes = JSON.parse(localStorage.getItem('global_test_types') || '[]');
+            const newType = {
+                id: 'test-' + Date.now(),
+                name: 'Test Type ' + (testTypes.length + 1),
+                shortName: 'TT' + (testTypes.length + 1),
+                short_name: 'TT' + (testTypes.length + 1),
+                color: '#FF0000',
+                description: 'Test type created from test page',
+                icon_name: 'Target',
+                iconName: 'Target',
+                display_order: testTypes.length + 1,
+                allowed_platforms: []
+            };
+            testTypes.push(newType);
+            localStorage.setItem('global_test_types', JSON.stringify(testTypes));
+            showTestTypes();
+            alert('Test type added! Refresh your app to see it.');
+        }
+        
+        function addPlatform() {
+            const platforms = JSON.parse(localStorage.getItem('global_platforms') || '[]');
+            const newPlatform = {
+                id: 'platform-' + Date.now(),
+                name: 'Platform ' + (platforms.length + 1),
+                description: 'Platform created from test page',
+                icon_name: 'Globe',
+                iconName: 'Globe',
+                color: 'green',
+                display_order: platforms.length + 1
+            };
+            platforms.push(newPlatform);
+            localStorage.setItem('global_platforms', JSON.stringify(platforms));
+            showPlatforms();
+            alert('Platform added! Refresh your app to see it.');
+        }
+        
+        function clearAll() {
+            if (confirm('This will clear all test types and platforms. Are you sure?')) {
+                localStorage.removeItem('global_test_types');
+                localStorage.removeItem('global_platforms');
+                showTestTypes();
+                showPlatforms();
+                alert('Data cleared! Refresh your app to reset.');
+            }
+        }
+        
+        // Show data on load
+        showTestTypes();
+        showPlatforms();
+    </script>
+</body>
+</html>

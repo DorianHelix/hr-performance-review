@@ -87,7 +87,7 @@ function Experiment() {
     return globalTypes.map(t => ({
       id: t.id,
       name: t.name,
-      shortName: t.shortName,
+      shortName: t.shortName || t.short_name,
       color: t.color
     }));
   });
@@ -104,6 +104,38 @@ function Experiment() {
                    FacebookIcon // fallback
     }));
   });
+  
+  // Refresh data when component mounts or focus changes
+  useEffect(() => {
+    const refreshData = () => {
+      const globalTypes = getGlobalTestTypes();
+      setTestTypes(globalTypes.map(t => ({
+        id: t.id,
+        name: t.name,
+        shortName: t.shortName || t.short_name,
+        color: t.color
+      })));
+      
+      const globalPlatforms = getGlobalPlatforms();
+      setPlatforms(globalPlatforms.map(p => ({
+        id: p.id,
+        name: p.name,
+        iconComponent: p.id === 'meta' ? FacebookIcon : 
+                     p.id === 'google' ? GoogleIcon : 
+                     p.id === 'tiktok' ? TikTokIcon : 
+                     FacebookIcon
+      })));
+    };
+    
+    // Refresh on mount
+    refreshData();
+    
+    // Refresh when window gets focus (user switches tabs back)
+    const handleFocus = () => refreshData();
+    window.addEventListener('focus', handleFocus);
+    
+    return () => window.removeEventListener('focus', handleFocus);
+  }, []);
 
   const [products, setProducts] = useState([]);
   const [showConfigModal, setShowConfigModal] = useState(false);
@@ -1732,13 +1764,23 @@ function ConfigModal({ testTypes, setTestTypes, platforms, setPlatforms, onClose
       setTestTypes(updatedTypes);
       
       // Save to global configuration (database/localStorage)
-      await saveGlobalTestTypes(updatedTypes.map(t => ({
-        ...t,
-        allowed_platforms: t.allowedPlatforms?.map(p => ({ platform_id: p, is_default: true }))
-      })));
+      const typesToSave = updatedTypes.map(t => ({
+        id: t.id,
+        name: t.name,
+        shortName: t.shortName,
+        short_name: t.shortName,
+        color: t.color,
+        description: t.description || `${t.name} testing`,
+        icon_name: t.iconName || 'Target',
+        iconName: t.iconName || 'Target',
+        display_order: t.order || updatedTypes.indexOf(t) + 1,
+        allowed_platforms: t.allowedPlatforms?.map(p => ({ platform_id: p, is_default: true })) || []
+      }));
       
-      // Force refresh to sync all components
-      await forceRefreshFromDatabase();
+      await saveGlobalTestTypes(typesToSave);
+      
+      // Don't refresh from storage, trust what we just saved
+      // This ensures the new data persists
       
       setNewType({ name: '', shortName: '', color: '#60A5FA' });
     }
@@ -1793,17 +1835,20 @@ function ConfigModal({ testTypes, setTestTypes, platforms, setPlatforms, onClose
       setPlatforms(updatedPlatforms);
       
       // Save to global configuration (database/localStorage)
-      await saveGlobalPlatforms(updatedPlatforms.map(p => ({
+      const platformsToSave = updatedPlatforms.map(p => ({
         id: p.id,
         name: p.name,
         description: p.description || `${p.name} Ads`,
         icon_name: p.icon_name || p.iconName || p.name,
+        iconName: p.icon_name || p.iconName || p.name,
         color: p.color || 'blue',
-        display_order: p.display_order || p.order || 1
-      })));
+        display_order: p.display_order || p.order || updatedPlatforms.indexOf(p) + 1
+      }));
       
-      // Force refresh to sync all components
-      await forceRefreshFromDatabase();
+      await saveGlobalPlatforms(platformsToSave);
+      
+      // Don't refresh from storage, trust what we just saved
+      // This ensures the new data persists
       
       setNewPlatform({ name: '', icon: '' });
     }

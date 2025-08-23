@@ -2,7 +2,7 @@
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
-import experimentApi from './api/experimentApi.js';
+import experimentApi from './database/sqlite-db.js';
 
 dotenv.config();
 
@@ -19,9 +19,9 @@ app.get('/api/health', (req, res) => {
 });
 
 // Test Types endpoints
-app.get('/api/test-types', async (req, res) => {
+app.get('/api/test-types', (req, res) => {
   try {
-    const testTypes = await experimentApi.testTypes.getAll();
+    const testTypes = experimentApi.testTypes.getAll();
     res.json(testTypes);
   } catch (error) {
     console.error('Error fetching test types:', error);
@@ -29,9 +29,9 @@ app.get('/api/test-types', async (req, res) => {
   }
 });
 
-app.get('/api/test-types/:id', async (req, res) => {
+app.get('/api/test-types/:id', (req, res) => {
   try {
-    const testType = await experimentApi.testTypes.getById(req.params.id);
+    const testType = experimentApi.testTypes.getById(req.params.id);
     if (!testType) {
       return res.status(404).json({ error: 'Test type not found' });
     }
@@ -42,9 +42,9 @@ app.get('/api/test-types/:id', async (req, res) => {
   }
 });
 
-app.post('/api/test-types', async (req, res) => {
+app.post('/api/test-types', (req, res) => {
   try {
-    const testType = await experimentApi.testTypes.create(req.body);
+    const testType = experimentApi.testTypes.create(req.body);
     res.status(201).json(testType);
   } catch (error) {
     console.error('Error creating test type:', error);
@@ -52,9 +52,9 @@ app.post('/api/test-types', async (req, res) => {
   }
 });
 
-app.put('/api/test-types/:id', async (req, res) => {
+app.put('/api/test-types/:id', (req, res) => {
   try {
-    const testType = await experimentApi.testTypes.update(req.params.id, req.body);
+    const testType = experimentApi.testTypes.update(req.params.id, req.body);
     if (!testType) {
       return res.status(404).json({ error: 'Test type not found' });
     }
@@ -65,9 +65,9 @@ app.put('/api/test-types/:id', async (req, res) => {
   }
 });
 
-app.delete('/api/test-types/:id', async (req, res) => {
+app.delete('/api/test-types/:id', (req, res) => {
   try {
-    const testType = await experimentApi.testTypes.delete(req.params.id);
+    const testType = experimentApi.testTypes.delete(req.params.id);
     if (!testType) {
       return res.status(404).json({ error: 'Test type not found' });
     }
@@ -79,9 +79,9 @@ app.delete('/api/test-types/:id', async (req, res) => {
 });
 
 // Platforms endpoints
-app.get('/api/platforms', async (req, res) => {
+app.get('/api/platforms', (req, res) => {
   try {
-    const platforms = await experimentApi.platforms.getAll();
+    const platforms = experimentApi.platforms.getAll();
     res.json(platforms);
   } catch (error) {
     console.error('Error fetching platforms:', error);
@@ -89,9 +89,9 @@ app.get('/api/platforms', async (req, res) => {
   }
 });
 
-app.get('/api/platforms/:id', async (req, res) => {
+app.get('/api/platforms/:id', (req, res) => {
   try {
-    const platform = await experimentApi.platforms.getById(req.params.id);
+    const platform = experimentApi.platforms.getById(req.params.id);
     if (!platform) {
       return res.status(404).json({ error: 'Platform not found' });
     }
@@ -102,9 +102,9 @@ app.get('/api/platforms/:id', async (req, res) => {
   }
 });
 
-app.post('/api/platforms', async (req, res) => {
+app.post('/api/platforms', (req, res) => {
   try {
-    const platform = await experimentApi.platforms.create(req.body);
+    const platform = experimentApi.platforms.create(req.body);
     res.status(201).json(platform);
   } catch (error) {
     console.error('Error creating platform:', error);
@@ -112,9 +112,9 @@ app.post('/api/platforms', async (req, res) => {
   }
 });
 
-app.put('/api/platforms/:id', async (req, res) => {
+app.put('/api/platforms/:id', (req, res) => {
   try {
-    const platform = await experimentApi.platforms.update(req.params.id, req.body);
+    const platform = experimentApi.platforms.update(req.params.id, req.body);
     if (!platform) {
       return res.status(404).json({ error: 'Platform not found' });
     }
@@ -125,9 +125,9 @@ app.put('/api/platforms/:id', async (req, res) => {
   }
 });
 
-app.delete('/api/platforms/:id', async (req, res) => {
+app.delete('/api/platforms/:id', (req, res) => {
   try {
-    const platform = await experimentApi.platforms.delete(req.params.id);
+    const platform = experimentApi.platforms.delete(req.params.id);
     if (!platform) {
       return res.status(404).json({ error: 'Platform not found' });
     }

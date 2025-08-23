@@ -11,8 +11,7 @@ import {
   getGlobalTestTypes,
   getGlobalPlatforms,
   saveGlobalTestTypes,
-  deleteGlobalTestType,
-  forceRefreshFromDatabase
+  deleteGlobalTestType
 } from '../../utils/globalTestConfig';
 import { getIcon } from './utils';
 
@@ -105,7 +104,22 @@ function TestTypesModal({ onClose, onUpdate }) {
     }));
     
     await saveGlobalTestTypes(globalFormat);
-    await forceRefreshFromDatabase();
+    
+    // Refresh the list from storage
+    const refreshedTypes = getGlobalTestTypes();
+    setTestTypes(refreshedTypes.map(t => ({
+      id: t.id,
+      key: t.key || t.shortName,
+      name: t.name,
+      short: t.shortName || t.short_name,
+      description: t.description,
+      iconName: t.iconName || t.icon_name || 'Target',
+      color: t.color || 'blue',
+      allowedPlatforms: t.allowed_platforms ? 
+        t.allowed_platforms.map(ap => ap.platform_id || ap) : 
+        (t.allowedPlatforms || []),
+      order: t.display_order || t.order || 1
+    })));
     
     setNewTest({
       name: '',
@@ -146,8 +160,6 @@ function TestTypesModal({ onClose, onUpdate }) {
       setTestTypes(updated);
       setShowDeleteConfirm(null);
       
-      // Force refresh to sync
-      await forceRefreshFromDatabase();
       
       if (onUpdate) onUpdate(updated);
     }

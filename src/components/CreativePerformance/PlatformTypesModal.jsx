@@ -6,11 +6,69 @@ import {
   deletePlatformType,
   getTestTypes
 } from '../../utils/creativeDataModel';
+import {
+  getGlobalPlatforms,
+  getGlobalTestTypes,
+  saveGlobalPlatforms,
+  deleteGlobalPlatform
+} from '../../utils/globalTestConfig';
 import { getIcon } from './utils';
 
 function PlatformTypesModal({ onClose }) {
-  const [platformTypes, setPlatformTypes] = useState(() => getPlatformTypes());
-  const [testTypes, setTestTypes] = useState(() => getTestTypes());
+  // Use global configuration
+  const [platformTypes, setPlatformTypes] = useState(() => {
+    const globalPlatforms = getGlobalPlatforms();
+    return globalPlatforms.map(p => ({
+      id: p.id,
+      name: p.name,
+      description: p.description,
+      iconName: p.iconName || p.icon_name || 'Globe',
+      color: p.color || 'blue',
+      order: p.display_order || p.order || 1
+    }));
+  });
+  
+  const [testTypes, setTestTypes] = useState(() => {
+    const globalTypes = getGlobalTestTypes();
+    return globalTypes.map(t => ({
+      ...t,
+      allowedPlatforms: t.allowed_platforms ? 
+        t.allowed_platforms.map(ap => ap.platform_id || ap) : 
+        (t.allowedPlatforms || [])
+    }));
+  });
+  
+  // Refresh data when component mounts or window gets focus
+  useEffect(() => {
+    const refreshData = () => {
+      const globalPlatforms = getGlobalPlatforms();
+      setPlatformTypes(globalPlatforms.map(p => ({
+        id: p.id,
+        name: p.name,
+        description: p.description,
+        iconName: p.iconName || p.icon_name || 'Globe',
+        color: p.color || 'blue',
+        order: p.display_order || p.order || 1
+      })));
+      
+      const globalTypes = getGlobalTestTypes();
+      setTestTypes(globalTypes.map(t => ({
+        ...t,
+        allowedPlatforms: t.allowed_platforms ? 
+          t.allowed_platforms.map(ap => ap.platform_id || ap) : 
+          (t.allowedPlatforms || [])
+      })));
+    };
+    
+    // Refresh on mount
+    refreshData();
+    
+    // Refresh when window gets focus
+    const handleFocus = () => refreshData();
+    window.addEventListener('focus', handleFocus);
+    
+    return () => window.removeEventListener('focus', handleFocus);
+  }, []);
   const [editingId, setEditingId] = useState(null);
   const [newPlatform, setNewPlatform] = useState({
     name: '',
@@ -30,21 +88,46 @@ function PlatformTypesModal({ onClose }) {
     'orange', 'yellow', 'gray', 'indigo', 'teal'
   ];
 
-  const handleAdd = () => {
+  const handleAdd = async () => {
     if (!newPlatform.name) return;
     
     const platform = {
       id: newPlatform.name.toLowerCase().replace(/\s+/g, '-'),
       name: newPlatform.name,
-      description: newPlatform.description,
+      description: newPlatform.description || `${newPlatform.name} Ads`,
       iconName: newPlatform.iconName,
+      icon_name: newPlatform.iconName,
       color: newPlatform.color,
+      display_order: platformTypes.length + 1,
       order: platformTypes.length + 1
     };
     
     const updated = [...platformTypes, platform];
     setPlatformTypes(updated);
-    savePlatformTypes(updated);
+    
+    // Save to global configuration
+    const globalFormat = updated.map(p => ({
+      id: p.id,
+      name: p.name,
+      description: p.description,
+      icon_name: p.iconName || p.icon_name,
+      iconName: p.iconName || p.icon_name,
+      color: p.color,
+      display_order: p.order || p.display_order || 1
+    }));
+    
+    await saveGlobalPlatforms(globalFormat);
+    
+    // Refresh the list from storage
+    const refreshedPlatforms = getGlobalPlatforms();
+    setPlatformTypes(refreshedPlatforms.map(p => ({
+      id: p.id,
+      name: p.name,
+      description: p.description,
+      iconName: p.iconName || p.icon_name || 'Globe',
+      color: p.color || 'blue',
+      order: p.display_order || p.order || 1
+    })));
     
     setNewPlatform({
       name: '',
@@ -54,12 +137,24 @@ function PlatformTypesModal({ onClose }) {
     });
   };
 
-  const handleUpdate = (id, updates) => {
+  const handleUpdate = async (id, updates) => {
     const updated = platformTypes.map(p => 
       p.id === id ? { ...p, ...updates } : p
     );
     setPlatformTypes(updated);
-    savePlatformTypes(updated);
+    
+    // Save to global configuration
+    const globalFormat = updated.map(p => ({
+      id: p.id,
+      name: p.name,
+      description: p.description,
+      icon_name: p.iconName || p.icon_name,
+      iconName: p.iconName || p.icon_name,
+      color: p.color,
+      display_order: p.order || p.display_order || 1
+    }));
+    
+    await saveGlobalPlatforms(globalFormat);
     setEditingId(null);
   };
 
@@ -81,11 +176,26 @@ function PlatformTypesModal({ onClose }) {
     }
   };
 
-  const confirmDelete = () => {
+  const confirmDelete = async () => {
     if (showDeleteConfirm) {
-      deletePlatformType(showDeleteConfirm.id);
-      setPlatformTypes(platformTypes.filter(p => p.id !== showDeleteConfirm.id));
+      // Delete from global configuration
+      await deleteGlobalPlatform(showDeleteConfirm.id);
+      
+      // Update local state
+      const updated = platformTypes.filter(p => p.id !== showDeleteConfirm.id);
+      setPlatformTypes(updated);
       setShowDeleteConfirm(null);
+      
+      // Refresh the list from storage
+      const refreshedPlatforms = getGlobalPlatforms();
+      setPlatformTypes(refreshedPlatforms.map(p => ({
+        id: p.id,
+        name: p.name,
+        description: p.description,
+        iconName: p.iconName || p.icon_name || 'Globe',
+        color: p.color || 'blue',
+        order: p.display_order || p.order || 1
+      })));
     }
   };
 
