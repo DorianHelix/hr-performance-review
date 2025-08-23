@@ -38,6 +38,7 @@ const LS_ORG_STRUCTURE = "hr_org_structure";
 const LS_EMPLOYEES = "hr_weekly_employees";
 const LS_UNIT_LIBRARY = "hr_unit_library";
 const LS_HIERARCHY_RULES = "hr_hierarchy_rules";
+const LS_UNIT_TYPES = "hr_unit_types";
 
 // Default hierarchy rules - what can be placed under what
 const DEFAULT_HIERARCHY_RULES = {
@@ -51,17 +52,30 @@ const DEFAULT_HIERARCHY_RULES = {
   'tribe': ['squad', 'team']
 };
 
-// Unit types available
-const UNIT_TYPES = [
-  { value: 'executive', label: 'Executive', icon: Building2 },
-  { value: 'management', label: 'Management', icon: Briefcase },
-  { value: 'division', label: 'Division', icon: Layers },
-  { value: 'department', label: 'Department', icon: Building2 },
-  { value: 'tribe', label: 'Tribe', icon: Network },
-  { value: 'squad', label: 'Squad', icon: Users },
-  { value: 'team', label: 'Team', icon: Users },
-  { value: 'pod', label: 'Pod', icon: Package }
+// Default unit types
+const DEFAULT_UNIT_TYPES = [
+  { value: 'executive', label: 'Executive', color: '#8B5CF6', icon: 'Building2' },
+  { value: 'management', label: 'Management', color: '#F59E0B', icon: 'Briefcase' },
+  { value: 'division', label: 'Division', color: '#4F46E5', icon: 'Layers' },
+  { value: 'department', label: 'Department', color: '#10B981', icon: 'Building2' },
+  { value: 'tribe', label: 'Tribe', color: '#EC4899', icon: 'Network' },
+  { value: 'squad', label: 'Squad', color: '#EF4444', icon: 'Users' },
+  { value: 'team', label: 'Team', color: '#06B6D4', icon: 'Users' },
+  { value: 'pod', label: 'Pod', color: '#84CC16', icon: 'Package' }
 ];
+
+// Icon mapping
+const ICON_MAP = {
+  'Building2': Building2,
+  'Briefcase': Briefcase,
+  'Layers': Layers,
+  'Network': Network,
+  'Users': Users,
+  'Package': Package,
+  'GitBranch': GitBranch,
+  'Minimize2': Minimize2,
+  'Maximize2': Maximize2
+};
 
 // Organizational Templates
 const ORG_TEMPLATES = {
@@ -346,8 +360,12 @@ function OrgChartNode({ node, employees, onDrop, onEdit, onDelete, onAddChild, l
     switch(node.type) {
       case 'executive': return <Building2 size={20} />;
       case 'management': return <Briefcase size={20} />;
+      case 'division': return <Layers size={20} />;
+      case 'department': return <Building2 size={20} />;
+      case 'tribe': return <Network size={20} />;
+      case 'squad': return <Users size={20} />;
       case 'team': return <Users size={20} />;
-      case 'department': return <Layers size={20} />;
+      case 'pod': return <Package size={20} />;
       default: return <Network size={20} />;
     }
   };
@@ -546,6 +564,9 @@ function OrganizationChart({ isDarkMode }) {
   const [hierarchyRules, setHierarchyRules] = useState(() => 
     lsRead(LS_HIERARCHY_RULES, DEFAULT_HIERARCHY_RULES)
   );
+  const [unitTypes, setUnitTypes] = useState(() => 
+    lsRead(LS_UNIT_TYPES, DEFAULT_UNIT_TYPES)
+  );
   const [showConfigModal, setShowConfigModal] = useState(false);
 
   // Save to localStorage
@@ -560,6 +581,10 @@ function OrganizationChart({ isDarkMode }) {
   useEffect(() => {
     lsWrite(LS_HIERARCHY_RULES, hierarchyRules);
   }, [hierarchyRules]);
+  
+  useEffect(() => {
+    lsWrite(LS_UNIT_TYPES, unitTypes);
+  }, [unitTypes]);
   
   // Extract all units from the structure for display
   useEffect(() => {
@@ -1065,11 +1090,13 @@ function OrganizationChart({ isDarkMode }) {
                     <button
                       onClick={() => {
                         setHierarchyRules(DEFAULT_HIERARCHY_RULES);
+                        setUnitTypes(DEFAULT_UNIT_TYPES);
                         lsWrite(LS_HIERARCHY_RULES, DEFAULT_HIERARCHY_RULES);
+                        lsWrite(LS_UNIT_TYPES, DEFAULT_UNIT_TYPES);
                       }}
                       className="w-full px-3 py-2 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 text-sm text-white"
                     >
-                      Reset to Defaults
+                      Reset All to Defaults
                     </button>
                   </div>
                 )}
@@ -1116,14 +1143,82 @@ function OrganizationChart({ isDarkMode }) {
                 )}
               </div>
 
-              {/* Create Unit Button */}
-              <button
-                onClick={() => setShowCreateUnit(true)}
-                className="w-full glass-button py-3 font-medium hover:scale-105 transition-transform flex items-center justify-center gap-2"
-              >
-                <Plus size={20} />
-                Add Unit to Library
-              </button>
+              {/* Quick Create Buttons */}
+              <div className="glass-card p-4">
+                <h3 className="font-semibold text-white mb-3 flex items-center gap-2">
+                  <Plus size={18} />
+                  Quick Create
+                </h3>
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    onClick={() => {
+                      const newUnit = {
+                        id: `division-${uid()}`,
+                        name: `Division ${unitLibrary.filter(u => u.type === 'division').length + 1}`,
+                        type: 'division',
+                        color: '#4F46E5',
+                        children: []
+                      };
+                      setUnitLibrary(prev => [...prev, newUnit]);
+                    }}
+                    className="px-3 py-2 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 text-xs text-white"
+                  >
+                    + Division
+                  </button>
+                  <button
+                    onClick={() => {
+                      const newUnit = {
+                        id: `department-${uid()}`,
+                        name: `Department ${unitLibrary.filter(u => u.type === 'department').length + 1}`,
+                        type: 'department',
+                        color: '#10B981',
+                        children: []
+                      };
+                      setUnitLibrary(prev => [...prev, newUnit]);
+                    }}
+                    className="px-3 py-2 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 text-xs text-white"
+                  >
+                    + Department
+                  </button>
+                  <button
+                    onClick={() => {
+                      const newUnit = {
+                        id: `team-${uid()}`,
+                        name: `Team ${unitLibrary.filter(u => u.type === 'team').length + 1}`,
+                        type: 'team',
+                        color: '#8B5CF6',
+                        children: []
+                      };
+                      setUnitLibrary(prev => [...prev, newUnit]);
+                    }}
+                    className="px-3 py-2 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 text-xs text-white"
+                  >
+                    + Team
+                  </button>
+                  <button
+                    onClick={() => {
+                      const newUnit = {
+                        id: `squad-${uid()}`,
+                        name: `Squad ${unitLibrary.filter(u => u.type === 'squad').length + 1}`,
+                        type: 'squad',
+                        color: '#EC4899',
+                        children: []
+                      };
+                      setUnitLibrary(prev => [...prev, newUnit]);
+                    }}
+                    className="px-3 py-2 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 text-xs text-white"
+                  >
+                    + Squad
+                  </button>
+                </div>
+                <button
+                  onClick={() => setShowCreateUnit(true)}
+                  className="w-full mt-3 glass-button py-2 font-medium hover:scale-105 transition-transform flex items-center justify-center gap-2 text-sm"
+                >
+                  <Settings2 size={16} />
+                  Custom Unit
+                </button>
+              </div>
 
               {/* Employees Section */}
               <div className="glass-card p-4">
@@ -1158,6 +1253,7 @@ function OrganizationChart({ isDarkMode }) {
         {showCreateUnit && (
           <CreateUnitModal
             unit={editingUnit}
+            unitTypes={unitTypes}
             onSave={saveUnit}
             onClose={() => {
               setShowCreateUnit(false);
@@ -1171,8 +1267,10 @@ function OrganizationChart({ isDarkMode }) {
         {showConfigModal && (
           <HierarchyConfigModal
             rules={hierarchyRules}
-            onSave={(newRules) => {
+            unitTypes={unitTypes}
+            onSave={(newRules, newTypes) => {
               setHierarchyRules(newRules);
+              if (newTypes) setUnitTypes(newTypes);
               setShowConfigModal(false);
             }}
             onClose={() => setShowConfigModal(false)}
@@ -1184,10 +1282,10 @@ function OrganizationChart({ isDarkMode }) {
 }
 
 // Create/Edit Unit Modal
-function CreateUnitModal({ unit, onSave, onClose }) {
+function CreateUnitModal({ unit, unitTypes, onSave, onClose }) {
   const [formData, setFormData] = useState({
     name: unit?.name || '',
-    type: unit?.type || 'department',
+    type: unit?.type || 'division',
     color: unit?.color || '#4F46E5'
   });
 
@@ -1229,10 +1327,11 @@ function CreateUnitModal({ unit, onSave, onClose }) {
               onChange={(e) => setFormData({...formData, type: e.target.value})}
               className="w-full glass-input px-4 py-2 rounded-lg"
             >
-              <option value="executive">Executive</option>
-              <option value="management">Management</option>
-              <option value="department">Department</option>
-              <option value="team">Team</option>
+              {unitTypes.map(unitType => (
+                <option key={unitType.value} value={unitType.value}>
+                  {unitType.label}
+                </option>
+              ))}
             </select>
           </div>
           
@@ -1276,8 +1375,12 @@ function CreateUnitModal({ unit, onSave, onClose }) {
 }
 
 // Hierarchy Configuration Modal
-function HierarchyConfigModal({ rules, onSave, onClose }) {
+function HierarchyConfigModal({ rules, unitTypes, onSave, onClose }) {
   const [localRules, setLocalRules] = useState(rules);
+  const [localTypes, setLocalTypes] = useState(unitTypes);
+  const [activeTab, setActiveTab] = useState('types'); // 'types' or 'rules'
+  const [editingType, setEditingType] = useState(null);
+  const [newType, setNewType] = useState({ value: '', label: '', color: '#4F46E5', icon: 'Building2' });
 
   const handleToggleRule = (parentType, childType) => {
     setLocalRules(prev => {
@@ -1292,56 +1395,223 @@ function HierarchyConfigModal({ rules, onSave, onClose }) {
       };
     });
   };
+  
+  const handleAddType = () => {
+    if (!newType.label) {
+      alert('Please enter a type name');
+      return;
+    }
+    
+    const typeValue = newType.label.toLowerCase().replace(/\s+/g, '_');
+    const exists = localTypes.some(t => t.value === typeValue);
+    
+    if (exists) {
+      alert('This unit type already exists');
+      return;
+    }
+    
+    setLocalTypes([...localTypes, { 
+      ...newType, 
+      value: typeValue,
+      label: newType.label 
+    }]);
+    setNewType({ value: '', label: '', color: '#4F46E5', icon: 'Building2' });
+    
+    // Add empty rules for the new type
+    setLocalRules(prev => ({ ...prev, [typeValue]: [] }));
+  };
+  
+  const handleDeleteType = (typeValue) => {
+    setLocalTypes(localTypes.filter(t => t.value !== typeValue));
+    
+    // Remove from rules
+    const newRules = { ...localRules };
+    delete newRules[typeValue];
+    
+    // Remove from allowed children in other rules
+    Object.keys(newRules).forEach(key => {
+      newRules[key] = newRules[key].filter(t => t !== typeValue);
+    });
+    
+    setLocalRules(newRules);
+  };
+  
+  const handleUpdateType = (typeValue, updates) => {
+    setLocalTypes(localTypes.map(t => 
+      t.value === typeValue ? { ...t, ...updates } : t
+    ));
+  };
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    onSave(localRules);
+    onSave(localRules, localTypes);
   };
 
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <div className="glass-card-large w-full max-w-4xl max-h-[80vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+      <div className="glass-card-large w-full max-w-5xl max-h-[85vh] flex flex-col" onClick={e => e.stopPropagation()}>
         <div className="p-6 border-b border-white/20">
           <h2 className="text-xl font-bold text-white">
-            Configure Hierarchy Rules
+            Hierarchy Configuration
           </h2>
           <p className="text-sm text-white/60 mt-2">
-            Define which unit types can be placed under each parent type
+            Manage unit types and define hierarchy rules
           </p>
         </div>
         
-        <div className="p-6">
-          <div className="space-y-6">
-            {UNIT_TYPES.map(parentType => (
-              <div key={parentType.value} className="border border-white/10 rounded-lg p-4">
-                <h3 className="font-semibold text-white mb-3 flex items-center gap-2">
-                  <parentType.icon size={18} />
-                  {parentType.label} can contain:
-                </h3>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                  {UNIT_TYPES.map(childType => {
-                    const isAllowed = (localRules[parentType.value] || []).includes(childType.value);
-                    return (
-                      <label
-                        key={childType.value}
-                        className="flex items-center gap-2 cursor-pointer"
-                      >
+        {/* Tabs */}
+        <div className="flex border-b border-white/10">
+          <button
+            onClick={() => setActiveTab('types')}
+            className={`px-6 py-3 font-medium transition-all ${
+              activeTab === 'types' 
+                ? 'text-white border-b-2 border-blue-500 bg-white/5' 
+                : 'text-white/60 hover:text-white hover:bg-white/5'
+            }`}
+          >
+            Unit Types
+          </button>
+          <button
+            onClick={() => setActiveTab('rules')}
+            className={`px-6 py-3 font-medium transition-all ${
+              activeTab === 'rules' 
+                ? 'text-white border-b-2 border-blue-500 bg-white/5' 
+                : 'text-white/60 hover:text-white hover:bg-white/5'
+            }`}
+          >
+            Hierarchy Rules
+          </button>
+        </div>
+        
+        <div className="flex-1 overflow-y-auto p-6">
+          {activeTab === 'types' ? (
+            <div className="space-y-6">
+              {/* Add New Type */}
+              <div className="glass-card p-4">
+                <h3 className="font-semibold text-white mb-3">Add New Unit Type</h3>
+                <div className="space-y-3">
+                  <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+                    <div>
+                      <label className="block text-xs text-white/60 mb-1">Type Name</label>
+                      <input
+                        type="text"
+                        placeholder="e.g., CMO, Branch, Region"
+                        value={newType.label}
+                        onChange={(e) => setNewType({...newType, label: e.target.value})}
+                        className="w-full glass-input px-3 py-2 rounded-lg"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs text-white/60 mb-1">Color</label>
+                      <div className="flex gap-2">
                         <input
-                          type="checkbox"
-                          checked={isAllowed}
-                          onChange={() => handleToggleRule(parentType.value, childType.value)}
-                          className="rounded border-white/30 bg-white/10 text-blue-500 focus:ring-blue-500"
+                          type="color"
+                          value={newType.color}
+                          onChange={(e) => setNewType({...newType, color: e.target.value})}
+                          className="w-12 h-10 rounded cursor-pointer"
                         />
-                        <span className={`text-sm ${isAllowed ? 'text-white' : 'text-white/50'}`}>
-                          {childType.label}
-                        </span>
-                      </label>
-                    );
-                  })}
+                        <input
+                          type="text"
+                          value={newType.color}
+                          onChange={(e) => setNewType({...newType, color: e.target.value})}
+                          className="flex-1 glass-input px-3 py-2 rounded-lg text-xs"
+                          placeholder="#4F46E5"
+                        />
+                      </div>
+                    </div>
+                    <div>
+                      <label className="block text-xs text-white/60 mb-1">Icon</label>
+                      <select
+                        value={newType.icon}
+                        onChange={(e) => setNewType({...newType, icon: e.target.value})}
+                        className="w-full glass-input px-3 py-2 rounded-lg"
+                      >
+                        <option value="Building2">Building</option>
+                        <option value="Briefcase">Briefcase</option>
+                        <option value="Layers">Layers</option>
+                        <option value="Network">Network</option>
+                        <option value="Users">Users</option>
+                        <option value="Package">Package</option>
+                        <option value="GitBranch">Branch</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-xs text-white/60 mb-1">&nbsp;</label>
+                      <button
+                        onClick={handleAddType}
+                        className="w-full px-4 py-2 rounded-lg bg-blue-500 hover:bg-blue-600 text-white font-medium"
+                      >
+                        Add Type
+                      </button>
+                    </div>
+                  </div>
                 </div>
               </div>
-            ))}
-          </div>
+              
+              {/* Existing Types */}
+              <div className="space-y-2">
+                <h3 className="font-semibold text-white mb-3">Existing Unit Types</h3>
+                {localTypes.map(type => {
+                  const IconComponent = ICON_MAP[type.icon] || Building2;
+                  return (
+                    <div key={type.value} className="flex items-center gap-3 p-3 rounded-lg bg-white/5 border border-white/10">
+                      <div 
+                        className="w-10 h-10 rounded-lg flex items-center justify-center"
+                        style={{ backgroundColor: type.color }}
+                      >
+                        <IconComponent size={20} className="text-white" />
+                      </div>
+                      <div className="flex-1">
+                        <p className="font-medium text-white">{type.label}</p>
+                        <p className="text-xs text-white/60">ID: {type.value}</p>
+                      </div>
+                      <button
+                        onClick={() => handleDeleteType(type.value)}
+                        className="p-2 rounded-lg hover:bg-red-500/20 transition-colors"
+                      >
+                        <Trash2 size={16} className="text-red-400" />
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-6">
+              {localTypes.map(parentType => {
+                const ParentIcon = ICON_MAP[parentType.icon] || Building2;
+                return (
+                  <div key={parentType.value} className="border border-white/10 rounded-lg p-4">
+                    <h3 className="font-semibold text-white mb-3 flex items-center gap-2">
+                      <ParentIcon size={18} />
+                      {parentType.label} can contain:
+                    </h3>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                      {localTypes.map(childType => {
+                        const isAllowed = (localRules[parentType.value] || []).includes(childType.value);
+                        return (
+                          <label
+                            key={childType.value}
+                            className="flex items-center gap-2 cursor-pointer"
+                          >
+                            <input
+                              type="checkbox"
+                              checked={isAllowed}
+                              onChange={() => handleToggleRule(parentType.value, childType.value)}
+                              className="rounded border-white/30 bg-white/10 text-blue-500 focus:ring-blue-500"
+                            />
+                            <span className={`text-sm ${isAllowed ? 'text-white' : 'text-white/50'}`}>
+                              {childType.label}
+                            </span>
+                          </label>
+                        );
+                      })}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </div>
         
         <div className="p-6 border-t border-white/20 flex justify-end gap-3">
