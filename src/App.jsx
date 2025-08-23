@@ -493,7 +493,7 @@ function lsWrite(key, value) {
 /* -----------------------------------------------------------
    Quick Score Modal Component
 ----------------------------------------------------------- */
-function QuickScoreModal({ employee, week, category, testType, platform, currentScore, currentReports, onSave, onDelete, onClose }) {
+function QuickScoreModal({ employee, week, category, testType, platform, currentScore, currentReports, isExperiment, onSave, onDelete, onClose }) {
   const [score, setScore] = useState(currentScore || 5);
   const [performanceReport, setPerformanceReport] = useState(currentReports?.performanceReport || '');
   const [mediaBuyerReview, setMediaBuyerReview] = useState(currentReports?.mediaBuyerReview || '');
@@ -550,6 +550,12 @@ function QuickScoreModal({ employee, week, category, testType, platform, current
                   : `Week ${week.week}`
               }
             </p>
+            {isExperiment && (
+              <div className="mt-2 inline-flex items-center gap-2 px-3 py-1 bg-yellow-500/20 border border-yellow-400/50 rounded-full">
+                <div className="w-2 h-2 bg-yellow-400 rounded-full animate-pulse" />
+                <span className="text-xs font-medium text-yellow-300">Experiment Evaluation</span>
+              </div>
+            )}
           </div>
           <button onClick={onClose} className="glass-button p-2 rounded-lg hover:scale-110">
             <X size={18} className="text-white/80" />
@@ -2642,6 +2648,7 @@ export default function App() {
           testType={quickScoreModal.testType}
           platform={quickScoreModal.platform}
           currentScore={quickScoreModal.currentScore}
+          isExperiment={quickScoreModal.isExperiment}
           currentReports={quickScoreModal.category 
             ? getCategoryReports(
                 quickScoreModal.employee.id,

@@ -128,9 +128,18 @@ export function updateTestTypePlatforms(testTypeId, platformIds) {
 }
 
 // Get score for product/testType/platform combination
+// Returns: number (actual score), null (experiment waiting for evaluation), or undefined (no data)
 export function getScore(productId, testTypeId, platformId, dateKey) {
   const scores = JSON.parse(localStorage.getItem('creativeScores') || '{}');
-  return scores[productId]?.[testTypeId]?.[platformId]?.[dateKey]?.score || null;
+  const scoreData = scores[productId]?.[testTypeId]?.[platformId]?.[dateKey];
+  
+  // If no data exists, return undefined
+  if (scoreData === undefined) {
+    return undefined;
+  }
+  
+  // Return the score (which can be a number or null for experiments)
+  return scoreData.score;
 }
 
 // Save score for product/testType/platform combination

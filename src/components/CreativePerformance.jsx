@@ -583,13 +583,22 @@ function CreativePerformance({
                           </td>
                           
                           {weeks.map(week => {
-                            // Get all category scores for this product and week
-                            const categoryScores = categories.map(cat => ({
-                              key: cat.key,
-                              label: cat.key, // Use the key directly (VCT, SCT, ACT)
-                              score: getCategoryScore ? getCategoryScore(emp.id, week.key, cat.key) : null,
-                              color: cat.tag
-                            })).filter(item => item.score !== null);
+                            // Get all platform scores for this product and week
+                            const allowedPlatforms = getGlobalAllowedPlatforms(activeTestType);
+                            const platformScores = allowedPlatforms.map(platformId => {
+                              const platform = platformTypes.find(p => p.id === platformId);
+                              const score = getScore(emp.id, activeTestType, platformId, week.key);
+                              return {
+                                key: platformId,
+                                label: platform?.name || platformId,
+                                score: score,
+                                isExperiment: score === null, // NULL score means experiment is ready for evaluation
+                                platform: platform
+                              };
+                            }).filter(item => item.score !== undefined); // Include both actual scores and experiments (null)
+                            
+                            // Check if there's an experiment for this date
+                            const hasExperiment = platformScores.some(item => item.isExperiment);
                             
                             return (
                               <td 
@@ -601,8 +610,14 @@ function CreativePerformance({
                                   cellHeight <= 30 ? 'p-0 gap-0' : 
                                   cellHeight <= 50 ? 'p-0.5 gap-0.5' : 
                                   'p-1 gap-1'
-                                }`}>
-                                  {categoryScores.length > 0 ? (
+                                } ${hasExperiment ? 'relative' : ''}`}>
+                                  {/* Experiment indicator */}
+                                  {hasExperiment && (
+                                    <div className="absolute top-0 right-0 p-1">
+                                      <div className="w-2 h-2 bg-yellow-400 rounded-full animate-pulse" title="Experiment available for evaluation" />
+                                    </div>
+                                  )}
+                                  {platformScores.length > 0 ? (
                                     scoringDesign === 'minimal' ? (
                                       // Minimal Design (Original)
                                       <div className={`glass-card ${
@@ -611,7 +626,36 @@ function CreativePerformance({
                                         'p-1.5 rounded-lg'
                                       } w-full`}>
                                         {platformScores.map((item, idx) => {
-                                          // Get score-based colors
+                                          // Handle experiment (null score) case
+                                          if (item.isExperiment) {
+                                            return (
+                                              <div 
+                                                key={item.key}
+                                                className={`group cursor-pointer hover:scale-[1.02] transition-all ${idx > 0 ? 'mt-1' : ''} border border-yellow-400/50 bg-yellow-400/10 rounded p-1`}
+                                                onClick={(e) => {
+                                                  e.stopPropagation();
+                                                  if (setQuickScoreModal) {
+                                                    setQuickScoreModal({
+                                                      employee: emp,
+                                                      week: week,
+                                                      testType: testTypes.find(t => t.id === activeTestType),
+                                                      platform: item.platform,
+                                                      currentScore: null,
+                                                      isExperiment: true
+                                                    });
+                                                  }
+                                                }}
+                                              >
+                                                <div className="flex items-center justify-center">
+                                                  <span className="text-[9px] font-bold text-yellow-300">
+                                                    {item.label} - Click to evaluate
+                                                  </span>
+                                                </div>
+                                              </div>
+                                            );
+                                          }
+                                          
+                                          // Get score-based colors for existing scores
                                           const getBarColor = () => {
                                             const score = item.score;
                                             if (score >= 9) return 'bg-gradient-to-r from-green-400 to-green-500';
@@ -668,6 +712,45 @@ function CreativePerformance({
                                       // Liquid Glass Design
                                       <div className="w-full space-y-1">
                                         {platformScores.map((item, idx) => {
+                                        // Handle experiment (null score) case
+                                        if (item.isExperiment) {
+                                          return (
+                                            <div 
+                                              key={item.key}
+                                              className={`group cursor-pointer hover:scale-[1.02] transition-all ${idx > 0 ? 'mt-1' : ''}`}
+                                              onClick={(e) => {
+                                                e.stopPropagation();
+                                                if (setQuickScoreModal) {
+                                                  setQuickScoreModal({
+                                                    employee: emp,
+                                                    week: week,
+                                                    testType: testTypes.find(t => t.id === activeTestType),
+                                                    platform: item.platform,
+                                                    currentScore: null,
+                                                    isExperiment: true
+                                                  });
+                                                }
+                                              }}
+                                              style={{
+                                                background: 'linear-gradient(135deg, rgba(251, 191, 36, 0.3) 0%, rgba(245, 158, 11, 0.4) 100%)',
+                                                border: '1px solid rgba(251, 191, 36, 0.6)',
+                                                borderRadius: '6px',
+                                                padding: '4px 8px',
+                                                filter: 'drop-shadow(0 0 8px rgba(251, 191, 36, 0.4))'
+                                              }}
+                                            >
+                                              <div className="flex items-center justify-between">
+                                                <span className="text-[10px] font-bold text-yellow-300">
+                                                  {item.label}
+                                                </span>
+                                                <span className="text-[9px] text-yellow-200">
+                                                  Evaluate
+                                                </span>
+                                              </div>
+                                            </div>
+                                          );
+                                        }
+                                        
                                         // Get score-based gradient colors and backgrounds
                                         const getScoreStyle = () => {
                                           const score = item.score;
@@ -891,7 +974,9 @@ function CreativePerformance({
                               
                               {weeks.map(week => {
                                 const platformScore = getScore(emp.id, activeTestType, platform.id, week.key);
-                                const styles = platformScore ? tierStyles(platformScore) : {};
+                                const isExperiment = platformScore === null;
+                                const hasScore = platformScore !== undefined;
+                                const styles = (platformScore && platformScore !== null) ? tierStyles(platformScore) : {};
                                 
                                 return (
                                   <td 
@@ -900,13 +985,16 @@ function CreativePerformance({
                                     style={{ minWidth: cellSize, width: cellSize, height: cellHeight }}
                                     onClick={(e) => {
                                       e.stopPropagation();
-                                      setQuickScoreModal && setQuickScoreModal({
-                                        employee: emp,
-                                        week: week,
-                                        testType: activeTest,
-                                        platform: platform,
-                                        currentScore: platformScore
-                                      });
+                                      if (hasScore && setQuickScoreModal) {
+                                        setQuickScoreModal({
+                                          employee: emp,
+                                          week: week,
+                                          testType: activeTest,
+                                          platform: platform,
+                                          currentScore: platformScore,
+                                          isExperiment: isExperiment
+                                        });
+                                      }
                                     }}
                                   >
                                     <div className={`relative flex items-center justify-center ${
@@ -914,7 +1002,18 @@ function CreativePerformance({
                                       cellHeight <= 50 ? 'py-0.5' : 
                                       'py-1'
                                     }`}>
-                                      {platformScore ? (
+                                      {isExperiment ? (
+                                        // Experiment indicator
+                                        <div className="relative animate-pulse">
+                                          <div className={`${
+                                            cellHeight <= 30 ? 'h-5 w-5' : 
+                                            cellHeight <= 50 ? 'h-6 w-6' : 
+                                            'h-8 w-8'
+                                          } rounded-lg bg-yellow-500/30 border border-yellow-400/50 grid place-items-center`}>
+                                            <span className="text-yellow-300 font-bold text-[10px]">!</span>
+                                          </div>
+                                        </div>
+                                      ) : platformScore ? (
                                         scoringDesign === 'minimal' ? (
                                           // Minimal Design for expanded category rows
                                           <div className={`${

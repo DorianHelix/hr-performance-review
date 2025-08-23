@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Experiment Scores</title>
+    <style>
+        body {
+            background: #0a0a0a;
+            color: #fff;
+            font-family: monospace;
+            padding: 20px;
+        }
+        button {
+            background: #333;
+            color: #fff;
+            border: 1px solid #666;
+            padding: 10px 20px;
+            margin: 5px;
+            cursor: pointer;
+        }
+        button:hover {
+            background: #444;
+        }
+        .data {
+            background: #1a1a1a;
+            padding: 15px;
+            margin: 10px 0;
+            border: 1px solid #444;
+            border-radius: 5px;
+            max-height: 600px;
+            overflow-y: auto;
+        }
+        pre {
+            margin: 0;
+        }
+        .success {
+            color: #10b981;
+            font-weight: bold;
+        }
+        .info {
+            color: #60a5fa;
+        }
+        .warning {
+            color: #fbbf24;
+        }
+    </style>
+</head>
+<body>
+    <h1>🧪 Test Experiment Scores</h1>
+    
+    <h2>Actions:</h2>
+    <button onclick="showScores()">📊 Show Current Scores</button>
+    <button onclick="simulateExperiment()">🚀 Simulate Experiment Push</button>
+    <button onclick="clearScores()">🗑️ Clear All Scores</button>
+    <button onclick="checkSpecificScore()">🔍 Check Specific Score</button>
+    
+    <h2>Current Scores in localStorage:</h2>
+    <div class="data" id="scoresData">
+        <pre id="scoresContent">Click "Show Current Scores" to view</pre>
+    </div>
+    
+    <h2>Log:</h2>
+    <div class="data" id="logData">
+        <pre id="logContent"></pre>
+    </div>
+    
+    <script>
+        function log(message, type = 'info') {
+            const logContent = document.getElementById('logContent');
+            const timestamp = new Date().toLocaleTimeString();
+            const className = type === 'success' ? 'success' : type === 'warning' ? 'warning' : 'info';
+            logContent.innerHTML += `<span class="${className}">[${timestamp}] ${message}</span>\n`;
+            logContent.scrollTop = logContent.scrollHeight;
+        }
+        
+        function showScores() {
+            const scores = localStorage.getItem('creativeScores');
+            const parsed = scores ? JSON.parse(scores) : {};
+            document.getElementById('scoresContent').textContent = JSON.stringify(parsed, null, 2);
+            
+            // Count experiments (null scores)
+            let experimentCount = 0;
+            let scoreCount = 0;
+            
+            Object.keys(parsed).forEach(productId => {
+                Object.keys(parsed[productId]).forEach(testTypeId => {
+                    Object.keys(parsed[productId][testTypeId]).forEach(platformId => {
+                        Object.keys(parsed[productId][testTypeId][platformId]).forEach(dateKey => {
+                            const score = parsed[productId][testTypeId][platformId][dateKey].score;
+                            if (score === null) {
+                                experimentCount++;
+                            } else if (typeof score === 'number') {
+                                scoreCount++;
+                            }
+                        });
+                    });
+                });
+            });
+            
+            log(`Found ${experimentCount} experiments (null scores) and ${scoreCount} actual scores`, 'success');
+        }
+        
+        function simulateExperiment() {
+            // Get test products
+            const products = JSON.parse(localStorage.getItem('hr_products') || '[]');
+            if (products.length === 0) {
+                log('No products found. Please add products first.', 'warning');
+                return;
+            }
+            
+            // Get test types and platforms
+            const testTypes = JSON.parse(localStorage.getItem('global_test_types') || '[]');
+            const platforms = JSON.parse(localStorage.getItem('global_platforms') || '[]');
+            
+            if (testTypes.length === 0 || platforms.length === 0) {
+                log('No test types or platforms found.', 'warning');
+                return;
+            }
+            
+            // Simulate pushing an experiment
+            const product = products[0]; // First product
+            const testType = testTypes[0]; // First test type (e.g., VCT)
+            const platform = platforms[0]; // First platform (e.g., Meta)
+            const today = new Date().toISOString().split('T')[0];
+            
+            // This simulates what pushToEvaluation does
+            const scores = JSON.parse(localStorage.getItem('creativeScores') || '{}');
+            
+            if (!scores[product.id]) scores[product.id] = {};
+            if (!scores[product.id][testType.id]) scores[product.id][testType.id] = {};
+            if (!scores[product.id][testType.id][platform.id]) scores[product.id][testType.id][platform.id] = {};
+            
+            scores[product.id][testType.id][platform.id][today] = {
+                score: null, // NULL means experiment ready for evaluation
+                date: new Date().toISOString()
+            };
+            
+            localStorage.setItem('creativeScores', JSON.stringify(scores));
+            
+            log(`✅ Simulated experiment pushed:`, 'success');
+            log(`  Product: ${product.name} (${product.id})`);
+            log(`  Test Type: ${testType.name} (${testType.id})`);
+            log(`  Platform: ${platform.name} (${platform.id})`);
+            log(`  Date: ${today}`);
+            log(`  Score: null (experiment waiting for evaluation)`);
+            
+            showScores();
+        }
+        
+        function clearScores() {
+            if (confirm('Are you sure you want to clear all scores?')) {
+                localStorage.setItem('creativeScores', '{}');
+                log('All scores cleared', 'success');
+                showScores();
+            }
+        }
+        
+        function checkSpecificScore() {
+            const productId = prompt('Enter product ID:');
+            if (!productId) return;
+            
+            const testTypeId = prompt('Enter test type ID (e.g., vct, sct, act):');
+            if (!testTypeId) return;
+            
+            const platformId = prompt('Enter platform ID (e.g., meta, google, tiktok):');
+            if (!platformId) return;
+            
+            const dateKey = prompt('Enter date (YYYY-MM-DD):');
+            if (!dateKey) return;
+            
+            const scores = JSON.parse(localStorage.getItem('creativeScores') || '{}');
+            const scoreData = scores[productId]?.[testTypeId]?.[platformId]?.[dateKey];
+            
+            if (scoreData === undefined) {
+                log(`No data found for: ${productId}/${testTypeId}/${platformId}/${dateKey}`, 'warning');
+            } else if (scoreData.score === null) {
+                log(`🔔 Experiment found! Ready for evaluation at: ${productId}/${testTypeId}/${platformId}/${dateKey}`, 'success');
+            } else {
+                log(`Score found: ${scoreData.score} at: ${productId}/${testTypeId}/${platformId}/${dateKey}`, 'info');
+            }
+        }
+        
+        // Load on startup
+        showScores();
+        log('Test page loaded. Use the buttons to test experiment scoring.', 'info');
+    </script>
+</body>
+</html>
