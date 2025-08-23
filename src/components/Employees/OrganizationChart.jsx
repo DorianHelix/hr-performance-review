@@ -6,7 +6,7 @@ import {
   Users, Building2, Briefcase, UserPlus, ChevronDown, ChevronRight,
   Layers, Package, LayoutGrid, Search, Filter, Plus, Settings2,
   TrendingUp, DollarSign, BarChart3, Hash, Trash2, Edit2, X,
-  Minimize2, Maximize2, Network, GitBranch
+  Minimize2, Maximize2, Network, GitBranch, Menu, ZoomIn, ZoomOut, Maximize as MaximizeIcon
 } from 'lucide-react';
 
 // Drag and Drop Types
@@ -363,16 +363,17 @@ function OrgChartNode({ node, employees, onDrop, onEdit, onDelete, onAddChild, l
   const totalSalary = nodeEmployees.reduce((sum, emp) => sum + (parseFloat(emp.totalSalary) || 0), 0);
   
   const getIcon = () => {
+    const iconSize = 16;
     switch(node.type) {
-      case 'executive': return <Building2 size={20} />;
-      case 'management': return <Briefcase size={20} />;
-      case 'division': return <Layers size={20} />;
-      case 'department': return <Building2 size={20} />;
-      case 'tribe': return <Network size={20} />;
-      case 'squad': return <Users size={20} />;
-      case 'team': return <Users size={20} />;
-      case 'pod': return <Package size={20} />;
-      default: return <Network size={20} />;
+      case 'executive': return <Building2 size={iconSize} />;
+      case 'management': return <Briefcase size={iconSize} />;
+      case 'division': return <Layers size={iconSize} />;
+      case 'department': return <Building2 size={iconSize} />;
+      case 'tribe': return <Network size={iconSize} />;
+      case 'squad': return <Users size={iconSize} />;
+      case 'team': return <Users size={iconSize} />;
+      case 'pod': return <Package size={iconSize} />;
+      default: return <Network size={iconSize} />;
     }
   };
 
@@ -397,7 +398,7 @@ function OrgChartNode({ node, employees, onDrop, onEdit, onDelete, onAddChild, l
       >
         <div
           className={`
-            min-w-[200px] max-w-[250px] p-4 rounded-xl border-2 transition-all
+            min-w-[160px] max-w-[200px] p-3 rounded-xl border-2 transition-all
             ${isHighlighted 
               ? 'border-blue-400 bg-blue-400/10 shadow-lg shadow-blue-400/20' 
               : 'border-white/20 bg-white/5 hover:bg-white/10'}
@@ -411,28 +412,28 @@ function OrgChartNode({ node, employees, onDrop, onEdit, onDelete, onAddChild, l
           <div className="flex items-center justify-between mb-2">
             <div className="flex items-center gap-2">
               <div 
-                className="w-10 h-10 rounded-lg flex items-center justify-center"
+                className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
                 style={{ backgroundColor: node.color || '#6B7280' }}
               >
                 {getIcon()}
               </div>
-              <div>
-                <h3 className="font-semibold text-white text-sm">{node.name}</h3>
-                <p className="text-xs text-white/60 capitalize">{node.type}</p>
+              <div className="min-w-0">
+                <h3 className="font-semibold text-white text-xs truncate">{node.name}</h3>
+                <p className="text-[10px] text-white/60 capitalize">{node.type}</p>
               </div>
             </div>
             {node.children && node.children.length > 0 && (
               <button
                 onClick={() => setIsExpanded(!isExpanded)}
-                className="p-1 rounded hover:bg-white/10 transition-colors"
+                className="p-0.5 rounded hover:bg-white/10 transition-colors flex-shrink-0"
               >
-                {isExpanded ? <Minimize2 size={16} className="text-white/60" /> : <Maximize2 size={16} className="text-white/60" />}
+                {isExpanded ? <Minimize2 size={14} className="text-white/60" /> : <Maximize2 size={14} className="text-white/60" />}
               </button>
             )}
           </div>
 
-          {/* Node Stats */}
-          <div className="space-y-1 mt-3 pt-3 border-t border-white/10">
+          {/* Node Stats - more compact */}
+          <div className="space-y-0.5 mt-2 pt-2 border-t border-white/10">
             <div className="flex items-center justify-between text-xs">
               <span className="text-white/60 flex items-center gap-1">
                 <Users size={12} />
@@ -574,6 +575,9 @@ function OrganizationChart({ isDarkMode }) {
     lsRead(LS_UNIT_TYPES, DEFAULT_UNIT_TYPES)
   );
   const [showConfigModal, setShowConfigModal] = useState(false);
+  const [showSidebar, setShowSidebar] = useState(true);
+  const [chartZoom, setChartZoom] = useState(1);
+  const [chartPosition, setChartPosition] = useState({ x: 0, y: 0 });
 
   // Save to localStorage
   useEffect(() => {
@@ -951,26 +955,84 @@ function OrganizationChart({ isDarkMode }) {
 
         <div className="flex-1 flex min-h-0">
           {/* Main Org Chart Area */}
-          <div className="flex-1 p-6 overflow-hidden">
-            <div className="h-full glass-card-large p-6">
-              <div className="mb-4 flex items-center justify-between">
-                <h2 className="text-lg font-semibold text-white">Organization Structure</h2>
-                <div className="flex gap-4">
-                  <div className="flex items-center gap-2 text-sm text-white/60">
-                    <Hash size={16} />
-                    <span>{employees.length} Total Employees</span>
+          <div className={`flex-1 flex flex-col ${showSidebar ? 'p-6' : 'p-4'} min-w-0 transition-all`}>
+            <div className="flex-1 glass-card-large p-4 flex flex-col min-h-0">
+              <div className="flex items-center justify-between mb-4 flex-shrink-0">
+                <div className="flex items-center gap-3">
+                  <button
+                    onClick={() => setShowSidebar(!showSidebar)}
+                    className="p-2 rounded-lg hover:bg-white/10 transition-colors"
+                    title={showSidebar ? "Hide sidebar" : "Show sidebar"}
+                  >
+                    {showSidebar ? <ChevronRight size={20} className="text-white/70" /> : <Menu size={20} className="text-white/70" />}
+                  </button>
+                  <h2 className="text-lg font-semibold text-white">Organization Structure</h2>
+                </div>
+                <div className="flex items-center gap-3">
+                  {/* Zoom Controls */}
+                  <div className="flex items-center gap-2 bg-black/40 rounded-lg p-1">
+                    <button
+                      onClick={() => setChartZoom(Math.max(0.5, chartZoom - 0.1))}
+                      className="p-1.5 rounded hover:bg-white/10 transition-colors"
+                      title="Zoom out"
+                    >
+                      <ZoomOut size={16} className="text-white/70" />
+                    </button>
+                    <span className="text-xs text-white/60 px-2 min-w-[50px] text-center">
+                      {Math.round(chartZoom * 100)}%
+                    </span>
+                    <button
+                      onClick={() => setChartZoom(Math.min(2, chartZoom + 0.1))}
+                      className="p-1.5 rounded hover:bg-white/10 transition-colors"
+                      title="Zoom in"
+                    >
+                      <ZoomIn size={16} className="text-white/70" />
+                    </button>
+                    <div className="w-px h-4 bg-white/20 mx-1" />
+                    <button
+                      onClick={() => {
+                        setChartZoom(1);
+                        const scrollContainer = document.querySelector('.org-chart-scroll');
+                        if (scrollContainer) {
+                          scrollContainer.scrollTo({
+                            top: 0,
+                            left: (scrollContainer.scrollWidth - scrollContainer.clientWidth) / 2,
+                            behavior: 'smooth'
+                          });
+                        }
+                      }}
+                      className="p-1.5 rounded hover:bg-white/10 transition-colors"
+                      title="Reset view"
+                    >
+                      <MaximizeIcon size={16} className="text-white/70" />
+                    </button>
                   </div>
-                  <div className="flex items-center gap-2 text-sm text-white/60">
-                    <Building2 size={16} />
-                    <span>{countUnits(orgStructure)} Units</span>
+                  
+                  {/* Stats */}
+                  <div className="hidden md:flex gap-3">
+                    <div className="flex items-center gap-2 text-sm text-white/60">
+                      <Hash size={14} />
+                      <span>{employees.length}</span>
+                    </div>
+                    <div className="flex items-center gap-2 text-sm text-white/60">
+                      <Building2 size={14} />
+                      <span>{countUnits(orgStructure)}</span>
+                    </div>
                   </div>
                 </div>
               </div>
               
-              <div className="h-[calc(100%-3rem)] overflow-auto" style={{ overflowX: 'auto', overflowY: 'auto' }}>
+              {/* Scrollable chart container with custom scrollbar */}
+              <div 
+                className="flex-1 overflow-auto rounded-lg border border-white/10 bg-black/20 relative org-chart-scroll"
+                style={{
+                  scrollbarWidth: 'thin',
+                  scrollbarColor: 'rgba(255, 255, 255, 0.3) rgba(255, 255, 255, 0.1)'
+                }}
+              >
                 {!orgStructure ? (
                   <RootDropZone onDrop={(item) => handleOrgChartDrop(item, { id: 'root' })}>
-                    <div className="h-full flex items-center justify-center">
+                    <div className="h-full flex items-center justify-center min-h-[400px]">
                       <div className="text-center">
                         <Network size={48} className="text-white/20 mx-auto mb-4" />
                         <p className="text-white/60 mb-2">No organizational structure defined</p>
@@ -994,34 +1056,46 @@ function OrganizationChart({ isDarkMode }) {
                     </div>
                   </RootDropZone>
                 ) : (
-                  <div className="flex justify-center p-8" style={{ minWidth: 'max-content' }}>
-                    <Tree
-                      lineWidth="2px"
-                      lineColor="rgba(255,255,255,0.2)"
-                      lineBorderRadius="10px"
-                      label={
-                        <OrgChartNode
-                          node={orgStructure}
-                          employees={employees}
-                          onDrop={handleOrgChartDrop}
-                          onEdit={handleEditUnit}
-                          onDelete={handleDeleteUnit}
-                          onAddChild={handleAddChild}
-                          level={0}
-                          hierarchyRules={hierarchyRules}
-                        />
-                      }
-                    >
-                      {orgStructure.children && renderTreeNodes(orgStructure.children, 1)}
-                    </Tree>
+                  <div 
+                    className="p-8" 
+                    style={{ 
+                      minWidth: 'max-content', 
+                      minHeight: '400px',
+                      transform: `scale(${chartZoom})`,
+                      transformOrigin: 'top center',
+                      transition: 'transform 0.2s ease'
+                    }}
+                  >
+                    <div className="flex justify-center">
+                      <Tree
+                        lineWidth="2px"
+                        lineColor="rgba(255,255,255,0.2)"
+                        lineBorderRadius="10px"
+                        label={
+                          <OrgChartNode
+                            node={orgStructure}
+                            employees={employees}
+                            onDrop={handleOrgChartDrop}
+                            onEdit={handleEditUnit}
+                            onDelete={handleDeleteUnit}
+                            onAddChild={handleAddChild}
+                            level={0}
+                            hierarchyRules={hierarchyRules}
+                          />
+                        }
+                      >
+                        {orgStructure.children && renderTreeNodes(orgStructure.children, 1)}
+                      </Tree>
+                    </div>
                   </div>
                 )}
               </div>
             </div>
           </div>
 
-          {/* Right Sidebar */}
-          <div className="w-96 border-l border-white/10 p-6 overflow-y-auto">
+          {/* Right Sidebar - collapsible and responsive */}
+          {showSidebar && (
+            <div className="w-full md:w-80 lg:w-96 flex-shrink-0 border-l border-white/10 p-4 md:p-6 overflow-y-auto transition-all">
             <div className="space-y-6">
               {/* Search and Filter */}
               <div className="space-y-3">
@@ -1258,6 +1332,7 @@ function OrganizationChart({ isDarkMode }) {
               </div>
             </div>
           </div>
+          )}
         </div>
 
         {/* Create/Edit Unit Modal */}
