@@ -42,14 +42,14 @@ const LS_UNIT_TYPES = "hr_unit_types";
 
 // Default hierarchy rules - what can be placed under what
 const DEFAULT_HIERARCHY_RULES = {
-  'executive': ['executive', 'management', 'department', 'division', 'team'],
-  'management': ['management', 'department', 'team', 'squad'],
-  'department': ['team', 'squad', 'pod'],
-  'division': ['executive', 'management', 'department', 'team', 'squad'],
-  'team': ['pod'],
-  'squad': ['pod'],
+  'executive': ['executive', 'management', 'department', 'division', 'team', 'tribe'],
+  'management': ['management', 'department', 'division', 'team', 'squad'],
+  'department': ['division', 'team', 'squad', 'pod', 'department'],
+  'division': ['executive', 'management', 'department', 'team', 'squad', 'division'],
+  'team': ['pod', 'team'],
+  'squad': ['pod', 'squad'],
   'pod': [],
-  'tribe': ['squad', 'team']
+  'tribe': ['squad', 'team', 'division']
 };
 
 // Default unit types
@@ -336,6 +336,12 @@ function OrgChartNode({ node, employees, onDrop, onEdit, onDelete, onAddChild, l
         
         // Check hierarchy rules
         const allowedChildren = hierarchyRules[node.type] || [];
+        console.log('Checking drop permission:', {
+          targetNodeType: node.type,
+          draggedUnitType: item.unit.type,
+          allowedChildren,
+          canDrop: allowedChildren.includes(item.unit.type)
+        });
         return allowedChildren.includes(item.unit.type);
       }
       return true; // Employees can go anywhere
@@ -612,6 +618,8 @@ function OrganizationChart({ isDarkMode }) {
   // Handle drop on org chart
   const handleOrgChartDrop = useCallback((item, targetNode) => {
     console.log('Dropping item:', item, 'on target:', targetNode);
+    console.log('Current org structure:', orgStructure);
+    console.log('Unit library:', unitLibrary);
     
     if (item.type === ItemTypes.ORG_UNIT) {
       const isFromLibrary = unitLibrary.some(u => u.id === item.unit.id);
@@ -628,14 +636,23 @@ function OrganizationChart({ isDarkMode }) {
           children: []
         };
         
-        // If no structure exists, this becomes the root
-        if (!orgStructure || targetNode.id === 'root') {
+        // If no structure exists or dropping on root, this becomes the root
+        if (!orgStructure) {
+          setOrgStructure(newUnit);
+          return;
+        }
+        
+        // If dropping on root area (not on a specific node)
+        if (targetNode.id === 'root') {
+          // Replace the root if dropping directly on the empty area
           setOrgStructure(newUnit);
           return;
         }
         
         // Add as child of target node
         const addUnitToNode = (node) => {
+          if (!node) return null;
+          
           if (node.id === targetNode.id) {
             // Check if unit already exists as child
             const alreadyExists = node.children?.some(child => child.id === newUnit.id);
@@ -655,7 +672,10 @@ function OrganizationChart({ isDarkMode }) {
           return node;
         };
         
-        setOrgStructure(addUnitToNode(orgStructure));
+        const updatedStructure = addUnitToNode(orgStructure);
+        if (updatedStructure) {
+          setOrgStructure(updatedStructure);
+        }
       } else if (isFromChart) {
         // Moving an existing unit within the chart
         const unitToMove = item.unit;
@@ -726,7 +746,7 @@ function OrganizationChart({ isDarkMode }) {
       setEmployees(updatedEmployees);
       lsWrite(LS_EMPLOYEES, updatedEmployees);
     }
-  }, [employees, orgStructure]);
+  }, [employees, orgStructure, unitLibrary]);
 
   // Handle edit unit
   const handleEditUnit = (unit) => {
@@ -866,6 +886,31 @@ function OrganizationChart({ isDarkMode }) {
     return count;
   };
 
+  // Recursive function to render tree nodes
+  const renderTreeNodes = (nodes, level) => {
+    if (!nodes) return null;
+    
+    return nodes.map((node) => (
+      <TreeNode
+        key={node.id}
+        label={
+          <OrgChartNode
+            node={node}
+            employees={employees}
+            onDrop={handleOrgChartDrop}
+            onEdit={handleEditUnit}
+            onDelete={handleDeleteUnit}
+            onAddChild={handleAddChild}
+            level={level}
+            hierarchyRules={hierarchyRules}
+          />
+        }
+      >
+        {node.children && renderTreeNodes(node.children, level + 1)}
+      </TreeNode>
+    ));
+  };
+
   return (
     <DndProvider backend={HTML5Backend}>
       <div className="h-full flex flex-col">
@@ -967,41 +1012,7 @@ function OrganizationChart({ isDarkMode }) {
                         />
                       }
                     >
-                      {orgStructure.children && orgStructure.children.map((child) => (
-                        <TreeNode
-                          key={child.id}
-                          label={
-                            <OrgChartNode
-                              node={child}
-                              employees={employees}
-                              onDrop={handleOrgChartDrop}
-                              onEdit={handleEditUnit}
-                              onDelete={handleDeleteUnit}
-                              onAddChild={handleAddChild}
-                              level={1}
-                              hierarchyRules={hierarchyRules}
-                            />
-                          }
-                        >
-                          {child.children && child.children.map((grandchild) => (
-                            <TreeNode
-                              key={grandchild.id}
-                              label={
-                                <OrgChartNode
-                                  node={grandchild}
-                                  employees={employees}
-                                  onDrop={handleOrgChartDrop}
-                                  onEdit={handleEditUnit}
-                                  onDelete={handleDeleteUnit}
-                                  onAddChild={handleAddChild}
-                                  level={2}
-                                  hierarchyRules={hierarchyRules}
-                                />
-                              }
-                            />
-                          ))}
-                        </TreeNode>
-                      ))}
+                      {orgStructure.children && renderTreeNodes(orgStructure.children, 1)}
                     </Tree>
                   </div>
                 )}
