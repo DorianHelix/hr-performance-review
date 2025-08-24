@@ -47,11 +47,14 @@
   },
   "scripts": {
     "dev": "vite",
-    "server": "node server.js",
+    "server": "node backend/server.js",
     "dev:all": "npm run server & npm run dev",
     "build": "vite build",
     "preview": "vite preview",
-    "migrate": "node database/migrate.js"
+    "migrate": "node database/migrate.js",
+    "db:init": "node database/init-db.js",
+    "db:seed": "node database/init-db.js --seed",
+    "db:backup": "node database/backup-db.js"
   },
   "browserslist": {
     "production": [
