@@ -442,7 +442,7 @@ const ProductPerformance = () => {
   const currentViewDescription = PERFORMANCE_VIEWS.find(v => v.id === selectedView)?.description || '';
 
   return (
-    <div className="flex flex-col h-screen max-h-screen overflow-hidden">
+    <div className="flex flex-col h-screen overflow-y-auto">
       <ProductPerformanceHeader
         dateRange={dateRange}
         setDateRange={setDateRange}
@@ -461,7 +461,7 @@ const ProductPerformance = () => {
         onPageChange={(page) => loadPerformanceData(page)}
       />
 
-      <div className={`flex-1 px-6 pb-6 mt-4 overflow-hidden flex ${rightSidebarOpen ? 'gap-4' : ''}`}>
+      <div className={`flex-1 px-3 sm:px-4 md:px-6 pb-3 sm:pb-4 md:pb-6 mt-4 flex flex-col lg:flex-row ${rightSidebarOpen ? 'gap-3 md:gap-4' : ''}`}>
         <div className="flex-1 flex flex-col">
           <ProductPerformanceFilters
             searchTerm={searchTerm}

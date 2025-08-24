@@ -505,9 +505,9 @@ function Orders() {
 
       {/* KPI Cards */}
       {showKPICards && (
-        <div className="px-6 mb-4">
-          <div className="flex gap-4 overflow-x-auto pb-2">
-            <div className="glass-card p-3 rounded-xl bg-gradient-to-br from-green-500/10 to-emerald-500/10 relative overflow-hidden flex-shrink-0" style={{minWidth: '160px'}}>
+        <div className="px-3 sm:px-4 md:px-6 mb-3 sm:mb-4">
+          <div className="flex gap-2 sm:gap-3 md:gap-4 overflow-x-auto pb-2 scrollbar-hide">
+            <div className="glass-card p-2 sm:p-3 rounded-lg sm:rounded-xl bg-gradient-to-br from-green-500/10 to-emerald-500/10 relative overflow-hidden flex-shrink-0" style={{minWidth: '140px'}}>
               <div className="relative z-10">
                 <div className="flex items-center gap-2 mb-2">
                   <DollarSign className="text-green-400" size={16} />
@@ -522,7 +522,7 @@ function Orders() {
               </div>
             </div>
 
-            <div className="glass-card p-3 rounded-xl bg-gradient-to-br from-purple-500/10 to-pink-500/10 relative overflow-hidden flex-shrink-0" style={{minWidth: '160px'}}>
+            <div className="glass-card p-2 sm:p-3 rounded-lg sm:rounded-xl bg-gradient-to-br from-purple-500/10 to-pink-500/10 relative overflow-hidden flex-shrink-0" style={{minWidth: '140px'}}>
               <div className="relative z-10">
                 <div className="flex items-center gap-2 mb-2">
                   <ShoppingCart className="text-purple-400" size={16} />
@@ -537,7 +537,7 @@ function Orders() {
               </div>
             </div>
 
-            <div className="glass-card p-3 rounded-xl bg-gradient-to-br from-blue-500/10 to-cyan-500/10 relative overflow-hidden flex-shrink-0" style={{minWidth: '160px'}}>
+            <div className="glass-card p-2 sm:p-3 rounded-lg sm:rounded-xl bg-gradient-to-br from-blue-500/10 to-cyan-500/10 relative overflow-hidden flex-shrink-0" style={{minWidth: '140px'}}>
               <div className="relative z-10">
                 <div className="flex items-center gap-2 mb-2">
                   <TrendingUp className="text-blue-400" size={16} />
@@ -552,7 +552,7 @@ function Orders() {
               </div>
             </div>
 
-            <div className="glass-card p-3 rounded-xl bg-gradient-to-br from-yellow-500/10 to-orange-500/10 relative overflow-hidden flex-shrink-0" style={{minWidth: '160px'}}>
+            <div className="glass-card p-2 sm:p-3 rounded-lg sm:rounded-xl bg-gradient-to-br from-yellow-500/10 to-orange-500/10 relative overflow-hidden flex-shrink-0" style={{minWidth: '140px'}}>
               <div className="relative z-10">
                 <div className="flex items-center gap-2 mb-2">
                   <Package className="text-yellow-400" size={16} />
@@ -565,7 +565,7 @@ function Orders() {
               </div>
             </div>
 
-            <div className="glass-card p-3 rounded-xl bg-gradient-to-br from-cyan-500/10 to-blue-500/10 relative overflow-hidden flex-shrink-0" style={{minWidth: '160px'}}>
+            <div className="glass-card p-2 sm:p-3 rounded-lg sm:rounded-xl bg-gradient-to-br from-cyan-500/10 to-blue-500/10 relative overflow-hidden flex-shrink-0" style={{minWidth: '140px'}}>
               <div className="relative z-10">
                 <div className="flex items-center gap-2 mb-2">
                   <Users className="text-cyan-400" size={16} />
@@ -602,7 +602,7 @@ function Orders() {
       )}
 
       {/* Main Content */}
-      <div className={`flex-1 px-6 pb-6 overflow-hidden flex ${showSidebar ? 'gap-4' : ''}`}>
+      <div className={`flex-1 px-3 sm:px-4 md:px-6 pb-3 sm:pb-4 md:pb-6 overflow-hidden flex flex-col lg:flex-row ${showSidebar ? 'gap-2 sm:gap-3 md:gap-4' : ''}`}>
         <div className="flex-1 flex flex-col">
           <div className="flex items-center justify-between mb-4">
             <select

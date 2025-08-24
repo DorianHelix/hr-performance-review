@@ -37,11 +37,11 @@ function OrderHeader({
         onToggleSidebar={onToggleSidebar}
       />
 
-      <div className="px-6">
-        <div className="glass-card-large p-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <span className="px-3 py-1 bg-purple-500/20 text-purple-300 rounded-full text-sm font-medium">
+      <div className="px-3 sm:px-4 md:px-6">
+        <div className="glass-card-large p-2 sm:p-3 md:p-4">
+          <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-3">
+            <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+              <span className="px-2 sm:px-3 py-0.5 sm:py-1 bg-purple-500/20 text-purple-300 rounded-full text-xs sm:text-sm font-medium">
                 {orderCount} / {totalOrderCount} orders
               </span>
               
@@ -55,7 +55,7 @@ function OrderHeader({
                   >
                     <ChevronLeft size={16} />
                   </button>
-                  <span className="px-3 py-1 bg-gradient-to-r from-purple-500/10 to-pink-500/10 rounded-lg text-sm">
+                  <span className="px-2 sm:px-3 py-0.5 sm:py-1 bg-gradient-to-r from-purple-500/10 to-pink-500/10 rounded-lg text-xs sm:text-sm">
                     Page {currentPage} of {totalPages}
                   </span>
                   <button
@@ -82,10 +82,10 @@ function OrderHeader({
               />
             </div>
 
-            <div className="flex items-center gap-3">
+            <div className="flex flex-wrap items-center gap-2 sm:gap-3">
               <button
                 onClick={onShowFilters}
-                className="glass-button px-3 py-2 flex items-center gap-2 hover:scale-105 transition-transform"
+                className="glass-button px-2 sm:px-3 py-1.5 sm:py-2 flex items-center gap-1 sm:gap-2 hover:scale-105 transition-transform text-xs sm:text-sm"
               >
                 <Filter size={16} />
                 Filters
@@ -94,7 +94,7 @@ function OrderHeader({
               <button
                 onClick={onSync}
                 disabled={syncing}
-                className="glass-button px-3 py-2 flex items-center gap-2 hover:scale-105 transition-transform"
+                className="glass-button px-2 sm:px-3 py-1.5 sm:py-2 flex items-center gap-1 sm:gap-2 hover:scale-105 transition-transform text-xs sm:text-sm"
               >
                 <RefreshCw size={16} className={syncing ? 'animate-spin' : ''} />
                 {syncing ? 'Syncing...' : 'Sync'}
@@ -102,7 +102,7 @@ function OrderHeader({
 
               <button
                 onClick={onExport}
-                className="glass-button px-3 py-2 flex items-center gap-2 hover:scale-105 transition-transform"
+                className="glass-button px-2 sm:px-3 py-1.5 sm:py-2 flex items-center gap-1 sm:gap-2 hover:scale-105 transition-transform text-xs sm:text-sm"
               >
                 <Download size={16} />
                 Export

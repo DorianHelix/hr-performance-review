@@ -1,7 +1,7 @@
 import React from 'react';
 import { 
   ArrowUpRight, ArrowDownRight, TrendingUp, 
-  TrendingDown, Minus, AlertCircle, CheckCircle
+  TrendingDown, Minus, AlertCircle, CheckCircle, Package
 } from 'lucide-react';
 import { PERFORMANCE_COLUMNS, formatters } from './performanceConfig';
 
@@ -15,6 +15,11 @@ const ProductPerformanceTable = ({
   onSelectAll
 }) => {
   
+  // Debug log first product to see actual data structure
+  if (products && products.length > 0) {
+    console.log('Product Performance - First product data:', products[0]);
+  }
+  
   // Get column configuration
   const getColumn = (key) => {
     return PERFORMANCE_COLUMNS.find(col => col.key === key);
@@ -27,19 +32,57 @@ const ProductPerformanceTable = ({
     
     if (!column) return <span>-</span>;
     
-    // Special handling for product name
-    if (columnKey === 'product_title' || columnKey === 'name') {
+    // Special handling for product name with image
+    if (columnKey === 'product_title' || columnKey === 'name' || columnKey === 'title') {
+      const productName = product.product_title || product.title || product.name || 'Product Name';
+      const productImage = product.image_url || product.featured_image || product.image || product.imageUrl || null;
+      
       return (
-        <div className="flex flex-col">
-          <button 
-            className="font-medium text-white hover:text-blue-400 transition-colors text-left"
-            onClick={() => onProductClick(product)}
-          >
-            {product.product_title || product.name || 'Unnamed Product'}
-          </button>
-          {product.sku && (
-            <span className="text-xs text-white/50">{product.sku}</span>
-          )}
+        <div className="flex items-center gap-3">
+          {/* Product Image */}
+          <div className="flex-shrink-0">
+            {productImage ? (
+              <>
+                <img 
+                  src={productImage} 
+                  alt={productName}
+                  className="w-10 h-10 object-cover rounded-lg border border-white/10"
+                  onError={(e) => {
+                    e.target.style.display = 'none';
+                    const placeholder = e.target.nextElementSibling;
+                    if (placeholder) placeholder.style.display = 'flex';
+                  }}
+                />
+                <div 
+                  className="w-10 h-10 rounded-lg bg-gradient-to-br from-purple-500/20 to-pink-500/20 items-center justify-center"
+                  style={{display: 'none'}}
+                >
+                  <Package size={16} className="text-purple-400" />
+                </div>
+              </>
+            ) : (
+              <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-purple-500/20 to-pink-500/20 flex items-center justify-center">
+                <Package size={16} className="text-purple-400" />
+              </div>
+            )}
+          </div>
+          
+          {/* Product Info */}
+          <div className="flex flex-col min-w-0">
+            <button 
+              className="font-medium text-white hover:text-blue-400 transition-colors text-left truncate"
+              onClick={() => onProductClick(product)}
+              title={productName}
+            >
+              {productName}
+            </button>
+            {(product.sku || product.vendor) && (
+              <div className="flex items-center gap-2 text-xs text-white/50">
+                {product.sku && product.sku !== 'null' && <span>SKU: {product.sku}</span>}
+                {product.vendor && product.vendor !== 'null' && <span>{product.vendor}</span>}
+              </div>
+            )}
+          </div>
         </div>
       );
     }
@@ -160,9 +203,9 @@ const ProductPerformanceTable = ({
   }
 
   return (
-    <div className="flex-1 glass-card-large overflow-hidden">
-      <div className="overflow-auto h-full">
-        <table className="w-full">
+    <div className="flex-1 glass-card-large overflow-hidden max-h-[calc(100vh-300px)]">
+      <div className="overflow-x-auto overflow-y-auto h-full custom-scrollbar">
+        <table className="w-full min-w-[1000px]">
           <thead className="sticky top-0 glass-card">
             <tr className="border-b border-white/10">
               <th className="text-left p-3">

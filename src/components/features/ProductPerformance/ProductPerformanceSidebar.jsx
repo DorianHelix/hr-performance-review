@@ -67,7 +67,7 @@ const ProductPerformanceSidebar = ({
   };
 
   return (
-    <div className="w-80 space-y-4">
+    <div className="w-full lg:w-80 space-y-3 md:space-y-4 overflow-y-auto max-h-[calc(100vh-200px)] custom-scrollbar">
       {/* View Info */}
       <div className="glass-card-large p-4">
         <h3 className="text-sm font-semibold text-white mb-3 flex items-center gap-2">
@@ -95,56 +95,94 @@ const ProductPerformanceSidebar = ({
         
         {expandedSections.columns && (
           <div className="space-y-3">
-            {/* Preset Buttons */}
-            <div className="flex gap-2">
+            {/* Quick Presets */}
+            <div className="grid grid-cols-3 gap-2">
               <button 
                 onClick={() => selectPresetColumns('minimal')}
-                className="glass-button px-3 py-1 text-sm hover:scale-105 transition-transform"
+                className="glass-button px-2 py-1.5 text-xs flex flex-col items-center gap-1 hover:scale-105 transition-all hover:bg-purple-500/20"
               >
-                Minimal
+                <Eye size={14} className="text-purple-400" />
+                <span>Basic</span>
               </button>
               <button 
                 onClick={() => selectPresetColumns('detailed')}
-                className="glass-button px-3 py-1 text-sm hover:scale-105 transition-transform"
+                className="glass-button px-2 py-1.5 text-xs flex flex-col items-center gap-1 hover:scale-105 transition-all hover:bg-blue-500/20"
               >
-                Detailed
+                <Settings size={14} className="text-blue-400" />
+                <span>Detailed</span>
               </button>
               <button 
                 onClick={() => selectPresetColumns('all')}
-                className="glass-button px-3 py-1 text-sm hover:scale-105 transition-transform"
+                className="glass-button px-2 py-1.5 text-xs flex flex-col items-center gap-1 hover:scale-105 transition-all hover:bg-green-500/20"
               >
-                All
+                <Activity size={14} className="text-green-400" />
+                <span>All</span>
               </button>
             </div>
 
-            {/* Column Categories */}
-            <div className="space-y-3">
-              {Object.entries(columnsByCategory).map(([category, columns]) => (
-                <div key={category} className="glass-card p-3">
-                  <h4 className="text-xs font-medium text-white/70 mb-2">{category}</h4>
-                  <div className="space-y-1">
-                    {columns.map(column => (
-                      <label key={column.key} className="flex items-center gap-2 cursor-pointer hover:bg-white/5 p-1 rounded">
-                        <input
-                          type="checkbox"
-                          checked={visibleColumns.includes(column.key)}
-                          onChange={() => handleColumnToggle(column.key)}
-                          disabled={column.frozen}
-                          className="rounded"
-                        />
-                        <span className={`text-xs ${
-                          column.frozen ? 'text-white/40' : 'text-white/80'
-                        }`}>
-                          {column.label}
-                          {column.calculated && 
-                            <span className="ml-1 px-1 py-0.5 bg-yellow-400/20 text-yellow-400 rounded text-xs">calc</span>
-                          }
-                        </span>
-                      </label>
-                    ))}
+            {/* Column Selector with Better UI */}
+            <div className="space-y-2 max-h-[400px] overflow-y-auto custom-scrollbar pr-2">
+              {Object.entries(columnsByCategory).map(([category, columns]) => {
+                const categoryIcons = {
+                  'Basic': Package,
+                  'Sales': DollarSign,
+                  'Performance': TrendingUp,
+                  'Customer': Users,
+                  'Time': Calendar
+                };
+                const CategoryIcon = categoryIcons[category] || Settings;
+                
+                return (
+                  <div key={category} className="glass-card p-3 hover:bg-white/5 transition-colors rounded-xl">
+                    <div className="flex items-center gap-2 mb-2">
+                      <CategoryIcon size={14} className="text-purple-400" />
+                      <h4 className="text-xs font-semibold text-white/90">{category}</h4>
+                      <span className="text-xs text-white/40 ml-auto">
+                        {columns.filter(c => visibleColumns.includes(c.key)).length}/{columns.length}
+                      </span>
+                    </div>
+                    <div className="grid grid-cols-1 gap-1">
+                      {columns.map(column => {
+                        const isChecked = visibleColumns.includes(column.key);
+                        return (
+                          <label 
+                            key={column.key} 
+                            className={`flex items-center gap-2 cursor-pointer p-2 rounded-lg transition-all ${
+                              isChecked ? 'bg-purple-500/10 border border-purple-500/30' : 'hover:bg-white/5'
+                            } ${column.frozen ? 'opacity-50 cursor-not-allowed' : ''}`}
+                          >
+                            <input
+                              type="checkbox"
+                              checked={isChecked}
+                              onChange={() => handleColumnToggle(column.key)}
+                              disabled={column.frozen}
+                              className="w-3 h-3 rounded border-white/30 bg-white/10 checked:bg-purple-500 checked:border-purple-500 transition-colors"
+                            />
+                            <div className="flex-1 flex items-center justify-between">
+                              <span className={`text-xs ${
+                                column.frozen ? 'text-white/40' : isChecked ? 'text-white' : 'text-white/70'
+                              }`}>
+                                {column.label}
+                              </span>
+                              <div className="flex items-center gap-1">
+                                {column.calculated && 
+                                  <span className="px-1.5 py-0.5 bg-yellow-500/20 text-yellow-400 rounded text-[10px] font-medium">CALC</span>
+                                }
+                                {column.format === 'currency' && 
+                                  <DollarSign size={10} className="text-green-400" />
+                                }
+                                {column.format === 'percentage' && 
+                                  <span className="text-blue-400 text-[10px]">%</span>
+                                }
+                              </div>
+                            </div>
+                          </label>
+                        );
+                      })}
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
         )}

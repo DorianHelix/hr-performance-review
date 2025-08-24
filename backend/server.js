@@ -1782,7 +1782,7 @@ app.post('/api/product-performance/sync', async (req, res) => {
     const query = `
       INSERT INTO product_performance (product_id, date, revenue, units_sold, orders_count)
       SELECT 
-        p.id as product_id,
+        oi.product_id as product_id,
         DATE(datetime(substr(o.created_at, 1, 19))) as date,
         -- Exact Shopify formula
         SUM(
@@ -1804,16 +1804,14 @@ app.post('/api/product-performance/sync', async (req, res) => {
         COUNT(DISTINCT o.id) as orders_count
       FROM order_items oi
       JOIN orders o ON oi.order_id = o.id
-      LEFT JOIN products p ON p.shopify_id = oi.product_id
       WHERE oi.product_id IS NOT NULL
         AND oi.product_id != ''
-        AND p.id IS NOT NULL
         -- Exclude "Utánvét Díja" and other non-product items
         AND oi.name NOT LIKE '%Utánvét%'
         AND oi.name NOT LIKE '%Csomagbiztosítás%'
         -- Ensure proper date extraction (exclude timezone issues)
         AND DATE(datetime(substr(o.created_at, 1, 19))) IS NOT NULL
-      GROUP BY p.id, DATE(datetime(substr(o.created_at, 1, 19)))
+      GROUP BY oi.product_id, DATE(datetime(substr(o.created_at, 1, 19)))
     `;
     
     db.run(query, function(err) {
@@ -1889,7 +1887,7 @@ app.get('/api/product-performance', (req, res) => {
   const countQuery = `
     SELECT COUNT(DISTINCT pp.product_id, pp.date) as total
     FROM product_performance pp
-    LEFT JOIN products p ON pp.product_id = p.id
+    LEFT JOIN products p ON pp.product_id = p.shopify_id
     ${whereClause}
   `;
   
@@ -1984,6 +1982,7 @@ app.get('/api/product-performance/aggregate', (req, res) => {
       p.vendor,
       p.product_type,
       p.featured_image as image_url,
+      p.images as images_json,
       p.sku,
       SUM(pp.revenue) as total_revenue,
       SUM(pp.units_sold) as total_units,
@@ -1991,7 +1990,7 @@ app.get('/api/product-performance/aggregate', (req, res) => {
       AVG(pp.revenue / NULLIF(pp.units_sold, 0)) as avg_price,
       COUNT(DISTINCT pp.date) as days_sold
     FROM product_performance pp
-    LEFT JOIN products p ON pp.product_id = p.id
+    LEFT JOIN products p ON pp.product_id = p.shopify_id
     ${whereClause}
     GROUP BY pp.product_id
     ORDER BY total_revenue DESC
@@ -2003,13 +2002,36 @@ app.get('/api/product-performance/aggregate', (req, res) => {
       return res.status(500).json({ error: 'Failed to fetch aggregated performance' });
     }
     
+    // Process rows to parse images JSON and ensure proper image URL
+    const processedRows = rows.map(row => {
+      let images = [];
+      try {
+        if (row.images_json) {
+          images = JSON.parse(row.images_json);
+        }
+      } catch (e) {
+        console.error('Error parsing images for product:', row.product_id, e);
+      }
+      
+      // Use first image from array if no featured image
+      const imageUrl = row.image_url || (images && images.length > 0 ? images[0] : null);
+      
+      return {
+        ...row,
+        images: images,
+        image_url: imageUrl,
+        // Remove the raw JSON field
+        images_json: undefined
+      };
+    });
+    
     res.json({
-      products: rows,
+      products: processedRows,
       summary: {
-        totalProducts: rows.length,
-        totalRevenue: rows.reduce((sum, p) => sum + (p.total_revenue || 0), 0),
-        totalUnits: rows.reduce((sum, p) => sum + (p.total_units || 0), 0),
-        totalOrders: rows.reduce((sum, p) => sum + (p.total_orders || 0), 0)
+        totalProducts: processedRows.length,
+        totalRevenue: processedRows.reduce((sum, p) => sum + (p.total_revenue || 0), 0),
+        totalUnits: processedRows.reduce((sum, p) => sum + (p.total_units || 0), 0),
+        totalOrders: processedRows.reduce((sum, p) => sum + (p.total_orders || 0), 0)
       }
     });
   });

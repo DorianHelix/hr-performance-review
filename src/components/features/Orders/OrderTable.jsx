@@ -240,15 +240,15 @@ function OrderTable({
 
   return (
     <div className="flex-1 glass-card-large overflow-hidden">
-      <div className="overflow-auto h-full">
-        <table className="w-full">
-          <thead className="sticky top-0 glass-card z-10">
+      <div className="overflow-x-auto overflow-y-auto h-full custom-scrollbar">
+        <table className="w-full min-w-[800px]">
+          <thead className="sticky top-0 glass-card z-10 backdrop-blur-md">
             <tr className="border-b border-white/10">
               {visibleColumns.map(colKey => {
                 const column = ORDER_COLUMNS.find(c => c.key === colKey);
                 if (!column) return null;
                 return (
-                  <th key={colKey} className="text-left p-3 text-white/70 text-sm font-medium whitespace-nowrap">
+                  <th key={colKey} className="text-left p-2 sm:p-3 text-white/70 text-xs sm:text-sm font-medium whitespace-nowrap">
                     {column.label}
                     {column.calculated && (
                       <span className="ml-1 text-yellow-400 text-xs">★</span>
@@ -263,7 +263,7 @@ function OrderTable({
               <React.Fragment key={order.id}>
                 <tr className="border-b border-white/5 hover:bg-white/5 transition-colors cursor-pointer">
                   {visibleColumns.map(colKey => (
-                    <td key={colKey} className="p-3 text-white/80 text-sm">
+                    <td key={colKey} className="p-2 sm:p-3 text-white/80 text-xs sm:text-sm">
                       {renderColumnValue(order, colKey)}
                     </td>
                   ))}
@@ -275,7 +275,7 @@ function OrderTable({
                     <td colSpan={visibleColumns.length} className="p-0">
                       <div className="p-4 bg-gradient-to-r from-purple-500/5 to-pink-500/5">
                         <h4 className="text-sm font-semibold text-white mb-3">Order Items</h4>
-                        <table className="w-full">
+                        <table className="w-full min-w-[800px]">
                           <thead>
                             <tr className="text-xs text-white/50 border-b border-white/10">
                               <th className="text-left pb-2 px-3">Product</th>

@@ -125,7 +125,7 @@ function OrderSidebar({
   };
 
   return (
-    <div className="w-80 flex-shrink-0 space-y-4 overflow-y-auto max-h-full">
+    <div className="w-full lg:w-80 flex-shrink-0 space-y-3 sm:space-y-4 overflow-y-auto max-h-full">
       {/* KPI Summary */}
       <div className="glass-card-large p-4">
         <div className="flex items-center gap-2 mb-4">
