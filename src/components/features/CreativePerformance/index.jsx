@@ -32,14 +32,14 @@ function LowStockTooltip({ emp }) {
     </LiquidTooltip>
   );
 }
-import API from '../api';
-import LiquidTooltip, { TruncatedTooltip } from './LiquidTooltip';
-import ScoreChartModal from './CreativePerformance/ScoreChartModal';
-import TestTypesModal from './CreativePerformance/TestTypesModal';
-import PlatformTypesModal from './CreativePerformance/PlatformTypesModal';
-import SettingsModal from './CreativePerformance/SettingsModal';
-import { getIcon } from './CreativePerformance/utils';
-import SectionHeader from './SectionHeader';
+import API from '../../../api';
+import LiquidTooltip, { TruncatedTooltip } from '../../common/ui/LiquidTooltip';
+import ScoreChartModal from './ScoreChartModal';
+import TestTypesModal from './TestTypesModal';
+import PlatformTypesModal from './PlatformTypesModal';
+import SettingsModal from './SettingsModal';
+import { getIcon } from './utils';
+import SectionHeader from '../../common/layout/SectionHeader';
 import {
   initializeCreativeData,
   getTestTypes,
@@ -47,12 +47,12 @@ import {
   getAllowedPlatforms,
   getScore,
   saveScore
-} from '../utils/creativeDataModel';
+} from '../../../utils/creativeDataModel';
 import {
   getGlobalTestTypes,
   getGlobalPlatforms,
   getGlobalAllowedPlatforms
-} from '../utils/globalTestConfig';
+} from '../../../utils/globalTestConfig';
 
 // Helper functions (copied from main App)
 function scoreToTier(score) {

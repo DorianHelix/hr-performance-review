@@ -9,24 +9,24 @@ import {
 } from "lucide-react";
 
 // Import components
-import CreativePerformance from "./components/CreativePerformance";
-import Experiment from "./components/Experiment";
+import CreativePerformance from "./components/features/CreativePerformance";
+import Experiment from "./components/features/Experiments";
 // import Products from "./components/Products"; // OLD - REMOVED
-import ProductsAdvanced from "./components/products"; // Final working version
-import ProductPerformance from "./components/product-performance"; // Product Performance Dashboard
-import Orders from "./components/orders"; // Orders Management
-import ProductVariantsDemo from "./components/ProductVariantsDemo";
-import FlowBuilder from "./components/FlowBuilder";
-import Analytics from "./components/Analytics";
-import Dashboard from "./components/Dashboard";
-import Employees from "./components/Employees";
-import OrganizationChart from "./components/Employees/OrganizationChart";
-import SettingsPage from "./components/Settings";
-import DatePicker from "./components/DatePicker";
-import DateRangePicker from "./components/DateRangePicker";
-import { ToastProvider } from "./components/Toast";
-import { ConfirmProvider } from "./components/ConfirmDialog";
-import ThemeSwitcher from "./components/ThemeSwitcher";
+import ProductsAdvanced from "./components/features/Products"; // Final working version
+import ProductPerformance from "./components/features/ProductPerformance"; // Product Performance Dashboard
+import Orders from "./components/features/Orders"; // Orders Management
+import ProductVariantsDemo from "./components/deprecated/ProductVariantsDemo";
+import FlowBuilder from "./components/features/FlowBuilder";
+import Analytics from "./components/features/Analytics";
+import Dashboard from "./components/features/Dashboard";
+import Employees from "./components/features/Employees";
+import OrganizationChart from "./components/features/Employees/OrganizationChart";
+import SettingsPage from "./components/features/Settings";
+import DatePicker from "./components/common/forms/DatePicker";
+import DateRangePicker from "./components/common/forms/DateRangePicker";
+import { ToastProvider } from "./components/common/ui/Toast";
+import { ConfirmProvider } from "./components/common/ui/ConfirmDialog";
+import ThemeSwitcher from "./components/common/layout/ThemeSwitcher";
 import { applyTheme } from "./config/themes";
 import API from "./api";
 import { 

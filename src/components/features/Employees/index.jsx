@@ -2,10 +2,10 @@ import React, { useState, useEffect } from 'react';
 import {
   Users, Plus, Upload, Trash2, Settings, PlusCircle, Edit2, Network
 } from 'lucide-react';
-import SectionHeader from './SectionHeader';
-import BulkImportModal from './BulkImportModal';
-import { useConfirm } from './ConfirmDialog';
-import { useToast } from './Toast';
+import SectionHeader from '../../common/layout/SectionHeader';
+import BulkImportModal from '../../common/forms/BulkImportModal';
+import { useConfirm } from '../../common/ui/ConfirmDialog';
+import { useToast } from '../../common/ui/Toast';
 
 // Utility functions
 function uid() { 

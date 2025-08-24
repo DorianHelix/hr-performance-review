@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { DollarSign, ShoppingCart, TrendingUp, Package, Users, Settings } from 'lucide-react';
-import { useToast } from '../Toast';
-import shopifyService from '../../services/shopifyService';
+import { useToast } from '../../common/ui/Toast';
+import shopifyService from '../../../services/shopifyService';
 import OrderHeader from './OrderHeader';
 import OrderFilters from './OrderFilters';
 import OrderTable from './OrderTable';

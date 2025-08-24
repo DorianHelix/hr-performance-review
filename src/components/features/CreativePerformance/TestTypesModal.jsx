@@ -6,13 +6,13 @@ import {
   deleteTestType,
   getPlatformTypes,
   updateTestTypePlatforms
-} from '../../utils/creativeDataModel';
+} from '../../../utils/creativeDataModel';
 import { 
   getGlobalTestTypes,
   getGlobalPlatforms,
   saveGlobalTestTypes,
   deleteGlobalTestType
-} from '../../utils/globalTestConfig';
+} from '../../../utils/globalTestConfig';
 import { getIcon } from './utils';
 
 function TestTypesModal({ onClose, onUpdate }) {

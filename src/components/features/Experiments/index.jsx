@@ -6,15 +6,15 @@ import {
   BarChart3, Check, AlertCircle, Filter,
   Search, ChevronDown, Palette, Layers, Activity
 } from 'lucide-react';
-import DateRangePicker from './DateRangePicker';
-import SectionHeader from './SectionHeader';
-import LiquidTooltip from './LiquidTooltip';
-import API from '../api';
+import DateRangePicker from '../../common/forms/DateRangePicker';
+import SectionHeader from '../../common/layout/SectionHeader';
+import LiquidTooltip from '../../common/ui/LiquidTooltip';
+import API from '../../../api';
 import { 
   saveScore, 
   getTestTypes as getCreativeTestTypes, 
   getPlatformTypes as getCreativePlatformTypes 
-} from '../utils/creativeDataModel';
+} from '../../../utils/creativeDataModel';
 import { 
   getGlobalTestTypes, 
   getGlobalPlatforms,
@@ -23,7 +23,7 @@ import {
   deleteGlobalTestType,
   deleteGlobalPlatform,
   forceRefreshFromDatabase
-} from '../utils/globalTestConfig';
+} from '../../../utils/globalTestConfig';
 
 // Platform icons as SVG components
 const FacebookIcon = () => (

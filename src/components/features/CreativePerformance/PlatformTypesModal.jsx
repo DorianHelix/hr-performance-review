@@ -5,13 +5,13 @@ import {
   savePlatformTypes, 
   deletePlatformType,
   getTestTypes
-} from '../../utils/creativeDataModel';
+} from '../../../utils/creativeDataModel';
 import {
   getGlobalPlatforms,
   getGlobalTestTypes,
   saveGlobalPlatforms,
   deleteGlobalPlatform
-} from '../../utils/globalTestConfig';
+} from '../../../utils/globalTestConfig';
 import { getIcon } from './utils';
 
 function PlatformTypesModal({ onClose }) {

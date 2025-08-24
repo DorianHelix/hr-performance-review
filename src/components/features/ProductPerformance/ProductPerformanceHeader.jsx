@@ -5,8 +5,8 @@ import {
   ChevronLeft, ChevronRight
 } from 'lucide-react';
 import { DATE_RANGES, COMPARISON_PERIODS, EXPORT_FORMATS } from './performanceConfig';
-import SectionHeader from '../SectionHeader';
-import DateRangePicker from '../DateRangePicker';
+import SectionHeader from '../../common/layout/SectionHeader';
+import DateRangePicker from '../../common/forms/DateRangePicker';
 
 const ProductPerformanceHeader = ({ 
   dateRange, 

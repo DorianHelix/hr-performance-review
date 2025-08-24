@@ -17,7 +17,7 @@ import {
   ChevronUp,
   Box,
 } from "lucide-react";
-import DatePicker from "./DatePicker";
+import DatePicker from "../../common/forms/DatePicker";
 
 // Glass theme for Nivo charts
 const glassTheme = {

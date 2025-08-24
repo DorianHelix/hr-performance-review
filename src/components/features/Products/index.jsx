@@ -7,9 +7,9 @@ import {
   Key, Link, Image, Calendar, Hash, Store, Plug, Layers, Menu,
   Upload, FileText, ArrowRight, Trash2
 } from 'lucide-react';
-import shopifyService from '../../services/shopifyService';
-import { useToast } from '../Toast';
-import SectionHeader from '../SectionHeader';
+import shopifyService from '../../../services/shopifyService';
+import { useToast } from '../../common/ui/Toast';
+import SectionHeader from '../../common/layout/SectionHeader';
 import Papa from 'papaparse';
 import ProductsTable from './ProductsTable';
 import ProductsPagination from './ProductsPagination';

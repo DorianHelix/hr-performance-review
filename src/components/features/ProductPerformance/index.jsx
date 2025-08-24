@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { useToast } from '../Toast';
-import shopifyService from '../../services/shopifyService';
-import DateRangePicker from '../DateRangePicker';
+import { useToast } from '../../common/ui/Toast';
+import shopifyService from '../../../services/shopifyService';
+import DateRangePicker from '../../common/forms/DateRangePicker';
 
 // Import sub-components
 import ProductPerformanceHeader from './ProductPerformanceHeader';

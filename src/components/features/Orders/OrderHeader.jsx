@@ -1,7 +1,7 @@
 import React from 'react';
 import { ShoppingCart, Calendar, RefreshCw, Download, Filter, Settings, ChevronLeft, ChevronRight } from 'lucide-react';
-import SectionHeader from '../SectionHeader';
-import DateRangePicker from '../DateRangePicker';
+import SectionHeader from '../../common/layout/SectionHeader';
+import DateRangePicker from '../../common/forms/DateRangePicker';
 
 function OrderHeader({ 
   showKPICards, 

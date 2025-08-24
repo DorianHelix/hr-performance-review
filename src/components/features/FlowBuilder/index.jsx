@@ -19,8 +19,8 @@ import {
   Settings, Zap, Clock, FileText, Calendar, Target,
   Activity, Hash, MessageSquare, Filter, Users, Layers
 } from 'lucide-react';
-import { useToast } from './Toast';
-import emailService from '../services/emailService';
+import { useToast } from '../../common/ui/Toast';
+import emailService from '../../../services/emailService';
 
 // Custom node types with executable actions
 const StartNode = ({ data, selected }) => {

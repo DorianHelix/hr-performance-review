@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Palette, Check, Sun, Moon } from 'lucide-react';
-import { getAvailableThemes, applyTheme, getCurrentTheme } from '../config/themes';
+import { getAvailableThemes, applyTheme, getCurrentTheme } from '../../../../config/themes';
 
 function ThemeSwitcher({ isDarkMode, onThemeToggle, isCollapsed }) {
   const [showThemes, setShowThemes] = useState(false);

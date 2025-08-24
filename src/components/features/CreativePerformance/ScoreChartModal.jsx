@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { X } from 'lucide-react';
-import API from '../../api';
+import API from '../../../api';
 
 // Score Chart Modal Component
 function ScoreChartModal({ data, categories, getCategoryScore, onClose, DateRangePicker }) {

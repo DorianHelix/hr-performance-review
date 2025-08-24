@@ -1,7 +1,7 @@
 import React, { useState, useRef } from 'react';
 import { Upload, X } from 'lucide-react';
-import AlertMessage from './AlertMessage';
-import { useToast } from './Toast';
+import AlertMessage from '../../ui/AlertMessage';
+import { useToast } from '../../ui/Toast';
 
 // Utility function for unique IDs
 function uid() { 

@@ -3,7 +3,7 @@ import {
   Package, ChevronDown, ChevronRight, Layers, AlertTriangle,
   Settings, Trash2, Plus, Upload, FileDown
 } from 'lucide-react';
-import { TruncatedTooltip } from './LiquidTooltip';
+import { TruncatedTooltip } from '../common/ui/LiquidTooltip';
 
 // Sample data based on the CSV structure
 const SAMPLE_PRODUCTS = [
