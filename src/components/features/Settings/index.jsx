@@ -8,7 +8,8 @@ function Settings() {
       storeDomain: '',
       accessToken: '',
       autoSync: false,
-      syncInterval: 60
+      syncInterval: 60,
+      syncMode: 'incremental' // 'incremental' or 'full'
     },
     general: {
       companyName: 'Helix Finance',
@@ -184,28 +185,31 @@ function Settings() {
   ];
 
   return (
-    <div className="flex h-full flex-col p-6">
+    <div className="flex h-full flex-col h-screen overflow-hidden">
       {/* Header */}
-      <header className="glass-card-large mb-6 p-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold flex items-center gap-3 text-white mb-2">
-              <div className="glass-card p-2 rounded-2xl bg-gradient-to-br from-blue-400/20 to-purple-600/20 border-blue-400/30">
-                <SettingsIcon size={24} className="text-blue-300" />
-              </div>
-              Settings
-            </h1>
-            <p className="text-white/60 text-lg">
-              Configure your application preferences and integrations
-            </p>
+      <header className="px-3 sm:px-4 md:px-6 py-4 sm:py-6">
+        <div className="glass-card-large p-4 sm:p-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-xl sm:text-2xl font-bold flex items-center gap-3 text-white mb-2">
+                <div className="glass-card p-2 rounded-2xl bg-gradient-to-br from-blue-400/20 to-purple-600/20 border-blue-400/30">
+                  <SettingsIcon size={24} className="text-blue-300" />
+                </div>
+                Settings
+              </h1>
+              <p className="text-white/60 text-sm sm:text-base">
+                Configure your application preferences and integrations
+              </p>
+            </div>
           </div>
         </div>
       </header>
         
-      <div className="glass-card-large rounded-3xl overflow-hidden flex-1">
+      <div className="flex-1 px-3 sm:px-4 md:px-6 pb-3 sm:pb-4 md:pb-6 overflow-y-auto">
+        <div className="glass-card-large rounded-xl sm:rounded-2xl md:rounded-3xl overflow-hidden">
           {/* Tab Navigation */}
-          <div className="border-b border-white/10">
-            <nav className="flex space-x-2 px-6 pt-4" aria-label="Tabs">
+          <div className="border-b border-white/10 overflow-x-auto">
+            <nav className="flex space-x-1 sm:space-x-2 px-3 sm:px-4 md:px-6 pt-3 sm:pt-4 min-w-max" aria-label="Tabs">
               {tabs.map((tab) => {
                 const Icon = tab.icon;
                 return (
@@ -213,7 +217,7 @@ function Settings() {
                     key={tab.id}
                     onClick={() => setActiveTab(tab.id)}
                     className={`
-                      flex items-center gap-2 px-4 py-3 rounded-t-2xl font-medium text-sm transition-all duration-300
+                      flex items-center gap-1 sm:gap-2 px-2 sm:px-3 md:px-4 py-2 sm:py-3 rounded-t-lg sm:rounded-t-xl md:rounded-t-2xl font-medium text-xs sm:text-sm transition-all duration-300 whitespace-nowrap
                       ${activeTab === tab.id
                         ? 'glass-card bg-gradient-to-br from-blue-400/20 to-purple-600/20 text-white border-b-2 border-blue-400'
                         : 'text-white/60 hover:text-white/80 hover:bg-white/5'
@@ -229,7 +233,7 @@ function Settings() {
           </div>
 
           {/* Tab Content */}
-          <div className="p-6">
+          <div className="p-3 sm:p-4 md:p-6 max-h-[calc(100vh-250px)] overflow-y-auto custom-scrollbar">
             {/* Shopify Integration Tab */}
             {activeTab === 'shopify' && (
               <div className="space-y-6">
@@ -317,12 +321,53 @@ function Settings() {
                     )}
                   </div>
 
+                  {/* Sync Mode Selection */}
+                  <div className="p-4 glass-card rounded-xl">
+                    <h3 className="text-sm font-semibold text-white mb-3">Sync Mode</h3>
+                    <div className="space-y-3">
+                      <label className="flex items-start gap-3 cursor-pointer">
+                        <input
+                          type="radio"
+                          name="syncMode"
+                          value="incremental"
+                          checked={settings.shopify.syncMode === 'incremental'}
+                          onChange={(e) => setSettings({
+                            ...settings,
+                            shopify: { ...settings.shopify, syncMode: e.target.value }
+                          })}
+                          className="mt-1 text-blue-400 focus:ring-blue-500 border-white/20 bg-white/10"
+                        />
+                        <div>
+                          <div className="text-white font-medium">Incremental Sync (Recommended)</div>
+                          <div className="text-xs text-white/60 mt-1">Only sync new orders since last sync. Faster and more efficient.</div>
+                        </div>
+                      </label>
+                      <label className="flex items-start gap-3 cursor-pointer">
+                        <input
+                          type="radio"
+                          name="syncMode"
+                          value="full"
+                          checked={settings.shopify.syncMode === 'full'}
+                          onChange={(e) => setSettings({
+                            ...settings,
+                            shopify: { ...settings.shopify, syncMode: e.target.value }
+                          })}
+                          className="mt-1 text-blue-400 focus:ring-blue-500 border-white/20 bg-white/10"
+                        />
+                        <div>
+                          <div className="text-white font-medium">Full Sync</div>
+                          <div className="text-xs text-white/60 mt-1">Sync all historical orders. Use this for initial setup or data recovery.</div>
+                        </div>
+                      </label>
+                    </div>
+                  </div>
+
                   {/* Test Connection Button */}
-                  <div className="flex gap-3">
+                  <div className="flex flex-col sm:flex-row gap-3">
                     <button
                       onClick={testShopifyConnection}
                       disabled={loading || !settings.shopify.storeDomain || !settings.shopify.accessToken}
-                      className="glass-button px-4 py-2 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                      className="glass-button px-4 py-2 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 hover:scale-105 transition-transform"
                     >
                       {loading ? 'Testing...' : 'Test Connection'}
                     </button>
@@ -330,7 +375,7 @@ function Settings() {
                     <button
                       onClick={syncProducts}
                       disabled={loading || !settings.shopify.storeDomain || !settings.shopify.accessToken}
-                      className="glass-button-primary px-4 py-2 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                      className="glass-button-primary px-4 py-2 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 hover:scale-105 transition-transform"
                     >
                       {loading ? 'Syncing...' : 'Sync Products Now'}
                     </button>
@@ -609,10 +654,10 @@ function Settings() {
           </div>
 
           {/* Save Button */}
-          <div className="px-6 py-4 glass-card border-t border-white/10 flex justify-between items-center">
+          <div className="px-3 sm:px-4 md:px-6 py-3 sm:py-4 glass-card border-t border-white/10 flex flex-col sm:flex-row justify-between items-center gap-3">
             <div>
               {saveStatus === 'saved' && (
-                <span className="text-green-400 flex items-center gap-2">
+                <span className="text-green-400 flex items-center gap-2 text-sm">
                   <Check className="w-4 h-4" />
                   Settings saved successfully
                 </span>
@@ -620,7 +665,7 @@ function Settings() {
             </div>
             <button
               onClick={handleSaveSettings}
-              className="glass-button-primary px-6 py-2 flex items-center gap-2"
+              className="glass-button-primary px-4 sm:px-6 py-2 flex items-center gap-2 hover:scale-105 transition-transform w-full sm:w-auto justify-center"
             >
               <Save className="w-4 h-4" />
               Save Settings
@@ -628,6 +673,7 @@ function Settings() {
           </div>
         </div>
       </div>
+    </div>
   );
 }
 

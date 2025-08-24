@@ -156,7 +156,7 @@ function Orders() {
   };
 
   // Sync with Shopify
-  const syncWithShopify = async () => {
+  const syncWithShopify = async (fullSync = false) => {
     if (!shopifyService.hasCredentials()) {
       showError('Please configure Shopify credentials first');
       setShowShopifySettings(true);
@@ -165,8 +165,17 @@ function Orders() {
 
     setSyncing(true);
     try {
+      // Get sync mode from settings
+      const settingsResponse = await fetch('http://localhost:3001/api/settings');
+      const settings = await settingsResponse.json();
+      const syncMode = fullSync || settings?.shopify?.syncMode === 'full';
+      
       const response = await fetch('http://localhost:3001/api/orders/sync', {
-        method: 'POST'
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ fullSync: syncMode })
       });
       
       if (response.ok) {

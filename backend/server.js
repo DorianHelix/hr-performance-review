@@ -1425,6 +1425,8 @@ app.get('/api/orders', (req, res) => {
 
 // Sync orders from Shopify
 app.post('/api/orders/sync', async (req, res) => {
+  const { fullSync = false } = req.body; // Accept fullSync parameter from request
+  
   // Get Shopify credentials from settings
   db.all(`SELECT key, value FROM settings WHERE key IN ('shopify_store_domain', 'shopify_access_token')`, async (err, rows) => {
     if (err) {
@@ -1441,6 +1443,33 @@ app.post('/api/orders/sync', async (req, res) => {
     }
     
     try {
+      // Determine sync start date based on sync mode
+      let lastOrderDate;
+      
+      if (fullSync) {
+        console.log('🔄 FULL SYNC MODE - Fetching all historical orders');
+        // For full sync, don't set a date filter (will get all orders)
+        lastOrderDate = null;
+      } else {
+        // Get the most recent order date to sync incrementally
+        lastOrderDate = await new Promise((resolve) => {
+          db.get('SELECT MAX(created_at) as last_date FROM orders', (err, row) => {
+            if (err || !row || !row.last_date) {
+              // If no orders exist, sync last 30 days only
+              const thirtyDaysAgo = new Date();
+              thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+              resolve(thirtyDaysAgo.toISOString());
+            } else {
+              // Sync from the last order date (subtract 1 day for overlap)
+              const lastDate = new Date(row.last_date);
+              lastDate.setDate(lastDate.getDate() - 1);
+              resolve(lastDate.toISOString());
+            }
+          });
+        });
+        console.log(`📈 INCREMENTAL SYNC MODE - Syncing orders created after: ${lastOrderDate}`);
+      }
+      
       let allOrders = [];
       let hasNextPage = true;
       let pageInfo = null;
@@ -1448,7 +1477,8 @@ app.post('/api/orders/sync', async (req, res) => {
       let savedCount = 0;
       let skippedCount = 0;
       let pageCount = 0;
-      const maxPages = 1000; // Safety limit to prevent infinite loops
+      const maxPages = fullSync ? 100 : 20; // More pages for full sync
+      let consecutiveDuplicates = 0; // Track consecutive duplicates
       
       console.log('Starting to fetch orders from Shopify...');
       
@@ -1462,14 +1492,14 @@ app.post('/api/orders/sync', async (req, res) => {
           db.get('SELECT id FROM orders WHERE shopify_id = ?', [order.id], (err, existingOrder) => {
             if (err) {
               console.error('Error checking existing order:', err);
-              resolve();
+              resolve(false); // Return false for error
               return;
             }
             
             if (existingOrder) {
               // Order already exists, skip
               skippedCount++;
-              resolve();
+              resolve(false); // Return false for duplicate
               return;
             }
             
@@ -1516,7 +1546,7 @@ app.post('/api/orders/sync', async (req, res) => {
           ], function(err) {
             if (err) {
               console.error('Error saving order:', err);
-              resolve(); // Continue even if one order fails
+              resolve(false); // Return false for error
               return;
             }
             
@@ -1553,12 +1583,12 @@ app.post('/api/orders/sync', async (req, res) => {
                   if (err) console.error('Error saving line item:', err);
                   itemsSaved++;
                   if (itemsSaved === itemsToSave) {
-                    resolve();
+                    resolve(true); // Return true for success with items
                   }
                   });
                 });
               } else {
-                resolve();
+                resolve(true); // Return true for success without items
               }
             });
           });
@@ -1573,8 +1603,13 @@ app.post('/api/orders/sync', async (req, res) => {
           // page_info cannot be used with other parameters except limit
           url = `https://${settings.shopify_store_domain}.myshopify.com/admin/api/2024-10/orders.json?limit=${pageSize}&page_info=${pageInfo}`;
         } else {
-          // First page can use status parameter
-          url = `https://${settings.shopify_store_domain}.myshopify.com/admin/api/2024-10/orders.json?limit=${pageSize}&status=any`;
+          // First page can use status and created_at_min parameters
+          if (lastOrderDate) {
+            url = `https://${settings.shopify_store_domain}.myshopify.com/admin/api/2024-10/orders.json?limit=${pageSize}&status=any&created_at_min=${lastOrderDate}`;
+          } else {
+            // Full sync - no date filter
+            url = `https://${settings.shopify_store_domain}.myshopify.com/admin/api/2024-10/orders.json?limit=${pageSize}&status=any`;
+          }
         }
         
         const response = await fetch(url, {
@@ -1616,8 +1651,23 @@ app.post('/api/orders/sync', async (req, res) => {
         
         // Save this batch of orders immediately
         console.log(`Saving batch of ${data.orders.length} orders to database...`);
+        let batchSaved = 0;
+        let batchSkipped = 0;
+        
         for (const order of data.orders) {
-          await saveOrderToDatabase(order);
+          const result = await saveOrderToDatabase(order);
+          if (result) {
+            batchSaved++;
+          } else {
+            batchSkipped++;
+          }
+        }
+        
+        // Update consecutive duplicates counter
+        if (batchSaved === 0 && batchSkipped > 0) {
+          consecutiveDuplicates += batchSkipped;
+        } else {
+          consecutiveDuplicates = 0; // Reset if we saved any new orders
         }
         
         allOrders = allOrders.concat(data.orders);
@@ -1640,6 +1690,12 @@ app.post('/api/orders/sync', async (req, res) => {
         }
         
         console.log(`Page ${pageCount}: Fetched ${data.orders.length} orders | Total fetched: ${allOrders.length} | Saved: ${savedCount} | Skipped (duplicates): ${skippedCount}`);
+        
+        // Stop early if we're only finding duplicates (optimization) - but not for full sync
+        if (!fullSync && consecutiveDuplicates >= 100) {
+          console.log('🛑 Stopping sync early - only finding duplicates (100+ consecutive)');
+          hasNextPage = false;
+        }
         
         // Add a small delay between requests to avoid rate limiting
         if (hasNextPage) {
