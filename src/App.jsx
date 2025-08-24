@@ -62,7 +62,7 @@ function CompanyLogo({ className = "w-8 h-8" }) {
 /* -----------------------------------------------------------
    Sidebar Component
 ----------------------------------------------------------- */
-function Sidebar({ isCollapsed, onToggle, currentView, onViewChange, isDarkMode, onThemeToggle }) {
+function Sidebar({ isCollapsed, onToggle, currentView, onViewChange, isDarkMode, onThemeToggle, isMobile }) {
   const menuItems = [
     {
       id: 'dashboard',
@@ -139,9 +139,9 @@ function Sidebar({ isCollapsed, onToggle, currentView, onViewChange, isDarkMode,
   ];
 
   return (
-    <div className={`${isCollapsed ? 'w-20' : 'w-72'} glass-sidebar h-screen flex flex-col transition-all duration-500 ease-out fixed left-0 top-0 z-50 ml-2 mt-4 mb-4 mr-2 rounded-3xl relative`}>
+    <div className={`${isCollapsed ? 'w-16 sm:w-20' : 'w-64 sm:w-72'} glass-sidebar h-[calc(100vh-2rem)] flex flex-col transition-all duration-500 ease-out fixed left-2 top-4 z-50 rounded-2xl sm:rounded-3xl`}>
       {/* Header with Logo Toggle */}
-      <div className="p-6 relative" style={{ borderBottom: '1px solid var(--color-glassBorder)' }}>
+      <div className="p-3 sm:p-6 relative flex-shrink-0" style={{ borderBottom: '1px solid var(--color-glassBorder)' }}>
         <div className={`flex items-center gap-3 ${isCollapsed ? 'justify-center' : ''}`}>
           <button
             onClick={onToggle}
@@ -160,15 +160,15 @@ function Sidebar({ isCollapsed, onToggle, currentView, onViewChange, isDarkMode,
       </div>
 
       {/* Navigation Menu */}
-      <nav className="flex-1" style={{ padding: '10px' }}>
-        <ul className="space-y-3">
+      <nav className="flex-1 overflow-y-auto overflow-x-hidden sidebar-nav" style={{ padding: '10px' }}>
+        <ul className="space-y-2 pr-2">
           {menuItems.map((item) => {
             const Icon = item.icon;
             return (
               <li key={item.id}>
                 <button
                   onClick={() => onViewChange(item.id)}
-                  className={`${isCollapsed ? 'flex-none min-w-[56px] max-w-[56px] h-14 justify-center p-0' : 'w-full flex gap-4 p-4'} flex items-center rounded-2xl transition-all duration-300 group relative overflow-hidden hover-nav-item`}
+                  className={`${isCollapsed ? 'flex-none min-w-[48px] sm:min-w-[56px] max-w-[48px] sm:max-w-[56px] h-12 sm:h-14 justify-center p-0' : 'w-full flex gap-2 sm:gap-4 p-3 sm:p-4'} flex items-center rounded-xl sm:rounded-2xl transition-all duration-300 group relative overflow-hidden hover-nav-item`}
                   style={{
                     '--bg-active': `linear-gradient(to right, var(--color-primary)33, var(--color-secondary)33)`,
                     '--bg-hover': 'var(--color-glassHover)',
@@ -190,17 +190,17 @@ function Sidebar({ isCollapsed, onToggle, currentView, onViewChange, isDarkMode,
                   }}
                   title={isCollapsed ? item.label : ''}
                 >
-                  <div className="p-3 w-14 h-14 rounded-xl transition-all duration-300 flex items-center justify-center group-hover:scale-110"
+                  <div className="p-2 sm:p-3 w-12 h-12 sm:w-14 sm:h-14 rounded-lg sm:rounded-xl transition-all duration-300 flex items-center justify-center group-hover:scale-110"
                     style={{
                       background: item.active 
                         ? `linear-gradient(to bottom right, var(--color-primary), var(--color-primaryDark))` 
                         : 'var(--color-glassBg)',
                       boxShadow: item.active ? '0 10px 20px var(--color-primary)33' : 'none'
                     }}>
-                    <Icon size={20} className="flex-shrink-0" style={{ color: item.active ? 'white' : 'var(--color-textSecondary)' }} />
+                    <Icon size={isMobile ? 18 : 20} className="flex-shrink-0" style={{ color: item.active ? 'white' : 'var(--color-textSecondary)' }} />
                   </div>
                   {!isCollapsed && (
-                    <span className="font-semibold text-lg tracking-wide" style={{ color: 'inherit' }}>{item.label}</span>
+                    <span className="font-semibold text-sm sm:text-lg tracking-wide truncate" style={{ color: 'inherit' }}>{item.label}</span>
                   )}
                   {item.active && (
                     <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent animate-pulse rounded-2xl" />
@@ -213,7 +213,7 @@ function Sidebar({ isCollapsed, onToggle, currentView, onViewChange, isDarkMode,
       </nav>
 
       {/* Theme Switcher at Bottom */}
-      <div className={`p-4 ${isCollapsed ? 'flex justify-center' : ''}`} style={{ borderTop: '1px solid var(--color-glassBorder)' }}>
+      <div className={`p-3 sm:p-4 flex-shrink-0 ${isCollapsed ? 'flex justify-center' : ''}`} style={{ borderTop: '1px solid var(--color-glassBorder)' }}>
         <ThemeSwitcher 
           isDarkMode={isDarkMode}
           onThemeToggle={onThemeToggle}
@@ -1506,6 +1506,7 @@ export default function App() {
   const [products, setProducts] = useState([]);
   const [categories, setCategories] = useState([]);
   const [dbScores, setDbScores] = useState({});
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
   
   // Test categories state for Creative component - sync with global config
   const [testCategories, setTestCategories] = useState(() => {
@@ -1533,6 +1534,22 @@ export default function App() {
   }, []);
   
   const [loading, setLoading] = useState(true);
+  
+  // Handle responsive design
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth < 768);
+      // Auto-collapse sidebar on mobile
+      if (window.innerWidth < 768) {
+        setSidebarCollapsed(true);
+      }
+    };
+    
+    window.addEventListener('resize', handleResize);
+    handleResize(); // Check initial size
+    
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
   const [startDate, setStartDate] = useState(() => {
     // Default to current date (today)
     return new Date().toISOString().slice(0, 10);
@@ -2162,9 +2179,12 @@ export default function App() {
   return (
     <ToastProvider>
       <ConfirmProvider>
-        <div className="h-full w-full flex relative overflow-hidden" style={{ 
+        <div className="h-screen w-screen flex relative overflow-hidden" style={{ 
           color: 'var(--text-primary)',
-          background: 'var(--color-bgGradient, var(--color-bgPrimary))' 
+          background: 'var(--color-bgGradient, var(--color-bgPrimary))',
+          position: 'fixed',
+          top: 0,
+          left: 0
         }}>
         {/* Sidebar */}
         <Sidebar 
@@ -2174,13 +2194,27 @@ export default function App() {
           onViewChange={setCurrentView}
           isDarkMode={isDarkMode}
           onThemeToggle={() => setIsDarkMode(!isDarkMode)}
+          isMobile={isMobile}
         />
 
-      {/* Main Content */}
+      {/* Main Content - Responsive padding for sidebar */}
       <div 
-        className={`flex-1 transition-all duration-500`}
-        style={{ marginLeft: '0px' }}
+        className={`flex-1 transition-all duration-500 overflow-y-auto overflow-x-hidden relative h-screen`}
+        style={{ 
+          marginLeft: sidebarCollapsed ? (isMobile ? '64px' : '80px') : (isMobile ? '256px' : '288px'),
+          height: '100vh',
+          maxWidth: `calc(100vw - ${sidebarCollapsed ? (isMobile ? '64px' : '80px') : (isMobile ? '256px' : '288px')})`
+        }}
       >
+        {/* Mobile Menu Toggle - Fixed position */}
+        {isMobile && (
+          <button
+            onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
+            className="fixed top-4 right-4 z-50 p-2 glass-button rounded-lg hover:scale-110 transition-transform md:hidden"
+          >
+            <Menu size={20} />
+          </button>
+        )}
       {/* Conditional Content Based on Current View */}
       {currentView === 'dashboard' && <Dashboard />}
       
@@ -2251,9 +2285,9 @@ export default function App() {
       {currentView === 'settings' && <SettingsPage />}
       
       {currentView === 'performance' && (
-        <div className="flex h-full flex-col p-6">
-          <header className="glass-card-large mb-6 p-6">
-            <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+        <div className="flex h-full flex-col p-3 sm:p-4 md:p-6">
+          <header className="glass-card-large mb-4 sm:mb-6 p-4 sm:p-6">
+            <div className="flex flex-col gap-3 sm:gap-4 lg:flex-row lg:items-center lg:justify-between">
               <div>
                 <h1 className="text-2xl font-bold flex items-center gap-3 text-white mb-2">
                   <div className="glass-card p-2 rounded-2xl bg-gradient-to-br from-blue-400/20 to-purple-600/20 border-blue-400/30">

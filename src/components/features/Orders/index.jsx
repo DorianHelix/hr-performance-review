@@ -482,7 +482,7 @@ function Orders() {
   };
 
   return (
-    <div className="flex flex-col h-full overflow-hidden">
+    <div className="flex flex-col h-screen max-h-screen overflow-hidden">
       <OrderHeader
         showKPICards={showKPICards}
         onToggleKPICards={() => setShowKPICards(prev => !prev)}

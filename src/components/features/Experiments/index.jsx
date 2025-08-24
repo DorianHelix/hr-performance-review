@@ -401,9 +401,9 @@ function Experiment() {
   const kpis = calculateKPIs();
 
   return (
-    <div className="min-h-screen w-full flex">
+    <div className="h-screen max-h-screen w-full flex overflow-hidden">
       {/* Main Content */}
-      <div className={`flex-1 p-8 transition-all duration-300 ${showTestForm ? 'mr-96' : ''}`}>
+      <div className={`flex-1 p-4 sm:p-6 md:p-8 overflow-y-auto transition-all duration-300 ${showTestForm ? 'mr-96' : ''}`}>
         <div className="flex items-center justify-between mb-6">
           <SectionHeader 
             title="Experiments"

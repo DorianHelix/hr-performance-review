@@ -919,18 +919,18 @@ function OrganizationChart({ isDarkMode }) {
     <DndProvider backend={HTML5Backend}>
       <div className="h-full flex flex-col">
         {/* Header */}
-        <div className="p-6 border-b border-white/10">
+        <div className="p-3 sm:p-4 md:p-6 border-b border-white/10">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-2xl font-bold text-white flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
-                  <Network size={20} />
+              <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-white flex items-center gap-2 sm:gap-3">
+                <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg sm:rounded-xl bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
+                  <Network size={16} className="sm:w-5 sm:h-5" />
                 </div>
-                Organization Chart
+                <span className="truncate">Organization Chart</span>
               </h1>
-              <p className="text-white/60 mt-1">Visualize and manage your organizational hierarchy</p>
+              <p className="text-white/60 mt-1 text-xs sm:text-sm hidden sm:block">Visualize and manage your organizational hierarchy</p>
             </div>
-            <div className="flex gap-3">
+            <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
               <button
                 onClick={() => {
                   // Clear both structure and library for fresh start
@@ -939,13 +939,13 @@ function OrganizationChart({ isDarkMode }) {
                   localStorage.removeItem('hr_org_structure');
                   localStorage.removeItem('hr_unit_library');
                 }}
-                className="px-4 py-2 rounded-xl bg-red-500/20 border border-red-500/30 text-red-400 hover:bg-red-500/30 transition-colors"
+                className="px-3 py-1.5 sm:px-4 sm:py-2 rounded-lg sm:rounded-xl bg-red-500/20 border border-red-500/30 text-red-400 hover:bg-red-500/30 transition-colors text-xs sm:text-sm"
               >
                 Clear All
               </button>
               <button
                 onClick={() => setOrgStructure(null)}
-                className="px-4 py-2 rounded-xl bg-orange-500/20 border border-orange-500/30 text-orange-400 hover:bg-orange-500/30 transition-colors"
+                className="px-3 py-1.5 sm:px-4 sm:py-2 rounded-lg sm:rounded-xl bg-orange-500/20 border border-orange-500/30 text-orange-400 hover:bg-orange-500/30 transition-colors text-xs sm:text-sm"
               >
                 Clear Structure Only
               </button>
@@ -954,9 +954,9 @@ function OrganizationChart({ isDarkMode }) {
         </div>
 
         <div className="flex-1 flex min-h-0 overflow-hidden relative">
-          {/* Main Org Chart Area - Absolutely positioned to prevent expansion */}
-          <div className={`absolute inset-0 ${showSidebar ? 'right-96' : 'right-0'} flex flex-col p-4 transition-all`}>
-            <div className="flex-1 glass-card-large p-4 flex flex-col overflow-hidden">
+          {/* Main Org Chart Area - Responsive positioning */}
+          <div className={`absolute inset-0 ${showSidebar ? 'lg:right-96' : 'right-0'} flex flex-col p-2 sm:p-3 md:p-4 transition-all`}>
+            <div className="flex-1 glass-card-large p-2 sm:p-3 md:p-4 flex flex-col overflow-hidden">
               <div className="flex items-center justify-between mb-4 flex-shrink-0 flex-wrap gap-2">
                 <div className="flex items-center gap-3">
                   <button
@@ -966,7 +966,7 @@ function OrganizationChart({ isDarkMode }) {
                   >
                     {showSidebar ? <ChevronRight size={20} className="text-white/70" /> : <Menu size={20} className="text-white/70" />}
                   </button>
-                  <h2 className="text-base md:text-lg font-semibold text-white">Organization Structure</h2>
+                  <h2 className="text-sm sm:text-base md:text-lg font-semibold text-white">Organization Structure</h2>
                 </div>
                 <div className="flex items-center gap-2 md:gap-3">
                   {/* Zoom Controls */}
@@ -1009,13 +1009,13 @@ function OrganizationChart({ isDarkMode }) {
                   </div>
                   
                   {/* Stats */}
-                  <div className="hidden md:flex gap-3">
-                    <div className="flex items-center gap-2 text-sm text-white/60">
-                      <Hash size={14} />
+                  <div className="hidden sm:flex gap-2 md:gap-3">
+                    <div className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm text-white/60">
+                      <Hash size={12} className="sm:w-3.5 sm:h-3.5" />
                       <span>{employees.length}</span>
                     </div>
-                    <div className="flex items-center gap-2 text-sm text-white/60">
-                      <Building2 size={14} />
+                    <div className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm text-white/60">
+                      <Building2 size={12} className="sm:w-3.5 sm:h-3.5" />
                       <span>{countUnits(orgStructure)}</span>
                     </div>
                   </div>
@@ -1093,9 +1093,9 @@ function OrganizationChart({ isDarkMode }) {
             </div>
           </div>
 
-          {/* Right Sidebar - absolutely positioned to stay in place */}
+          {/* Right Sidebar - Responsive width and visibility */}
           {showSidebar && (
-            <div className="absolute right-0 top-0 bottom-0 w-96 border-l border-white/10 p-4 md:p-6 overflow-y-auto bg-[#1a1a1a] transition-all">
+            <div className="absolute right-0 top-0 bottom-0 w-full sm:w-80 lg:w-96 border-l border-white/10 p-3 sm:p-4 md:p-6 overflow-y-auto bg-[#1a1a1a] transition-all z-40">
             <div className="space-y-6">
               {/* Search and Filter */}
               <div className="space-y-3">

@@ -252,13 +252,13 @@ function Dashboard() {
   const [expandedProduct3, setExpandedProduct3] = useState(false);
 
   return (
-    <div className="flex h-full w-full flex-col p-6 overflow-auto bg-transparent min-h-screen">
+    <div className="flex h-screen max-h-screen w-full flex-col p-3 sm:p-4 md:p-6 overflow-y-auto overflow-x-hidden bg-transparent">
       {/* Header Section with KPIs */}
-      <div className="mb-6">
+      <div className="mb-4 sm:mb-6">
         {/* Full Width Profit Metrics Card with DatePicker */}
-        <div className="glass-card-large p-4 mb-6 w-full">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-8">
+        <div className="glass-card-large p-3 sm:p-4 mb-4 sm:mb-6 w-full">
+          <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4">
+            <div className="flex flex-wrap items-center gap-4 sm:gap-6 lg:gap-8">
               <div>
                 <span className="text-xs text-white/50 uppercase tracking-wider">
                   Total Profit
@@ -290,9 +290,9 @@ function Dashboard() {
         </div>
 
         {/* Revenue Charts Section */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 sm:gap-4 md:gap-6 mb-4 sm:mb-6">
           {/* Area Chart - Spans 2 columns */}
-          <div className="glass-card-large p-6 lg:col-span-2">
+          <div className="glass-card-large p-3 sm:p-4 md:p-6 lg:col-span-2">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-lg font-semibold text-white">
                 Revenue Overview
@@ -391,7 +391,7 @@ function Dashboard() {
           </div>
 
           {/* Funnel Chart */}
-          <div className="glass-card-large p-4">
+          <div className="glass-card-large p-3 sm:p-4">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-lg font-semibold text-white">
                 Revenue Breakdown
@@ -468,7 +468,7 @@ function Dashboard() {
         </div>
 
         {/* KPI Cards Row */}
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-6">
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2 sm:gap-3 md:gap-4 mb-4 sm:mb-6">
           <KPICard
             title="Revenue"
             value="23.45M"
@@ -519,7 +519,7 @@ function Dashboard() {
         </div>
 
         {/* Best and Worst Performing Products */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4 mb-4 sm:mb-6">
           <div className="glass-card p-4">
             <div className="flex items-center justify-between mb-3">
               <h3 className="text-sm font-medium text-white/80">
@@ -575,7 +575,7 @@ function Dashboard() {
       </div>
 
       {/* Daily Product Sales Section */}
-      <div className="glass-card-large p-6 mb-6">
+      <div className="glass-card-large p-3 sm:p-4 md:p-6 mb-4 sm:mb-6">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-4">
             <h2 className="text-lg font-semibold text-white">

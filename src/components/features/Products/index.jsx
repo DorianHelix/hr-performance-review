@@ -864,7 +864,7 @@ function ProductsAdvanced() {
   }, [filteredProducts]);
 
   return (
-    <div className="flex flex-col h-full overflow-hidden">
+    <div className="flex flex-col h-screen max-h-screen overflow-hidden">
       {/* Section Header */}
       <SectionHeader 
         icon={Package}
