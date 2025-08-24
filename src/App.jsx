@@ -20,6 +20,7 @@ import FlowBuilder from "./components/FlowBuilder";
 import Analytics from "./components/Analytics";
 import Dashboard from "./components/Dashboard";
 import Employees from "./components/Employees";
+import OrganizationChart from "./components/Employees/OrganizationChart";
 import SettingsPage from "./components/Settings";
 import DatePicker from "./components/DatePicker";
 import DateRangePicker from "./components/DateRangePicker";
@@ -74,6 +75,12 @@ function Sidebar({ isCollapsed, onToggle, currentView, onViewChange, isDarkMode,
       label: 'Employees',
       icon: Users,
       active: currentView === 'employees'
+    },
+    {
+      id: 'org-structure',
+      label: 'Org Structure',
+      icon: Network,
+      active: currentView === 'org-structure'
     },
     {
       id: 'performance',
@@ -2180,6 +2187,8 @@ export default function App() {
       {currentView === 'employees' && <Employees isDarkMode={isDarkMode} />}
       
       {currentView === 'experiment' && <Experiment />}
+      
+      {currentView === 'org-structure' && <OrganizationChart isDarkMode={isDarkMode} />}
       
       {currentView === 'creative' && (
         <CreativePerformance 
