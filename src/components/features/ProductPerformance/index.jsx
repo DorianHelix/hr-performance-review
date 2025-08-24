@@ -442,7 +442,7 @@ const ProductPerformance = () => {
   const currentViewDescription = PERFORMANCE_VIEWS.find(v => v.id === selectedView)?.description || '';
 
   return (
-    <div className="flex flex-col h-screen overflow-y-auto">
+    <div className="flex flex-col h-screen overflow-hidden">
       <ProductPerformanceHeader
         dateRange={dateRange}
         setDateRange={setDateRange}
@@ -461,8 +461,9 @@ const ProductPerformance = () => {
         onPageChange={(page) => loadPerformanceData(page)}
       />
 
-      <div className={`flex-1 px-3 sm:px-4 md:px-6 pb-3 sm:pb-4 md:pb-6 mt-4 flex flex-col lg:flex-row ${rightSidebarOpen ? 'gap-3 md:gap-4' : ''}`}>
-        <div className="flex-1 flex flex-col">
+      <div className="flex-1 flex min-h-0 overflow-hidden relative">
+        {/* Main Table Area - Responsive positioning with absolute */}
+        <div className={`absolute inset-0 ${rightSidebarOpen ? 'lg:right-80' : 'right-0'} flex flex-col p-3 sm:p-4 md:p-6 transition-all`}>
           <ProductPerformanceFilters
             searchTerm={searchTerm}
             setSearchTerm={setSearchTerm}
@@ -489,16 +490,19 @@ const ProductPerformance = () => {
           />
         </div>
 
+        {/* Sidebar - Fixed width on the right */}
         {rightSidebarOpen && (
-          <ProductPerformanceSidebar
-            visibleColumns={visibleColumns}
-            setVisibleColumns={setVisibleColumns}
-            selectedView={selectedView}
-            viewDescription={currentViewDescription}
-            performanceInsights={performanceInsights}
-            onGenerateReport={() => setShowReportModal(true)}
-            onViewCharts={() => setShowChartModal(true)}
-          />
+          <div className="absolute right-0 top-0 bottom-0 w-80 p-3 sm:p-4 overflow-y-auto bg-black/20 border-l border-white/10">
+            <ProductPerformanceSidebar
+              visibleColumns={visibleColumns}
+              setVisibleColumns={setVisibleColumns}
+              selectedView={selectedView}
+              viewDescription={currentViewDescription}
+              performanceInsights={performanceInsights}
+              onGenerateReport={() => setShowReportModal(true)}
+              onViewCharts={() => setShowChartModal(true)}
+            />
+          </div>
         )}
       </div>
 

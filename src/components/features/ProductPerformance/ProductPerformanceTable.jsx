@@ -203,9 +203,9 @@ const ProductPerformanceTable = ({
   }
 
   return (
-    <div className="flex-1 glass-card-large overflow-hidden max-h-[calc(100vh-300px)]">
+    <div className="flex-1 glass-card-large overflow-hidden">
       <div className="overflow-x-auto overflow-y-auto h-full custom-scrollbar">
-        <table className="w-full min-w-[1000px]">
+        <table className="w-full min-w-[1200px]">
           <thead className="sticky top-0 glass-card">
             <tr className="border-b border-white/10">
               <th className="text-left p-3">

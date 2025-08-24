@@ -67,7 +67,7 @@ const ProductPerformanceSidebar = ({
   };
 
   return (
-    <div className="w-full lg:w-80 space-y-3 md:space-y-4 overflow-y-auto max-h-[calc(100vh-200px)] custom-scrollbar">
+    <div className="w-full space-y-3 md:space-y-4">
       {/* View Info */}
       <div className="glass-card-large p-4">
         <h3 className="text-sm font-semibold text-white mb-3 flex items-center gap-2">
