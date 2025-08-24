@@ -1423,9 +1423,70 @@ app.get('/api/orders', (req, res) => {
   });
 });
 
+// Get order count for a date range
+app.get('/api/orders/count', (req, res) => {
+  const startDate = req.query.start_date || '';
+  const endDate = req.query.end_date || '';
+  
+  let whereConditions = [];
+  let params = [];
+  
+  if (startDate) {
+    whereConditions.push('DATE(created_at) >= ?');
+    params.push(startDate);
+  }
+  
+  if (endDate) {
+    whereConditions.push('DATE(created_at) <= ?');
+    params.push(endDate);
+  }
+  
+  const whereClause = whereConditions.length > 0 
+    ? 'WHERE ' + whereConditions.join(' AND ')
+    : '';
+  
+  db.get(`
+    SELECT COUNT(*) as count 
+    FROM orders 
+    ${whereClause}
+  `, params, (err, result) => {
+    if (err) {
+      console.error('Error counting orders:', err);
+      return res.status(500).json({ error: 'Failed to count orders' });
+    }
+    
+    res.json({ count: result.count || 0 });
+  });
+});
+
+// Track sync progress (in-memory for simplicity)
+let syncProgress = {
+  status: 'idle',
+  processed: 0,
+  total: 0,
+  currentBatch: 0,
+  totalBatches: 0,
+  recentProducts: []
+};
+
+// Get sync progress
+app.get('/api/orders/sync-progress', (req, res) => {
+  res.json(syncProgress);
+});
+
 // Sync orders from Shopify
 app.post('/api/orders/sync', async (req, res) => {
-  const { fullSync = false } = req.body; // Accept fullSync parameter from request
+  const { fullSync = false, start_date, end_date } = req.body; // Accept parameters from request
+  
+  // Reset sync progress
+  syncProgress = {
+    status: 'syncing',
+    processed: 0,
+    total: 0,
+    currentBatch: 0,
+    totalBatches: 0,
+    recentProducts: []
+  };
   
   // Get Shopify credentials from settings
   db.all(`SELECT key, value FROM settings WHERE key IN ('shopify_store_domain', 'shopify_access_token')`, async (err, rows) => {
@@ -1446,7 +1507,11 @@ app.post('/api/orders/sync', async (req, res) => {
       // Determine sync start date based on sync mode
       let lastOrderDate;
       
-      if (fullSync) {
+      if (start_date) {
+        // Use provided start date
+        lastOrderDate = new Date(start_date).toISOString();
+        console.log(`📅 CUSTOM DATE SYNC - Syncing orders from: ${lastOrderDate}`);
+      } else if (fullSync) {
         console.log('🔄 FULL SYNC MODE - Fetching all historical orders');
         // For full sync, don't set a date filter (will get all orders)
         lastOrderDate = null;
@@ -1649,19 +1714,57 @@ app.post('/api/orders/sync', async (req, res) => {
         
         const data = await response.json();
         
+        // Update sync progress
+        syncProgress.currentBatch = pageCount;
+        syncProgress.totalBatches = maxPages;
+        syncProgress.total += data.orders.length;
+        
         // Save this batch of orders immediately
         console.log(`Saving batch of ${data.orders.length} orders to database...`);
         let batchSaved = 0;
         let batchSkipped = 0;
         
+        // Extract product information for visualization
+        const batchProducts = [];
+        
         for (const order of data.orders) {
+          // Extract products from line items
+          if (order.line_items) {
+            order.line_items.forEach(item => {
+              // Get image URL from various possible sources
+              let imageUrl = null;
+              if (item.product_exists && item.image && item.image.src) {
+                imageUrl = item.image.src;
+              } else if (item.properties) {
+                const imageProp = item.properties.find(p => p.name === '_image');
+                if (imageProp) imageUrl = imageProp.value;
+              }
+              
+              batchProducts.push({
+                id: item.product_id,
+                title: item.title || item.name,
+                name: item.title || item.name,
+                sku: item.sku,
+                vendor: item.vendor,
+                price: parseFloat(item.price),
+                quantity: item.quantity,
+                image: imageUrl,
+                thumbnail: imageUrl // Add thumbnail field too
+              });
+            });
+          }
+          
           const result = await saveOrderToDatabase(order);
           if (result) {
             batchSaved++;
+            syncProgress.processed++;
           } else {
             batchSkipped++;
           }
         }
+        
+        // Update recent products for visualization
+        syncProgress.recentProducts = batchProducts.slice(0, 50); // Keep only last 50 products
         
         // Update consecutive duplicates counter
         if (batchSaved === 0 && batchSkipped > 0) {
@@ -1707,6 +1810,11 @@ app.post('/api/orders/sync', async (req, res) => {
         console.log(`⚠️ Reached maximum page limit (${maxPages}). Stopping to prevent infinite loop.`);
       }
       console.log(`✅ Sync completed! Total fetched: ${allOrders.length} | Saved: ${savedCount} | Skipped: ${skippedCount}`);
+      
+      // Update sync progress to completed
+      syncProgress.status = 'completed';
+      syncProgress.total = allOrders.length;
+      syncProgress.processed = savedCount;
       
       // Return the orders
       db.all(`
@@ -1790,6 +1898,7 @@ app.post('/api/orders/sync', async (req, res) => {
       
     } catch (error) {
       console.error('Error syncing orders:', error);
+      syncProgress.status = 'error';
       res.status(500).json({ error: 'Failed to sync orders', message: error.message });
     }
   });
