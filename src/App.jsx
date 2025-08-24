@@ -22,7 +22,7 @@ import Dashboard from "./components/features/Dashboard";
 import Employees from "./components/features/Employees";
 import OrganizationChart from "./components/features/Employees/OrganizationChart";
 import SettingsPage from "./components/features/Settings";
-// import SyncVisualization from "./components/features/SyncVisualization"; // Temporarily disabled - causing crashes
+import SyncVisualization from "./components/features/SyncVisualization";
 import DatePicker from "./components/common/forms/DatePicker";
 import DateRangePicker from "./components/common/forms/DateRangePicker";
 import { ToastProvider } from "./components/common/ui/Toast";
@@ -131,14 +131,12 @@ function Sidebar({ isCollapsed, onToggle, currentView, onViewChange, isDarkMode,
       icon: BarChart3,
       active: currentView === 'analytics'
     },
-    /* Temporarily disabled - causing crashes
     {
       id: 'sync-viz',
       label: 'Sync Lab',
       icon: Zap,
       active: currentView === 'sync-viz'
     },
-    */
     {
       id: 'settings',
       label: 'Settings',
@@ -2291,7 +2289,7 @@ export default function App() {
       
       {currentView === 'analytics' && <Analytics />}
       
-      {/* {currentView === 'sync-viz' && <SyncVisualization />} */}
+      {currentView === 'sync-viz' && <SyncVisualization />}
       
       {currentView === 'settings' && <SettingsPage />}
       
