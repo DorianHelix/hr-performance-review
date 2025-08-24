@@ -393,7 +393,7 @@ function ProductsAdvanced() {
         product.sku?.toLowerCase().includes(term) ||
         product.vendor?.toLowerCase().includes(term) ||
         product.category?.toLowerCase().includes(term) ||
-        product.tags?.some(tag => tag.toLowerCase().includes(term))
+        (Array.isArray(product.tags) && product.tags.some(tag => tag.toLowerCase().includes(term)))
       );
     }
     

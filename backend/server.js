@@ -2015,6 +2015,249 @@ app.get('/api/product-performance/aggregate', (req, res) => {
   });
 });
 
+// === EXPERIMENT API ENDPOINTS ===
+
+// Test Types endpoints
+app.get('/api/test-types', (req, res) => {
+  // Return default test types for now
+  const testTypes = [
+    {
+      id: 'vct',
+      name: 'Video Creative Test',
+      short_name: 'VCT',
+      shortName: 'VCT',
+      description: 'Video creative performance testing',
+      color: 'purple',
+      icon_name: 'Video',
+      iconName: 'Video',
+      display_order: 1,
+      allowed_platforms: [
+        { platform_id: 'meta', is_default: true },
+        { platform_id: 'tiktok', is_default: true },
+        { platform_id: 'google', is_default: true }
+      ]
+    },
+    {
+      id: 'sct',
+      name: 'Static Creative Test',
+      short_name: 'SCT',
+      shortName: 'SCT',
+      description: 'Static image creative testing',
+      color: 'blue',
+      icon_name: 'Image',
+      iconName: 'Image',
+      display_order: 2,
+      allowed_platforms: [
+        { platform_id: 'meta', is_default: true },
+        { platform_id: 'pinterest', is_default: true },
+        { platform_id: 'linkedin', is_default: true }
+      ]
+    },
+    {
+      id: 'act',
+      name: 'Ad Copy Test',
+      short_name: 'ACT',
+      shortName: 'ACT',
+      description: 'Ad copy and messaging testing',
+      color: 'green',
+      icon_name: 'MessageSquare',
+      iconName: 'MessageSquare',
+      display_order: 3,
+      allowed_platforms: [
+        { platform_id: 'meta', is_default: true },
+        { platform_id: 'google', is_default: true },
+        { platform_id: 'linkedin', is_default: true }
+      ]
+    }
+  ];
+  res.json(testTypes);
+});
+
+app.get('/api/test-types/:id', (req, res) => {
+  const testTypes = {
+    'vct': {
+      id: 'vct',
+      name: 'Video Creative Test',
+      short_name: 'VCT',
+      shortName: 'VCT',
+      description: 'Video creative performance testing',
+      color: 'purple',
+      icon_name: 'Video',
+      iconName: 'Video',
+      display_order: 1,
+      allowed_platforms: [
+        { platform_id: 'meta', is_default: true },
+        { platform_id: 'tiktok', is_default: true },
+        { platform_id: 'google', is_default: true }
+      ]
+    },
+    'sct': {
+      id: 'sct',
+      name: 'Static Creative Test',
+      short_name: 'SCT',
+      shortName: 'SCT',
+      description: 'Static image creative testing',
+      color: 'blue',
+      icon_name: 'Image',
+      iconName: 'Image',
+      display_order: 2,
+      allowed_platforms: [
+        { platform_id: 'meta', is_default: true },
+        { platform_id: 'pinterest', is_default: true },
+        { platform_id: 'linkedin', is_default: true }
+      ]
+    },
+    'act': {
+      id: 'act',
+      name: 'Ad Copy Test',
+      short_name: 'ACT',
+      shortName: 'ACT',
+      description: 'Ad copy and messaging testing',
+      color: 'green',
+      icon_name: 'MessageSquare',
+      iconName: 'MessageSquare',
+      display_order: 3,
+      allowed_platforms: [
+        { platform_id: 'meta', is_default: true },
+        { platform_id: 'google', is_default: true },
+        { platform_id: 'linkedin', is_default: true }
+      ]
+    }
+  };
+  
+  const testType = testTypes[req.params.id];
+  if (!testType) {
+    return res.status(404).json({ error: 'Test type not found' });
+  }
+  res.json(testType);
+});
+
+app.post('/api/test-types', (req, res) => {
+  // For now, just return the sent data with an ID
+  const testType = {
+    ...req.body,
+    id: req.body.id || req.body.name.toLowerCase().replace(/\s+/g, '-')
+  };
+  res.status(201).json(testType);
+});
+
+// Platforms endpoints
+app.get('/api/platforms', (req, res) => {
+  const platforms = [
+    {
+      id: 'meta',
+      name: 'Meta',
+      description: 'Facebook and Instagram advertising',
+      color: 'blue',
+      icon_name: 'Facebook',
+      iconName: 'Facebook',
+      display_order: 1
+    },
+    {
+      id: 'tiktok',
+      name: 'TikTok',
+      description: 'TikTok advertising platform',
+      color: 'pink',
+      icon_name: 'Music',
+      iconName: 'Music',
+      display_order: 2
+    },
+    {
+      id: 'google',
+      name: 'Google',
+      description: 'Google Ads and YouTube',
+      color: 'red',
+      icon_name: 'Youtube',
+      iconName: 'Youtube',
+      display_order: 3
+    },
+    {
+      id: 'pinterest',
+      name: 'Pinterest',
+      description: 'Pinterest advertising',
+      color: 'red',
+      icon_name: 'Image',
+      iconName: 'Image',
+      display_order: 4
+    },
+    {
+      id: 'linkedin',
+      name: 'LinkedIn',
+      description: 'LinkedIn advertising',
+      color: 'blue',
+      icon_name: 'Linkedin',
+      iconName: 'Linkedin',
+      display_order: 5
+    }
+  ];
+  res.json(platforms);
+});
+
+app.get('/api/platforms/:id', (req, res) => {
+  const platforms = {
+    'meta': {
+      id: 'meta',
+      name: 'Meta',
+      description: 'Facebook and Instagram advertising',
+      color: 'blue',
+      icon_name: 'Facebook',
+      iconName: 'Facebook',
+      display_order: 1
+    },
+    'tiktok': {
+      id: 'tiktok',
+      name: 'TikTok',
+      description: 'TikTok advertising platform',
+      color: 'pink',
+      icon_name: 'Music',
+      iconName: 'Music',
+      display_order: 2
+    },
+    'google': {
+      id: 'google',
+      name: 'Google',
+      description: 'Google Ads and YouTube',
+      color: 'red',
+      icon_name: 'Youtube',
+      iconName: 'Youtube',
+      display_order: 3
+    },
+    'pinterest': {
+      id: 'pinterest',
+      name: 'Pinterest',
+      description: 'Pinterest advertising',
+      color: 'red',
+      icon_name: 'Image',
+      iconName: 'Image',
+      display_order: 4
+    },
+    'linkedin': {
+      id: 'linkedin',
+      name: 'LinkedIn',
+      description: 'LinkedIn advertising',
+      color: 'blue',
+      icon_name: 'Linkedin',
+      iconName: 'Linkedin',
+      display_order: 5
+    }
+  };
+  
+  const platform = platforms[req.params.id];
+  if (!platform) {
+    return res.status(404).json({ error: 'Platform not found' });
+  }
+  res.json(platform);
+});
+
+app.post('/api/platforms', (req, res) => {
+  // For now, just return the sent data with an ID
+  const platform = {
+    ...req.body,
+    id: req.body.id || req.body.name.toLowerCase().replace(/\s+/g, '-')
+  };
+  res.status(201).json(platform);
+});
+
 // Start server
 app.listen(PORT, () => {
   console.log(`🚀 Server running on http://localhost:${PORT}`);
