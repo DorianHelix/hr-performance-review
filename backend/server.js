@@ -2040,13 +2040,30 @@ app.get('/api/product-performance/aggregate', (req, res) => {
       p.featured_image as image_url,
       p.images as images_json,
       p.sku,
+      p.cost as cost_per_unit,
       SUM(pp.revenue) as total_revenue,
       SUM(pp.units_sold) as total_units,
       SUM(pp.orders_count) as total_orders,
       AVG(pp.revenue / NULLIF(pp.units_sold, 0)) as avg_price,
-      COUNT(DISTINCT pp.date) as days_sold
+      COUNT(DISTINCT pp.date) as days_sold,
+      -- Enhanced metrics from product_performance_enhanced if available
+      SUM(ppe.gross_sales) as gross_sales,
+      SUM(ppe.net_sales) as net_sales,
+      SUM(ppe.total_discounts) as total_discounts,
+      SUM(ppe.total_cost) as total_cogs,
+      SUM(ppe.gross_profit) as gross_profit,
+      SUM(ppe.net_profit) as net_profit,
+      AVG(ppe.margin_percentage) as avg_margin,
+      SUM(ppe.returns_amount) as returns_amount,
+      SUM(ppe.refunds_amount) as refunds_amount,
+      SUM(ppe.taxes) as total_taxes,
+      SUM(ppe.shipping_charges) as total_shipping,
+      SUM(ppe.unique_customers) as unique_customers,
+      AVG(ppe.conversion_rate) as avg_conversion_rate,
+      AVG(ppe.average_order_value) as avg_order_value
     FROM product_performance pp
     LEFT JOIN products p ON pp.product_id = p.shopify_id
+    LEFT JOIN product_performance_enhanced ppe ON pp.product_id = ppe.product_id AND pp.date = ppe.date
     ${whereClause}
     GROUP BY pp.product_id
     ORDER BY total_revenue DESC
@@ -2072,10 +2089,23 @@ app.get('/api/product-performance/aggregate', (req, res) => {
       // Use first image from array if no featured image
       const imageUrl = row.image_url || (images && images.length > 0 ? images[0] : null);
       
+      // Calculate derived metrics
+      const cogs = row.total_cogs || (row.cost_per_unit * row.total_units) || 0;
+      const grossProfit = row.gross_profit || (row.total_revenue - cogs) || 0;
+      const margin = row.avg_margin || (row.total_revenue > 0 ? (grossProfit / row.total_revenue * 100) : 0);
+      
       return {
         ...row,
         images: images,
         image_url: imageUrl,
+        // Ensure all metrics are present
+        gross_sales: row.gross_sales || row.total_revenue || 0,
+        net_sales: row.net_sales || (row.total_revenue - (row.total_discounts || 0)) || 0,
+        total_cogs: cogs,
+        gross_profit: grossProfit,
+        net_profit: row.net_profit || grossProfit || 0,
+        margin: margin,
+        cost_per_unit: row.cost_per_unit || 0,
         // Remove the raw JSON field
         images_json: undefined
       };

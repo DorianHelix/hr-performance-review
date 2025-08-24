@@ -16,14 +16,20 @@ export const PERFORMANCE_COLUMNS = [
   { key: 'repeatOrders', label: 'Repeat Orders', category: 'Sales', default: false, format: 'number' },
   
   // Revenue & Profit
-  { key: 'grossSales', label: 'Gross Sales', category: 'Revenue', default: true, format: 'currency' },
-  { key: 'netSales', label: 'Net Sales', category: 'Revenue', default: true, format: 'currency' },
-  { key: 'discounts', label: 'Discounts', category: 'Revenue', default: false, format: 'currency' },
-  { key: 'returns', label: 'Returns', category: 'Revenue', default: false, format: 'currency' },
-  { key: 'taxes', label: 'Taxes', category: 'Revenue', default: false, format: 'currency' },
-  { key: 'shipping', label: 'Shipping Revenue', category: 'Revenue', default: false, format: 'currency' },
-  { key: 'profit', label: 'Profit', category: 'Revenue', default: true, format: 'currency', calculated: true },
-  { key: 'margin', label: 'Margin %', category: 'Revenue', default: true, format: 'percentage', calculated: true },
+  { key: 'gross_sales', label: 'Gross Sales', category: 'Revenue', default: true, format: 'currency' },
+  { key: 'net_sales', label: 'Net Sales', category: 'Revenue', default: true, format: 'currency' },
+  { key: 'total_discounts', label: 'Discounts', category: 'Revenue', default: false, format: 'currency' },
+  { key: 'returns_amount', label: 'Returns', category: 'Revenue', default: false, format: 'currency' },
+  { key: 'total_taxes', label: 'Taxes', category: 'Revenue', default: false, format: 'currency' },
+  { key: 'total_shipping', label: 'Shipping Revenue', category: 'Revenue', default: false, format: 'currency' },
+  
+  // Cost & Profit metrics
+  { key: 'cost_per_unit', label: 'Cost per Unit', category: 'Cost', default: true, format: 'currency', tooltip: 'Cost of Goods Sold per unit' },
+  { key: 'total_cogs', label: 'Total COGS', category: 'Cost', default: true, format: 'currency', tooltip: 'Total Cost of Goods Sold' },
+  { key: 'gross_profit', label: 'Gross Profit', category: 'Profit', default: true, format: 'currency' },
+  { key: 'net_profit', label: 'Net Profit', category: 'Profit', default: true, format: 'currency' },
+  { key: 'margin', label: 'Margin %', category: 'Profit', default: true, format: 'percentage' },
+  { key: 'avg_margin', label: 'Avg Margin %', category: 'Profit', default: false, format: 'percentage' },
   
   // Refunds & Returns (from Orders API)
   { key: 'refundedAmount', label: 'Refunded Amount', category: 'Returns', default: false, format: 'currency' },
@@ -65,16 +71,24 @@ export const PERFORMANCE_VIEWS = [
   {
     id: 'overview',
     name: 'Performance Overview',
-    description: 'Key sales and revenue metrics',
-    columns: ['product_title', 'total_revenue', 'total_units', 'total_orders', 'avg_price', 'margin', 'salesTrend'],
+    description: 'Key sales and revenue metrics with cost analysis',
+    columns: ['product_title', 'total_revenue', 'total_units', 'cost_per_unit', 'total_cogs', 'gross_profit', 'margin'],
     icon: 'TrendingUp'
   },
   {
     id: 'revenue-analysis',
     name: 'Revenue Analysis',
     description: 'Detailed revenue breakdown',
-    columns: ['product_title', 'total_revenue', 'total_units', 'avg_price', 'days_sold'],
+    columns: ['product_title', 'gross_sales', 'net_sales', 'total_discounts', 'total_taxes', 'total_shipping'],
     icon: 'DollarSign',
+    filter: (product) => product.total_revenue > 0
+  },
+  {
+    id: 'cost-analysis',
+    name: 'Cost & Profit Analysis',
+    description: 'COGS and profit margins analysis',
+    columns: ['product_title', 'total_units', 'cost_per_unit', 'total_cogs', 'gross_profit', 'net_profit', 'margin'],
+    icon: 'Calculator',
     filter: (product) => product.total_revenue > 0
   },
   {
