@@ -1609,10 +1609,10 @@ export default function App() {
   const [expanded, setExpanded] = useState({});
   const [quickScoreModal, setQuickScoreModal] = useState(null);
   
-  // Theme State
+  // Theme State - sync with theme system
   const [isDarkMode, setIsDarkMode] = useState(() => {
-    const saved = localStorage.getItem('theme');
-    return saved ? saved === 'dark' : true; // Default to dark mode
+    const savedTheme = localStorage.getItem('selectedTheme') || 'default';
+    return savedTheme !== 'light'; // Only light theme is not dark mode
   });
   
   // Initialize global test configuration on mount
@@ -1628,16 +1628,36 @@ export default function App() {
     }
   }, []);
 
-  // Initialize theme on mount
+  // Initialize and sync theme on mount
   useEffect(() => {
     const savedTheme = localStorage.getItem('selectedTheme') || 'default';
     applyTheme(savedTheme);
+    
+    // Apply light-theme class to body if light theme
+    if (savedTheme === 'light') {
+      document.body.classList.add('light-theme');
+      document.documentElement.setAttribute('data-theme', 'light');
+    } else {
+      document.body.classList.remove('light-theme');
+      document.documentElement.setAttribute('data-theme', 'dark');
+    }
   }, []);
   
-  // Save theme preference
+  // Handle theme toggle
   useEffect(() => {
+    const themeName = isDarkMode ? 'default' : 'light';
+    applyTheme(themeName);
+    
+    // Apply light-theme class to body
+    if (!isDarkMode) {
+      document.body.classList.add('light-theme');
+      document.documentElement.setAttribute('data-theme', 'light');
+    } else {
+      document.body.classList.remove('light-theme');
+      document.documentElement.setAttribute('data-theme', 'dark');
+    }
+    
     localStorage.setItem('theme', isDarkMode ? 'dark' : 'light');
-    document.documentElement.setAttribute('data-theme', isDarkMode ? 'dark' : 'light');
   }, [isDarkMode]);
   
   // Sidebar state

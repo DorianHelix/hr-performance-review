@@ -2,9 +2,64 @@
 // Each theme contains color variables for consistent styling across the app
 
 const themes = {
-  // Default theme (current colors)
+  // Light theme (clean and professional)
+  light: {
+    name: 'Light',
+    colors: {
+      // Primary colors
+      primary: '#6d28d9',
+      primaryLight: '#7c3aed',
+      primaryDark: '#581c87',
+      
+      // Secondary colors
+      secondary: '#0891b2',
+      secondaryLight: '#06b6d4',
+      secondaryDark: '#0e7490',
+      
+      // Accent colors
+      accent: '#ea580c',
+      accentLight: '#f97316',
+      accentDark: '#c2410c',
+      
+      // Background colors
+      bgPrimary: '#ffffff',
+      bgSecondary: '#f9fafb',
+      bgTertiary: '#f3f4f6',
+      
+      // Glass effect colors
+      glassBg: 'rgba(255, 255, 255, 0.85)',
+      glassBorder: 'rgba(209, 213, 219, 0.5)',
+      glassHover: 'rgba(255, 255, 255, 0.95)',
+      
+      // Text colors
+      textPrimary: '#111827',
+      textSecondary: '#4b5563',
+      textTertiary: '#6b7280',
+      
+      // Status colors
+      success: '#047857',
+      warning: '#b45309',
+      error: '#b91c1c',
+      info: '#1d4ed8',
+      
+      // Chart colors
+      chart1: '#6d28d9',
+      chart2: '#0891b2',
+      chart3: '#047857',
+      chart4: '#ea580c',
+      chart5: '#b91c1c',
+      chart6: '#1d4ed8',
+      
+      // Additional light mode specific colors
+      borderColor: '#d1d5db',
+      hoverBg: '#f3f4f6',
+      shadowColor: 'rgba(0, 0, 0, 0.1)',
+    }
+  },
+  
+  // Default theme (dark mode)
   default: {
-    name: 'Default',
+    name: 'Dark',
     colors: {
       // Primary colors
       primary: '#a855f7',
@@ -49,6 +104,11 @@ const themes = {
       chart4: '#f59e0b',
       chart5: '#ef4444',
       chart6: '#3b82f6',
+      
+      // Additional dark mode specific colors
+      borderColor: 'rgba(255, 255, 255, 0.1)',
+      hoverBg: 'rgba(255, 255, 255, 0.05)',
+      shadowColor: 'rgba(0, 0, 0, 0.5)',
     }
   },
   

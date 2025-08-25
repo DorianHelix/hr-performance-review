@@ -939,13 +939,13 @@ function OrganizationChart({ isDarkMode }) {
                   localStorage.removeItem('hr_org_structure');
                   localStorage.removeItem('hr_unit_library');
                 }}
-                className="px-3 py-1.5 sm:px-4 sm:py-2 rounded-lg sm:rounded-xl bg-red-500/20 border border-red-500/30 text-red-400 hover:bg-red-500/30 transition-colors text-xs sm:text-sm"
+                className="px-3 py-1.5 sm:px-4 sm:py-2 rounded-lg sm:rounded-xl bg-red-50 dark:bg-red-500/20 border border-red-200 dark:border-red-500/30 text-red-700 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-500/30 transition-colors text-xs sm:text-sm font-medium"
               >
                 Clear All
               </button>
               <button
                 onClick={() => setOrgStructure(null)}
-                className="px-3 py-1.5 sm:px-4 sm:py-2 rounded-lg sm:rounded-xl bg-orange-500/20 border border-orange-500/30 text-orange-400 hover:bg-orange-500/30 transition-colors text-xs sm:text-sm"
+                className="px-3 py-1.5 sm:px-4 sm:py-2 rounded-lg sm:rounded-xl bg-orange-50 dark:bg-orange-500/20 border border-orange-200 dark:border-orange-500/30 text-orange-700 dark:text-orange-400 hover:bg-orange-100 dark:hover:bg-orange-500/30 transition-colors text-xs sm:text-sm font-medium"
               >
                 Clear Structure Only
               </button>
@@ -970,7 +970,7 @@ function OrganizationChart({ isDarkMode }) {
                 </div>
                 <div className="flex items-center gap-2 md:gap-3">
                   {/* Zoom Controls */}
-                  <div className="flex items-center gap-2 bg-black/40 rounded-lg p-1">
+                  <div className="flex items-center gap-2 bg-white/10 rounded-lg p-1">
                     <button
                       onClick={() => setChartZoom(Math.max(0.5, chartZoom - 0.1))}
                       className="p-1.5 rounded hover:bg-white/10 transition-colors"
@@ -1024,7 +1024,7 @@ function OrganizationChart({ isDarkMode }) {
               
               {/* Scrollable chart container with custom scrollbar */}
               <div 
-                className="flex-1 min-h-0 overflow-auto rounded-lg border border-white/10 bg-black/20 relative org-chart-scroll"
+                className="flex-1 min-h-0 overflow-auto rounded-lg border border-white/10 bg-white/5 relative org-chart-scroll"
                 style={{
                   scrollbarWidth: 'thin',
                   scrollbarColor: 'rgba(255, 255, 255, 0.3) rgba(255, 255, 255, 0.1)'
@@ -1095,7 +1095,7 @@ function OrganizationChart({ isDarkMode }) {
 
           {/* Right Sidebar - Responsive width and visibility */}
           {showSidebar && (
-            <div className="absolute right-0 top-0 bottom-0 w-full sm:w-80 lg:w-96 border-l border-white/10 p-3 sm:p-4 md:p-6 overflow-y-auto bg-[#1a1a1a] transition-all z-40">
+            <div className="absolute right-0 top-0 bottom-0 w-full sm:w-80 lg:w-96 border-l border-white/10 p-3 sm:p-4 md:p-6 overflow-y-auto glass-sidebar transition-all z-40">
             <div className="space-y-6">
               {/* Search and Filter */}
               <div className="space-y-3">
