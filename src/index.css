@@ -1402,6 +1402,16 @@ input[type="date"].glass-input::-webkit-calendar-picker-indicator:hover {
   animation: slide-in-right 0.3s ease-out;
 }
 
+/* NavLink hover effects */
+a.hover-nav-item:not(.nav-active):hover {
+  background: var(--color-glassHover) !important;
+  color: var(--color-textPrimary) !important;
+}
+
+a.hover-nav-item.nav-active {
+  pointer-events: none;
+}
+
 /* Custom scrollbar for tables */
 .custom-scrollbar {
   scrollbar-width: thin;

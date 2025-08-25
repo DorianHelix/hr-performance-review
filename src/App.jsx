@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import { Routes, Route, NavLink, useNavigate, useLocation, Navigate } from "react-router-dom";
 import {
   Download, Trash2, Pencil, Settings, PlusCircle, X,
   ChevronLeft, ChevronRight, Calendar, Plus, Users, 
@@ -63,85 +64,87 @@ function CompanyLogo({ className = "w-8 h-8" }) {
 /* -----------------------------------------------------------
    Sidebar Component
 ----------------------------------------------------------- */
-function Sidebar({ isCollapsed, onToggle, currentView, onViewChange, isDarkMode, onThemeToggle, isMobile }) {
+function Sidebar({ isCollapsed, onToggle, isDarkMode, onThemeToggle, isMobile }) {
+  const location = useLocation();
+  
   const menuItems = [
     {
       id: 'dashboard',
+      path: '/dashboard',
       label: 'Dashboard', 
-      icon: Home,
-      active: currentView === 'dashboard'
+      icon: Home
     },
     {
       id: 'employees',
+      path: '/employees',
       label: 'Employees',
-      icon: Users,
-      active: currentView === 'employees'
+      icon: Users
     },
     {
       id: 'org-structure',
+      path: '/org-structure',
       label: 'Org Structure',
-      icon: Network,
-      active: currentView === 'org-structure'
+      icon: Network
     },
     {
       id: 'performance',
+      path: '/performance',
       label: 'Performance',
-      icon: BarChart3,
-      active: currentView === 'performance'
+      icon: BarChart3
     },
     {
       id: 'experiment',
+      path: '/experiment',
       label: 'Experiment',
-      icon: Beaker,
-      active: currentView === 'experiment'
+      icon: Beaker
     },
     {
       id: 'creative',
+      path: '/creative',
       label: 'Creative',
-      icon: Sparkles,
-      active: currentView === 'creative'
+      icon: Sparkles
     },
     {
       id: 'products',
+      path: '/products',
       label: 'Products',
-      icon: Package,
-      active: currentView === 'products'
+      icon: Package
     },
     {
       id: 'orders',
+      path: '/orders',
       label: 'Orders',
-      icon: ShoppingCart,
-      active: currentView === 'orders'
+      icon: ShoppingCart
     },
     {
       id: 'product-performance',
+      path: '/product-performance',
       label: 'Product Performance',
-      icon: TrendingUp,
-      active: currentView === 'product-performance'
+      icon: TrendingUp
     },
     {
       id: 'flowbuilder',
+      path: '/flowbuilder',
       label: 'Flow Builder',
-      icon: GitBranch,
-      active: currentView === 'flowbuilder'
+      icon: GitBranch
     },
     {
       id: 'analytics',
+      path: '/analytics',
       label: 'Analytics',
-      icon: BarChart3,
-      active: currentView === 'analytics'
+      icon: BarChart3
     },
     {
       id: 'sync-viz',
+      path: '/sync-viz',
       label: 'Sync Lab',
-      icon: Zap,
-      active: currentView === 'sync-viz'
+      icon: Zap
     },
     {
       id: 'settings',
+      path: '/settings',
       label: 'Settings',
-      icon: Settings,
-      active: currentView === 'settings'
+      icon: Settings
     }
   ];
 
@@ -173,46 +176,45 @@ function Sidebar({ isCollapsed, onToggle, currentView, onViewChange, isDarkMode,
             const Icon = item.icon;
             return (
               <li key={item.id}>
-                <button
-                  onClick={() => onViewChange(item.id)}
-                  className={`${isCollapsed ? 'flex-none min-w-[48px] sm:min-w-[56px] max-w-[48px] sm:max-w-[56px] h-12 sm:h-14 justify-center p-0' : 'w-full flex gap-2 sm:gap-4 p-3 sm:p-4'} flex items-center rounded-xl sm:rounded-2xl transition-all duration-300 group relative overflow-hidden hover-nav-item`}
-                  style={{
-                    '--bg-active': `linear-gradient(to right, var(--color-primary)33, var(--color-secondary)33)`,
-                    '--bg-hover': 'var(--color-glassHover)',
-                    background: item.active ? 'var(--bg-active)' : 'transparent',
-                    borderColor: item.active ? 'var(--color-primary)66' : 'transparent',
-                    color: item.active ? 'var(--color-textPrimary)' : 'var(--color-textSecondary)',
-                  }}
-                  onMouseEnter={(e) => {
-                    if (!item.active) {
-                      e.currentTarget.style.background = 'var(--color-glassHover)';
-                      e.currentTarget.style.color = 'var(--color-textPrimary)';
-                    }
-                  }}
-                  onMouseLeave={(e) => {
-                    if (!item.active) {
-                      e.currentTarget.style.background = 'transparent';
-                      e.currentTarget.style.color = 'var(--color-textSecondary)';
-                    }
-                  }}
+                <NavLink
+                  to={item.path}
+                  className={({ isActive }) => `${isCollapsed ? 'flex-none min-w-[48px] sm:min-w-[56px] max-w-[48px] sm:max-w-[56px] h-12 sm:h-14 justify-center p-0' : 'w-full flex gap-2 sm:gap-4 p-3 sm:p-4'} flex items-center rounded-xl sm:rounded-2xl transition-all duration-300 group relative overflow-hidden hover-nav-item ${
+                    isActive ? 'nav-active' : ''
+                  }`}
                   title={isCollapsed ? item.label : ''}
                 >
-                  <div className="p-2 sm:p-3 w-12 h-12 sm:w-14 sm:h-14 rounded-lg sm:rounded-xl transition-all duration-300 flex items-center justify-center group-hover:scale-110"
-                    style={{
-                      background: item.active 
-                        ? `linear-gradient(to bottom right, var(--color-primary), var(--color-primaryDark))` 
-                        : 'var(--color-glassBg)',
-                      boxShadow: item.active ? '0 10px 20px var(--color-primary)33' : 'none'
-                    }}>
-                    <Icon size={isMobile ? 18 : 20} className="flex-shrink-0" style={{ color: item.active ? 'white' : 'var(--color-textSecondary)' }} />
-                  </div>
-                  {!isCollapsed && (
-                    <span className="font-semibold text-sm sm:text-lg tracking-wide truncate" style={{ color: 'inherit' }}>{item.label}</span>
+                  {({ isActive }) => (
+                    <div
+                      style={{
+                        '--bg-active': `linear-gradient(to right, var(--color-primary)33, var(--color-secondary)33)`,
+                        '--bg-hover': 'var(--color-glassHover)',
+                        background: isActive ? 'var(--bg-active)' : 'transparent',
+                        borderColor: isActive ? 'var(--color-primary)66' : 'transparent',
+                        color: isActive ? 'var(--color-textPrimary)' : 'var(--color-textSecondary)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        width: '100%',
+                        height: '100%'
+                      }}
+                    >
+                      <div className="p-2 sm:p-3 w-12 h-12 sm:w-14 sm:h-14 rounded-lg sm:rounded-xl transition-all duration-300 flex items-center justify-center group-hover:scale-110"
+                        style={{
+                          background: isActive 
+                            ? `linear-gradient(to bottom right, var(--color-primary), var(--color-primaryDark))` 
+                            : 'var(--color-glassBg)',
+                          boxShadow: isActive ? '0 10px 20px var(--color-primary)33' : 'none'
+                        }}>
+                        <Icon size={isMobile ? 18 : 20} className="flex-shrink-0" style={{ color: isActive ? 'white' : 'var(--color-textSecondary)' }} />
+                      </div>
+                      {!isCollapsed && (
+                        <span className="font-semibold text-sm sm:text-lg tracking-wide truncate" style={{ color: 'inherit' }}>{item.label}</span>
+                      )}
+                      {isActive && (
+                        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent animate-pulse rounded-2xl" />
+                      )}
+                    </div>
                   )}
-                  {item.active && (
-                    <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent animate-pulse rounded-2xl" />
-                  )}
-                </button>
+                </NavLink>
               </li>
             );
           })}
@@ -1662,7 +1664,6 @@ export default function App() {
   
   // Sidebar state
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-  const [currentView, setCurrentView] = useState('performance');
   
   const scrollRef = useRef(null);
   const weeks = useMemo(() => getWeeksInRange(startDate, endDate), [startDate, endDate]);
@@ -2217,8 +2218,6 @@ export default function App() {
         <Sidebar 
           isCollapsed={sidebarCollapsed}
           onToggle={() => setSidebarCollapsed(!sidebarCollapsed)}
-          currentView={currentView}
-          onViewChange={setCurrentView}
           isDarkMode={isDarkMode}
           onThemeToggle={() => setIsDarkMode(!isDarkMode)}
           isMobile={isMobile}
@@ -2242,79 +2241,69 @@ export default function App() {
             <Menu size={20} />
           </button>
         )}
-      {/* Conditional Content Based on Current View */}
-      {currentView === 'dashboard' && <Dashboard />}
-      
-      {currentView === 'employees' && <Employees isDarkMode={isDarkMode} />}
-      
-      {currentView === 'experiment' && <Experiment />}
-      
-      {currentView === 'org-structure' && <OrganizationChart isDarkMode={isDarkMode} />}
-      
-      {currentView === 'creative' && (
-        <CreativePerformance 
-          employees={(() => {
-            // Only show products that have been pushed from experiments (have creative scores)
-            const creativeScores = JSON.parse(localStorage.getItem('creativeScores') || '{}');
-            return products.filter(product => {
-              return creativeScores[product.id] && Object.keys(creativeScores[product.id]).length > 0;
-            });
-          })()}  // Pass filtered products that have experiment data
-          categories={testCategories}  // Use test categories for creative
-          setCategories={setTestCategories}  // Allow updating test categories
-          weeks={days}  // Pass days instead of weeks for daily view
-          startDate={startDate}
-          setStartDate={setStartDate}
-          endDate={endDate}
-          setEndDate={setEndDate}
-          cellSize={cellSize}
-          setCellSize={setCellSize}
-          filterMinTier={filterMinTier}
-          setFilterMinTier={setFilterMinTier}
-          expanded={expanded}
-          toggleExpand={toggleExpand}
-          newEmployeeName={newEmployeeName}
-          setNewEmployeeName={setNewEmployeeName}
-          bulkOpen={bulkOpen}
-          setBulkOpen={setBulkOpen}
-          bulkText={bulkText}
-          setBulkText={setBulkText}
-          handleAddEmployee={handleAddEmployee}
-          handleBulkAdd={handleBulkAdd}
-          handleDeleteEmployee={handleDeleteEmployee}
-          setWeeklyEvalModal={setWeeklyEvalModal}
-          setQuickScoreModal={setQuickScoreModal}
-          setEmployeeSettingsModal={setEmployeeSettingsModal}
-          setCategoryModal={setCategoryModal}
-          getWeeklyScore={getWeeklyScore}
-          getEmployeeAverage={getEmployeeAverage}
-          getCategoryScore={getCategoryScore}
-          exportData={exportData}
-          loading={loading}
-          DateRangePicker={DateRangePicker}
-          presetThisMonth={presetThisMonth}
-          presetPrevMonth={presetPrevMonth}
-          presetNextMonth={presetNextMonth}
-          isDarkMode={isDarkMode}
-        />
-      )}
-      
-      {currentView === 'products' && <ProductsAdvanced />}
-      
-      {currentView === 'orders' && <Orders />}
-      
-      {currentView === 'product-performance' && <ProductPerformance />}
-      
-      {currentView === 'flowbuilder' && <FlowBuilder />}
-      
-      {currentView === 'analytics' && <Analytics />}
-      
-      {currentView === 'sync-viz' && <SyncVisualization />}
-      
-      {currentView === 'settings' && <SettingsPage />}
-      
-      {currentView === 'performance' && (
-        <div className="flex h-full flex-col p-3 sm:p-4 md:p-6">
+      {/* Router Content */}
+      <Routes>
+        <Route path="/" element={<Navigate to="/dashboard" replace />} />
+        <Route path="/dashboard" element={<Dashboard />} />
+        <Route path="/employees" element={<Employees isDarkMode={isDarkMode} />} />
+        <Route path="/experiment" element={<Experiment />} />
+        <Route path="/org-structure" element={<OrganizationChart isDarkMode={isDarkMode} />} />
+        <Route path="/creative" element={
+          <CreativePerformance 
+            employees={(() => {
+              // Only show products that have been pushed from experiments (have creative scores)
+              const creativeScores = JSON.parse(localStorage.getItem('creativeScores') || '{}');
+              return products.filter(product => {
+                return creativeScores[product.id] && Object.keys(creativeScores[product.id]).length > 0;
+              });
+            })()}  // Pass filtered products that have experiment data
+            categories={testCategories}  // Use test categories for creative
+            setCategories={setTestCategories}  // Allow updating test categories
+            weeks={days}  // Pass days instead of weeks for daily view
+            startDate={startDate}
+            setStartDate={setStartDate}
+            endDate={endDate}
+            setEndDate={setEndDate}
+            cellSize={cellSize}
+            setCellSize={setCellSize}
+            filterMinTier={filterMinTier}
+            setFilterMinTier={setFilterMinTier}
+            expanded={expanded}
+            toggleExpand={toggleExpand}
+            newEmployeeName={newEmployeeName}
+            setNewEmployeeName={setNewEmployeeName}
+            bulkOpen={bulkOpen}
+            setBulkOpen={setBulkOpen}
+            bulkText={bulkText}
+            setBulkText={setBulkText}
+            handleAddEmployee={handleAddEmployee}
+            handleBulkAdd={handleBulkAdd}
+            handleDeleteEmployee={handleDeleteEmployee}
+            setWeeklyEvalModal={setWeeklyEvalModal}
+            setQuickScoreModal={setQuickScoreModal}
+            setEmployeeSettingsModal={setEmployeeSettingsModal}
+            setCategoryModal={setCategoryModal}
+            getWeeklyScore={getWeeklyScore}
+            getEmployeeAverage={getEmployeeAverage}
+            getCategoryScore={getCategoryScore}
+            exportData={exportData}
+            loading={loading}
+            DateRangePicker={DateRangePicker}
+            presetThisMonth={presetThisMonth}
+            presetPrevMonth={presetPrevMonth}
+            presetNextMonth={presetNextMonth}
+            isDarkMode={isDarkMode}
+          />
+        } />
+        <Route path="/products" element={<ProductsAdvanced />} />
+        <Route path="/orders" element={<Orders />} />
+        <Route path="/product-performance" element={<ProductPerformance />} />
+        <Route path="/flowbuilder" element={<FlowBuilder />} />
+        <Route path="/analytics" element={<Analytics />} />
+        <Route path="/sync-viz" element={<SyncVisualization />} />
+        <Route path="/settings" element={<SettingsPage />} />
+        <Route path="/performance" element={
+          <div className="flex h-full flex-col p-3 sm:p-4 md:p-6">
           <header className="glass-card-large mb-4 sm:mb-6 p-4 sm:p-6">
             <div className="flex flex-col gap-3 sm:gap-4 lg:flex-row lg:items-center lg:justify-between">
               <div>
@@ -2709,7 +2698,8 @@ export default function App() {
 
           {/* Modals - End of Performance View */}
         </div>
-      )}
+        } />
+      </Routes>
 
       {/* Global Modals */}
       {quickScoreModal && (
